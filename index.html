@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>صندوق خانواده</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#6B2D5C">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="صندوق خانواده">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{ font-family:'Vazirmatn',sans-serif; min-height:100vh; }
+
+/* ================= THEMES ================= */
+body[data-theme="grape"]{
+  --bg:#F7F1F6; --bg-deep:#ECE0EA; --line:#E0CCDE; --ink:#2E1A38; --ink-soft:#6E5A78;
+  --accent:#6B2D5C; --accent-deep:#4A1F40; --accent2:#5C7A3D; --accent2-deep:#3F5828;
+  --credit:#4C7A3D; --debit:#8B3A56; --card-bg:#FFFFFF;
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(ellipse 700px 400px at 100% -10%, rgba(107,45,92,0.10), transparent 60%),
+    radial-gradient(ellipse 600px 400px at -10% 110%, rgba(92,122,61,0.10), transparent 55%);
+  background-attachment:fixed;
+}
+body[data-theme="classic"]{
+  --bg:#F1ECDC; --bg-deep:#E8E1CC; --line:#C3CBB4; --ink:#1F2D24; --ink-soft:#5B6A5C;
+  --accent:#A9822C; --accent-deep:#8A6A20; --accent2:#3B6B4A; --accent2-deep:#2D5138;
+  --credit:#3B6B4A; --debit:#8B3A3A; --card-bg:#FBF9F2;
+  background-color:var(--bg);
+  background-image: linear-gradient(var(--line) 1px, transparent 1px);
+  background-size: 100% 40px; background-position: 0 120px;
+}
+body[data-theme="slate"]{
+  --bg:#111826; --bg-deep:#0B0F17; --line:#243046; --ink:#E9EEF5; --ink-soft:#8B98AD;
+  --accent:#2FA6A0; --accent-deep:#1F7B76; --accent2:#5B84DA; --accent2-deep:#3D5FAE;
+  --credit:#3FBF8F; --debit:#E06B84; --card-bg:#161F30;
+  background-color:var(--bg);
+  background-image: radial-gradient(circle at 15% -10%, rgba(47,166,160,0.14), transparent 50%);
+  background-attachment:fixed;
+}
+
+/* ================= LAYOUT ================= */
+.wrap{ max-width:520px; margin:0 auto; padding:26px 20px 60px 20px; position:relative; }
+.storage-banner{
+  display:none;
+  background:#5A1C1C; color:#FFE8E8; border-radius:10px; padding:14px; margin-bottom:16px;
+  font-size:12.5px; line-height:2; text-align:right;
+}
+.storage-banner b{ display:block; margin-bottom:4px; font-size:13.5px; }
+.site-header{ margin-bottom:18px; text-align:center; }
+h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
+
+.card{
+  background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:16px;
+  margin-bottom:16px; box-shadow: 0 3px 14px rgba(0,0,0,0.06), 0 1px 0 var(--line);
+}
+.section-title{
+  font-size:12px; font-weight:700; color:var(--accent-deep); letter-spacing:0.3px; margin-bottom:12px;
+  display:flex; align-items:center; gap:6px;
+}
+.section-title::before{content:''; width:6px; height:6px; background:var(--accent); border-radius:50%; display:inline-block;}
+
+/* ================= LOGIN ================= */
+.login-wrap{ max-width:400px; margin:50px auto 0; padding:0 20px; }
+.login-card{ background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:26px 20px; text-align:center; }
+.login-title{font-size:19px; font-weight:800; margin-bottom:6px; color:var(--ink);}
+.login-sub{font-size:13px; color:var(--ink-soft); margin-bottom:20px;}
+.login-field{margin-bottom:12px; text-align:right;}
+.login-field label{font-size:12px; color:var(--ink-soft); display:block; margin-bottom:5px;}
+.login-field input, .login-field select{
+  width:100%; border:1px solid var(--line); border-radius:6px; background:var(--bg);
+  font-family:'Vazirmatn',sans-serif; font-size:15px; color:var(--ink); padding:11px 10px;
+}
+.login-field input:focus, .login-field select:focus{outline:none; border-color:var(--accent);}
+.login-error{ color:var(--debit); font-size:12px; margin-bottom:10px; min-height:16px; }
+.login-submit{
+  width:100%; background:var(--accent); color:#fff; border:none; border-radius:6px; padding:13px;
+  font-family:'Vazirmatn',sans-serif; font-size:14px; font-weight:700; cursor:pointer;
+}
+.login-submit:active{background:var(--accent-deep);}
+.setup-note{
+  font-size:12px; color:var(--accent-deep); background:var(--bg-deep); border-radius:6px;
+  padding:8px 10px; margin-bottom:14px; text-align:right; line-height:1.7;
+}
+.pw-rule{ font-size:11px; color:var(--ink-soft); background:var(--bg); border-radius:6px; padding:7px 9px; margin-bottom:12px; text-align:right; line-height:1.7; }
+
+.captcha-box{ margin-bottom:12px; }
+.captcha-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px; justify-content:center; }
+.captcha-row canvas{ border:1px solid var(--line); border-radius:6px; background:#eee; }
+.captcha-refresh{ background:var(--bg); border:1px solid var(--line); border-radius:6px; width:34px; height:34px; font-size:15px; cursor:pointer; color:var(--ink); }
+
+/* ================= APP ================= */
+.user-bar{
+  display:flex; align-items:center; justify-content:space-between; background:var(--card-bg);
+  border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:16px; font-size:13px;
+}
+.user-bar .who{font-weight:700; color:var(--ink);}
+.user-bar .actions{display:flex; gap:10px; flex-wrap:wrap;}
+.user-bar button{
+  background:none; border:none; color:var(--ink-soft); font-size:12px; text-decoration:underline;
+  cursor:pointer; font-family:'Vazirmatn',sans-serif; padding:0;
+}
+.user-bar button:hover{color:var(--accent-deep);}
+.admin-badge{ font-size:10px; background:var(--accent); color:#fff; border-radius:4px; padding:2px 6px; }
+
+/* balance overview */
+.balance-hero{ text-align:center; padding:6px 0 10px; }
+.balance-hero .amount{ font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:700; color:var(--ink); }
+.balance-hero .amount.neg{ color:var(--debit); }
+.balance-hero .label{ font-size:12px; color:var(--ink-soft); margin-top:4px; }
+.stat-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
+.stat-tile{ background:var(--bg); border-radius:10px; padding:12px; text-align:center; }
+.stat-tile .val{ font-family:'IBM Plex Mono',monospace; font-size:16px; font-weight:700; }
+.stat-tile.income .val{ color:var(--credit); }
+.stat-tile.expense .val{ color:var(--debit); }
+.stat-tile .lbl{ font-size:11px; color:var(--ink-soft); margin-top:3px; }
+
+.person-breakdown{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.person-card{ background:var(--bg); border-radius:10px; padding:12px; }
+.person-card .pname{ font-size:13px; font-weight:700; color:var(--ink); margin-bottom:8px; }
+.person-line{ display:flex; justify-content:space-between; font-size:12px; padding:3px 0; }
+.person-line .v{ font-family:'IBM Plex Mono',monospace; font-weight:600; }
+.person-line.inc .v{ color:var(--credit); }
+.person-line.exp .v{ color:var(--debit); }
+.person-line.net .v{ color:var(--ink); }
+.person-line.net{ border-top:1px dashed var(--line); margin-top:4px; padding-top:6px; font-weight:700; }
+
+/* add transaction */
+.type-toggle{ display:flex; gap:8px; margin-bottom:14px; }
+.type-btn{
+  flex:1; border:2px solid var(--line); border-radius:8px; padding:11px; text-align:center; cursor:pointer;
+  font-family:'Vazirmatn',sans-serif; font-size:13.5px; font-weight:700; color:var(--ink-soft); background:var(--bg);
+}
+.type-btn.active.income{ border-color:var(--credit); color:var(--credit); background:var(--card-bg); }
+.type-btn.active.expense{ border-color:var(--debit); color:var(--debit); background:var(--card-bg); }
+
+form.add-form{display:flex; flex-direction:column; gap:12px;}
+.field label{font-size:11px; color:var(--ink-soft); display:block; margin-bottom:5px;}
+.field input, .field select{
+  width:100%; border:1px solid var(--line); border-radius:6px; background:var(--bg);
+  font-family:'Vazirmatn',sans-serif; font-size:14px; color:var(--ink); padding:10px 10px;
+}
+.field input:focus, .field select:focus{outline:none; border-color:var(--accent);}
+.row2{display:flex; gap:10px;}
+.row2 .field{flex:1;}
+
+.date-field{position:relative;}
+.date-display{
+  width:100%; border:1px solid var(--line); border-radius:6px; background:var(--bg);
+  font-family:'Vazirmatn',sans-serif; font-size:14px; color:var(--ink); padding:10px 10px;
+  cursor:pointer; text-align:right;
+}
+.calendar-popup{
+  position:absolute; top:calc(100% + 6px); right:0; left:0; background:var(--card-bg);
+  border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.2); padding:12px; z-index:20;
+}
+.cal-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+.cal-header button{ background:var(--bg); border:1px solid var(--line); border-radius:6px; width:30px; height:30px; font-size:14px; color:var(--ink); cursor:pointer; }
+.cal-header .cal-title{font-size:13px; font-weight:700; color:var(--ink);}
+.cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center;}
+.cal-dow{font-size:10px; color:var(--ink-soft); font-weight:600; padding:4px 0;}
+.cal-day{ font-size:12.5px; padding:8px 0; border-radius:6px; cursor:pointer; color:var(--ink); font-family:'IBM Plex Mono',monospace; }
+.cal-day:hover{background:var(--bg);}
+.cal-day.today{border:1px solid var(--accent);}
+.cal-day.selected{background:var(--ink); color:var(--card-bg);}
+.cal-day.empty{cursor:default;}
+.cal-today-link{ display:block; text-align:center; font-size:11px; color:var(--accent-deep); text-decoration:underline; cursor:pointer; margin-top:10px; }
+
+.submit-btn{
+  margin-top:4px; background:var(--accent); color:#fff; border:none; border-radius:6px;
+  padding:12px; font-family:'Vazirmatn',sans-serif; font-size:14px; font-weight:700; cursor:pointer;
+}
+.submit-btn:active{background:var(--accent-deep);}
+
+/* transaction list */
+.filter-row{ display:flex; gap:8px; margin-bottom:12px; }
+.filter-btn{
+  flex:1; border:1px solid var(--line); border-radius:8px; padding:8px; text-align:center; cursor:pointer;
+  font-family:'Vazirmatn',sans-serif; font-size:12.5px; font-weight:600; color:var(--ink-soft); background:var(--bg);
+}
+.filter-btn.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+
+.tx-list{display:flex; flex-direction:column;}
+.tx-row{display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--line);}
+.tx-row:last-child{border-bottom:none;}
+.tx-icon{
+  width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:15px; flex-shrink:0;
+}
+.tx-icon.income{ background:rgba(76,122,61,0.15); color:var(--credit); }
+.tx-icon.expense{ background:rgba(139,58,86,0.15); color:var(--debit); }
+.tx-main{flex:1; min-width:0;}
+.tx-desc{font-size:14px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.tx-meta{font-size:11px; color:var(--ink-soft); margin-top:2px;}
+.tx-amount{font-family:'IBM Plex Mono',monospace; font-size:13.5px; font-weight:600; white-space:nowrap;}
+.tx-amount.income{ color:var(--credit); }
+.tx-amount.expense{ color:var(--debit); }
+.del-btn{background:none; border:none; color:var(--ink-soft); font-size:16px; cursor:pointer; padding:4px 6px; line-height:1;}
+.del-btn:hover{color:var(--debit);}
+.empty-state{text-align:center; color:var(--ink-soft); font-size:13px; padding:20px 10px;}
+.loading{text-align:center; padding:60px 0; color:var(--ink-soft); font-size:13px;}
+
+.pw-msg{font-size:12px; margin-top:6px; min-height:16px;}
+.pw-msg.err{color:var(--debit);}
+.pw-msg.ok{color:var(--credit);}
+
+/* ================= ADMIN ================= */
+.admin-section{ border-top:1px dashed var(--line); padding-top:14px; margin-top:14px; }
+.admin-section:first-child{border-top:none; padding-top:0; margin-top:0;}
+.admin-subtitle{ font-size:12px; font-weight:700; color:var(--ink); margin-bottom:10px; }
+.tag-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.tag-row input[type=text]{
+  flex:1; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:8px 9px;
+  font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink);
+}
+.mini-del{ background:none; border:none; color:var(--debit); cursor:pointer; font-size:15px; padding:4px; }
+.add-row{ display:flex; gap:8px; margin-top:6px; }
+.add-row input{ flex:1; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:9px; font-family:'Vazirmatn',sans-serif; font-size:13px; }
+.add-row button{ background:var(--accent2); color:#fff; border:none; border-radius:6px; padding:0 14px; font-size:13px; cursor:pointer; font-family:'Vazirmatn',sans-serif;}
+
+.theme-options{ display:flex; gap:10px; }
+.theme-swatch{
+  flex:1; border:2px solid var(--line); border-radius:10px; padding:10px 6px; text-align:center; cursor:pointer;
+  font-size:11px; font-weight:700; color:var(--ink);
+}
+.theme-swatch.active{ border-color:var(--accent); }
+.swatch-dot{ width:26px; height:26px; border-radius:50%; margin:0 auto 6px; }
+
+.texts-grid{ display:flex; flex-direction:column; gap:8px; }
+.texts-grid .login-field{ margin-bottom:0; }
+
+@media (max-width:360px){
+  .stat-row{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body data-theme="grape">
+<div class="wrap">
+  <div id="storageBanner" class="storage-banner">
+    <b>⚠️ اطلاعات ذخیره نمی‌شه</b>
+    این صفحه به‌عنوان یه فایل جدا (دانلودشده) باز شده و امکان ذخیره‌سازی نداره؛ هر چیزی که ثبت کنید با بستن صفحه از بین می‌ره. برای رفع قطعی: فایل دانلودشده رو پاک کنید و به‌جاش همیشه از همون لینک آبی‌رنگ داخل گفتگوی Claude (پیامی که این صندوق رو براتون ساخته) بازش کنید — نه فایل ذخیره‌شده روی گوشی یا کامپیوتر.
+  </div>
+  <div id="loading" class="loading">در حال بارگذاری صندوق…</div>
+
+  <!-- LOGIN: single combined screen -->
+  <div id="login" class="login-wrap" style="display:none;">
+    <div class="login-card">
+      <div class="login-title">ورود به صندوق خانواده</div>
+      <div class="login-sub">اسمت رو انتخاب کن و رمز عبورت رو وارد کن</div>
+
+      <div class="login-field">
+        <label>اسم</label>
+        <select id="loginNameSelect"></select>
+      </div>
+
+      <div id="setupNote" class="setup-note" style="display:none;"></div>
+
+      <div class="login-field">
+        <label id="pwLabel1">رمز عبور</label>
+        <input type="password" id="pwInput1" autocomplete="off">
+      </div>
+      <div class="login-field" id="pwField2" style="display:none;">
+        <label>تکرار رمز عبور</label>
+        <input type="password" id="pwInput2" autocomplete="off">
+      </div>
+
+      <div class="captcha-box">
+        <div class="captcha-row">
+          <canvas id="captchaCanvas" width="140" height="44"></canvas>
+          <button type="button" class="captcha-refresh" id="captchaRefresh" title="کد جدید">↻</button>
+        </div>
+        <div class="login-field">
+          <label>کد امنیتی بالا رو وارد کن</label>
+          <input type="text" id="captchaInput" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="login-error" id="pwError"></div>
+      <button class="login-submit" id="pwSubmitBtn">ورود</button>
+    </div>
+  </div>
+
+  <!-- ADMIN: separate full screen -->
+  <div id="adminScreen" style="display:none;">
+    <header class="site-header"><h1>پنل مدیریت</h1></header>
+    <div class="user-bar">
+      <div class="who">👤 <span id="adminWhoName"></span></div>
+      <div class="actions"><button id="adminBackBtn">بازگشت به صندوق</button></div>
+    </div>
+    <div class="card">
+      <div class="admin-section">
+        <div class="admin-subtitle">دسته‌بندی‌های واریز</div>
+        <div id="incomeCatList"></div>
+        <div class="add-row">
+          <input type="text" id="newIncomeCat" placeholder="دسته‌بندی جدید">
+          <button type="button" id="addIncomeCatBtn">افزودن</button>
+        </div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-subtitle">دسته‌بندی‌های برداشت</div>
+        <div id="expenseCatList"></div>
+        <div class="add-row">
+          <input type="text" id="newExpenseCat" placeholder="دسته‌بندی جدید">
+          <button type="button" id="addExpenseCatBtn">افزودن</button>
+        </div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-subtitle">تم ظاهری</div>
+        <div class="theme-options" id="themeOptions"></div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-subtitle">متن‌ها</div>
+        <div class="texts-grid">
+          <div class="login-field"><label>عنوان صندوق</label><input type="text" id="txt_title"></div>
+          <div class="login-field"><label>واحد پول</label><input type="text" id="txt_currency"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="app" style="display:none;">
+    <header class="site-header"><h1 id="pageTitle">صندوق خانواده</h1></header>
+
+    <div class="user-bar">
+      <div class="who">👤 <span id="whoName"></span> <span id="adminTag" class="admin-badge" style="display:none;">مدیر</span> <span id="storageIndicator" style="font-size:11px; color:var(--ink-soft);"></span></div>
+      <div class="actions">
+        <button id="adminPanelBtn" style="display:none;">پنل مدیریت</button>
+        <button id="backupBtn">پشتیبان‌گیری</button>
+        <button id="restoreBtn">بازیابی</button>
+        <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
+        <button id="changePwBtn">تغییر رمز</button>
+        <button id="logoutBtn">خروج</button>
+      </div>
+    </div>
+
+    <div class="card" id="changePwCard" style="display:none;">
+      <div class="section-title">تغییر رمز عبور</div>
+      <div class="pw-rule" id="pwRuleText"></div>
+      <div class="login-field"><label>رمز فعلی</label><input type="password" id="curPwInput" autocomplete="off"></div>
+      <div class="login-field"><label>رمز جدید</label><input type="password" id="newPwInput1" autocomplete="off"></div>
+      <div class="login-field"><label>تکرار رمز جدید</label><input type="password" id="newPwInput2" autocomplete="off"></div>
+      <button class="submit-btn" id="savePwBtn">ذخیره رمز جدید</button>
+      <div class="pw-msg" id="changePwMsg"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">وضعیت مالی</div>
+      <div class="balance-hero">
+        <div class="amount" id="balanceAmount">۰</div>
+        <div class="label">مانده فعلی حساب</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-tile income"><div class="val" id="totalIncomeVal">۰</div><div class="lbl">مجموع واریز</div></div>
+        <div class="stat-tile expense"><div class="val" id="totalExpenseVal">۰</div><div class="lbl">مجموع برداشت</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">ریز حساب هرکس</div>
+      <div class="person-breakdown" id="personBreakdown"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">ثبت تراکنش جدید</div>
+      <div class="type-toggle">
+        <div class="type-btn income active" data-type="income" id="typeIncomeBtn">واریز (+)</div>
+        <div class="type-btn expense" data-type="expense" id="typeExpenseBtn">برداشت (−)</div>
+      </div>
+      <form class="add-form" id="addForm">
+        <div class="field">
+          <label>ثبت به نام</label>
+          <select id="personSelect"></select>
+        </div>
+        <div class="field">
+          <label>دسته‌بندی</label>
+          <select id="categorySelect"></select>
+        </div>
+        <div class="field">
+          <label>توضیح</label>
+          <input type="text" id="descInput" placeholder="مثلاً: حقوق مرداد" required>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label id="amountLbl">مبلغ (ریال)</label>
+            <input type="number" id="amountInput" placeholder="0" min="0" step="1" required inputmode="decimal">
+          </div>
+          <div class="field date-field">
+            <label>تاریخ</label>
+            <input type="text" id="dateDisplay" class="date-display" readonly placeholder="انتخاب تاریخ">
+            <input type="hidden" id="dateInput" required>
+            <div id="calendarPopup" class="calendar-popup" style="display:none;"></div>
+          </div>
+        </div>
+        <button type="submit" class="submit-btn" id="submitBtnLbl">ثبت تراکنش</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="section-title">فهرست تراکنش‌ها</div>
+      <div class="filter-row">
+        <div class="filter-btn active" data-filter="all">همه</div>
+        <div class="filter-btn" data-filter="income">واریزها</div>
+        <div class="filter-btn" data-filter="expense">برداشت‌ها</div>
+      </div>
+      <div class="tx-list" id="txList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'family-fund-data';
+let data = null;
+let currentUserId = null;
+let pendingLoginId = null;
+let captchaCode = '';
+let currentType = 'income';
+let currentFilter = 'all';
+
+/* ---------- data model ---------- */
+function newId(prefix){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function defaultData(){
+  return {
+    schema: 1,
+    title: 'صندوق خانواده',
+    theme: 'grape',
+    currency: 'ریال',
+    people: [
+      { id:'kaveh', name:'کاوه', isAdmin:true, canLogin:true },
+      { id:'hadiseh', name:'حدیثه', isAdmin:false, canLogin:true },
+      { id:'ariana', name:'آریانا', isAdmin:false, canLogin:false },
+      { id:'sorena', name:'سورنا', isAdmin:false, canLogin:false },
+      { id:'ashkan', name:'اشکان', isAdmin:false, canLogin:false }
+    ],
+    auth: {},
+    categories: {
+      income: ['حقوق', 'کارانه', 'پاداش / عیدی', 'سایر درآمد'],
+      expense: ['خانه و اجاره', 'خرید و خواربار', 'قبض و اشتراک', 'بچه‌ها', 'تحصیل', 'ورزش', 'پوشاک و اکسسوری', 'درمان', 'برداشت چک', 'سایر هزینه']
+    },
+    transactions: []
+  };
+}
+
+function mergeDefaults(){
+  const d = defaultData();
+  d.people.forEach(defP => {
+    const existing = data.people.find(p => p.id === defP.id);
+    if(!existing) data.people.push(defP);
+    else if(existing.canLogin === undefined) existing.canLogin = defP.canLogin;
+  });
+  data.people.forEach(p => { if(p.canLogin === undefined) p.canLogin = true; });
+
+  ['income','expense'].forEach(cat => {
+    d.categories[cat].forEach(c => {
+      if(!data.categories[cat].includes(c)) data.categories[cat].push(c);
+    });
+  });
+}
+
+let storageMode = 'cloud'; // 'cloud' | 'local' | 'none'
+
+async function storageGet(key){
+  if(typeof window.storage !== 'undefined'){
+    try{
+      const res = await window.storage.get(key, true);
+      storageMode = 'cloud';
+      return res;
+    }catch(e){ console.warn('Cloud storage unavailable, trying local storage', e); }
+  }
+  try{
+    const raw = localStorage.getItem(key);
+    storageMode = 'local';
+    return raw ? { value: raw } : null;
+  }catch(e){
+    console.error('No storage available at all', e);
+    storageMode = 'none';
+    return null;
+  }
+}
+async function storageSet(key, value){
+  if(typeof window.storage !== 'undefined'){
+    try{
+      const result = await window.storage.set(key, value, true);
+      if(result){ storageMode = 'cloud'; return true; }
+    }catch(e){ console.warn('Cloud storage save failed, trying local storage', e); }
+  }
+  try{
+    localStorage.setItem(key, value);
+    storageMode = 'local';
+    return true;
+  }catch(e){
+    console.error('No storage available at all', e);
+    storageMode = 'none';
+    return false;
+  }
+}
+
+async function loadData(){
+  try{
+    const res = await storageGet(STORAGE_KEY);
+    if(res && res.value){
+      data = JSON.parse(res.value);
+      const d = defaultData();
+      if(!data.categories) data.categories = d.categories;
+      if(!data.theme) data.theme = 'grape';
+      if(!data.title) data.title = d.title;
+      if(!data.currency) data.currency = d.currency;
+      if(!Array.isArray(data.transactions)) data.transactions = [];
+      if(!Array.isArray(data.people)) data.people = d.people;
+      if(!data.auth) data.auth = {};
+      mergeDefaults();
+      await saveData();
+    } else {
+      data = defaultData();
+      await saveData();
+    }
+  }catch(e){
+    console.error('Storage error', e);
+    storageMode = 'none';
+    data = defaultData();
+  }
+  showStorageBanner();
+}
+async function saveData(){
+  const ok = await storageSet(STORAGE_KEY, JSON.stringify(data));
+  if(!ok){ showStorageBanner(); }
+  updateStorageIndicator();
+}
+function showStorageBanner(){
+  const b = document.getElementById('storageBanner');
+  if(!b) return;
+  if(storageMode === 'cloud'){ b.style.display = 'none'; return; }
+  b.style.display = 'block';
+  if(storageMode === 'local'){
+    b.innerHTML = '<b>ذخیره‌سازی محلی (فقط همین گوشی)</b>این فایل به‌صورت مستقل باز شده، پس اطلاعات فقط روی همین گوشی ذخیره می‌شه (دیگه با بستن صفحه پاک نمی‌شه). برای انتقال اطلاعات به گوشی دیگه، از دکمه‌های «پشتیبان‌گیری» و «بازیابی» کنار اسمتون استفاده کنید.';
+  } else {
+    b.innerHTML = '<b>⚠️ ذخیره‌سازی در دسترس نیست</b>مرورگرتون اجازه ذخیره‌سازی نمی‌ده (مثلاً حالت مرور خصوصی). اطلاعات فقط تا وقتی این صفحه بازه می‌مونه و با بستنش از بین می‌ره.';
+  }
+}
+function updateStorageIndicator(){
+  const el = document.getElementById('storageIndicator');
+  if(!el) return;
+  if(storageMode === 'cloud') el.textContent = '☁️ همگام';
+  else if(storageMode === 'local') el.textContent = '📱 محلی';
+  else el.textContent = '⚠️ ذخیره نشد';
+}
+
+function getPerson(id){ return data.people.find(p => p.id === id); }
+function personName(id){ const p = getPerson(id); return p ? p.name : '؟'; }
+function currentPerson(){ return getPerson(currentUserId); }
+function isCurrentAdmin(){ const p = currentPerson(); return !!(p && p.isAdmin); }
+
+/* ---------- helpers ---------- */
+function fmt(n){ n = Math.round(n); return n.toLocaleString('en-US'); }
+function escapeHtml(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+async function sha256Hex(str){
+  const enc = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function randomSaltHex(){
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function validatePassword(pwd){
+  const rules = [
+    { ok: pwd.length >= 8, msg: 'حداقل ۸ کاراکتر' },
+    { ok: /[a-z]/.test(pwd), msg: 'حداقل یک حرف کوچک انگلیسی' },
+    { ok: /[A-Z]/.test(pwd), msg: 'حداقل یک حرف بزرگ انگلیسی' },
+    { ok: /[0-9]/.test(pwd), msg: 'حداقل یک عدد' },
+    { ok: /[^a-zA-Z0-9]/.test(pwd), msg: 'حداقل یک نماد (مثل !@#$%)' },
+  ];
+  const failed = rules.filter(r => !r.ok);
+  if(failed.length === 0) return { valid: true };
+  return { valid:false, message: 'رمز عبور معتبر نیست. این روش حتماً باید رعایت بشه: رمز باید ' + rules.map(r=>r.msg).join('، ') + ' داشته باشه.' };
+}
+const PW_RULE_TEXT = 'رمز باید حداقل ۸ کاراکتر باشه و شامل حرف کوچک انگلیسی، حرف بزرگ انگلیسی، عدد و یک نماد باشه.';
+
+/* ---------- captcha ---------- */
+function generateCaptchaCode(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = ''; for(let i=0;i<5;i++) s += chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+function drawCaptcha(){
+  captchaCode = generateCaptchaCode();
+  const canvas = document.getElementById('captchaCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = '#EFEAF0';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<5;i++){
+    ctx.strokeStyle = `hsl(${Math.random()*360},40%,75%)`;
+    ctx.beginPath();
+    ctx.moveTo(Math.random()*canvas.width, Math.random()*canvas.height);
+    ctx.lineTo(Math.random()*canvas.width, Math.random()*canvas.height);
+    ctx.stroke();
+  }
+  const chars = captchaCode.split('');
+  const w = canvas.width / (chars.length + 1);
+  chars.forEach((ch,i) => {
+    ctx.save();
+    ctx.translate(w*(i+0.85), canvas.height/2 + (Math.random()*8-4));
+    ctx.rotate((Math.random()*0.5-0.25));
+    ctx.font = 'bold 22px monospace';
+    ctx.fillStyle = `hsl(${Math.random()*360},55%,30%)`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(ch, 0, 0);
+    ctx.restore();
+  });
+}
+function checkCaptcha(){
+  const val = (document.getElementById('captchaInput').value || '').trim().toUpperCase();
+  return val === captchaCode;
+}
+
+/* ---------- jalali calendar ---------- */
+function div(a, b){ return Math.trunc(a / b); }
+function mod(a, b){ return a - Math.trunc(a / b) * b; }
+
+function jalaliToGregorian(jy, jm, jd){
+  jy = jy + 1595;
+  let days = -355668 + (365 * jy) + (div(jy, 33) * 8) + div(mod(jy, 33) + 3, 4) + jd +
+    ((jm < 7) ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
+  let gy = 400 * div(days, 146097);
+  days = mod(days, 146097);
+  if(days > 36524){ gy += 100 * div(--days, 36524); days = mod(days, 36524); if(days >= 365) days++; }
+  gy += 4 * div(days, 1461); days = mod(days, 1461);
+  if(days > 365){ gy += div(days - 1, 365); days = mod(days - 1, 365); }
+  let gd = days + 1;
+  const isLeapG = (gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0);
+  const salA = [0, 31, isLeapG ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  let gm = 0;
+  for(gm = 1; gm <= 12; gm++){ if(gd <= salA[gm]) break; gd -= salA[gm]; }
+  return [gy, gm, gd];
+}
+function gregorianToJalali(gy, gm, gd){
+  const gDays = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+  let jy = (gy <= 1600) ? 0 : 979;
+  gy -= (gy <= 1600) ? 621 : 1600;
+  const gy2 = (gm > 2) ? (gy + 1) : gy;
+  let days = (365 * gy) + div(gy2 + 3, 4) - div(gy2 + 99, 100) + div(gy2 + 399, 400) - 80 + gd + gDays[gm - 1];
+  jy += 33 * div(days, 12053); days = mod(days, 12053);
+  jy += 4 * div(days, 1461); days = mod(days, 1461);
+  if(days > 365){ jy += div(days - 1, 365); days = mod(days - 1, 365); }
+  const jm = (days < 186) ? 1 + div(days, 31) : 7 + div(days - 186, 30);
+  const jd = 1 + ((days < 186) ? mod(days, 31) : mod(days - 186, 30));
+  return [jy, jm, jd];
+}
+function isLeapJalaliYear(jy){
+  const g = jalaliToGregorian(jy, 12, 30);
+  const j = gregorianToJalali(g[0], g[1], g[2]);
+  return j[0] === jy && j[1] === 12 && j[2] === 30;
+}
+function jalaliMonthLength(jy, jm){
+  if(jm <= 6) return 31; if(jm <= 11) return 30; return isLeapJalaliYear(jy) ? 30 : 29;
+}
+const JALALI_MONTHS = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const JALALI_DOW = ['ش','ی','د','س','چ','پ','ج'];
+function isoToJalali(iso){ const [gy,gm,gd] = iso.split('-').map(Number); return gregorianToJalali(gy, gm, gd); }
+function jalaliToIso(jy, jm, jd){ const [gy,gm,gd] = jalaliToGregorian(jy, jm, jd); return `${gy}-${String(gm).padStart(2,'0')}-${String(gd).padStart(2,'0')}`; }
+function faDigits(n){ const map=['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹']; return String(n).replace(/[0-9]/g, d => map[d]); }
+
+let calState = { jy:0, jm:0, selectedIso:null };
+function todayIso(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function resetDateToToday(){
+  const iso = todayIso(); setSelectedDate(iso);
+  const [jy,jm] = isoToJalali(iso); calState.jy = jy; calState.jm = jm;
+}
+function setSelectedDate(iso){
+  calState.selectedIso = iso;
+  document.getElementById('dateInput').value = iso;
+  const [jy,jm,jd] = isoToJalali(iso);
+  document.getElementById('dateDisplay').value = `${faDigits(jy)}/${faDigits(String(jm).padStart(2,'0'))}/${faDigits(String(jd).padStart(2,'0'))} (${JALALI_MONTHS[jm-1]})`;
+}
+function openCalendar(){
+  const iso = calState.selectedIso || todayIso();
+  const [jy,jm] = isoToJalali(iso); calState.jy = jy; calState.jm = jm;
+  renderCalendar();
+  document.getElementById('calendarPopup').style.display = 'block';
+}
+function closeCalendar(){ document.getElementById('calendarPopup').style.display = 'none'; }
+function renderCalendar(){
+  const pop = document.getElementById('calendarPopup');
+  const { jy, jm } = calState;
+  const monthLen = jalaliMonthLength(jy, jm);
+  const iso1 = jalaliToIso(jy, jm, 1);
+  const [gy,gm,gd] = iso1.split('-').map(Number);
+  const jsDow = new Date(gy, gm-1, gd).getDay();
+  const startOffset = mod(jsDow + 1, 7);
+  const todayI = todayIso();
+  let cells = '';
+  for(let i=0;i<startOffset;i++) cells += `<div class="cal-day empty"></div>`;
+  for(let d=1; d<=monthLen; d++){
+    const iso = jalaliToIso(jy, jm, d);
+    const isToday = iso === todayI;
+    const isSel = iso === calState.selectedIso;
+    cells += `<div class="cal-day${isToday?' today':''}${isSel?' selected':''}" data-iso="${iso}">${faDigits(d)}</div>`;
+  }
+  pop.innerHTML = `
+    <div class="cal-header">
+      <button type="button" id="calPrev">›</button>
+      <div class="cal-title">${JALALI_MONTHS[jm-1]} ${faDigits(jy)}</div>
+      <button type="button" id="calNext">‹</button>
+    </div>
+    <div class="cal-grid">${JALALI_DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('')}${cells}</div>
+    <div class="cal-today-link" id="calToday">امروز</div>`;
+  pop.querySelectorAll('.cal-day[data-iso]').forEach(el => {
+    el.addEventListener('click', () => { setSelectedDate(el.dataset.iso); closeCalendar(); });
+  });
+  document.getElementById('calPrev').addEventListener('click', () => { calState.jm--; if(calState.jm<1){calState.jm=12;calState.jy--;} renderCalendar(); });
+  document.getElementById('calNext').addEventListener('click', () => { calState.jm++; if(calState.jm>12){calState.jm=1;calState.jy++;} renderCalendar(); });
+  document.getElementById('calToday').addEventListener('click', () => { resetDateToToday(); renderCalendar(); });
+}
+
+/* ---------- screens ---------- */
+function showScreen(id){
+  ['loading','login','app','adminScreen'].forEach(s => {
+    document.getElementById(s).style.display = (s === id) ? '' : 'none';
+  });
+}
+
+function renderLoginScreen(){
+  const sel = document.getElementById('loginNameSelect');
+  const loginables = data.people.filter(p => p.canLogin);
+  sel.innerHTML = loginables.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  pendingLoginId = loginables[0] ? loginables[0].id : null;
+  updateLoginMode();
+  drawCaptcha();
+  document.getElementById('captchaInput').value = '';
+  document.getElementById('pwInput1').value = '';
+  document.getElementById('pwInput2').value = '';
+  document.getElementById('pwError').textContent = '';
+  showScreen('login');
+}
+function updateLoginMode(){
+  const id = document.getElementById('loginNameSelect').value || pendingLoginId;
+  pendingLoginId = id;
+  const hasAuth = !!(data.auth[id] && data.auth[id].hash);
+  if(hasAuth){
+    document.getElementById('setupNote').style.display = 'none';
+    document.getElementById('pwLabel1').textContent = 'رمز عبور';
+    document.getElementById('pwField2').style.display = 'none';
+    document.getElementById('pwSubmitBtn').textContent = 'ورود';
+  } else {
+    document.getElementById('setupNote').style.display = 'block';
+    document.getElementById('setupNote').textContent = 'این اولین ورودته. یه رمز عبور برای خودت بساز. ' + PW_RULE_TEXT;
+    document.getElementById('pwLabel1').textContent = 'رمز عبور جدید';
+    document.getElementById('pwField2').style.display = 'block';
+    document.getElementById('pwSubmitBtn').textContent = 'ساخت رمز و ورود';
+  }
+}
+document.getElementById('loginNameSelect').addEventListener('change', updateLoginMode);
+document.getElementById('captchaRefresh').addEventListener('click', () => {
+  drawCaptcha(); document.getElementById('captchaInput').value = '';
+});
+document.getElementById('pwSubmitBtn').addEventListener('click', async () => {
+  const id = document.getElementById('loginNameSelect').value;
+  const hasAuth = !!(data.auth[id] && data.auth[id].hash);
+  const errBox = document.getElementById('pwError');
+  if(!checkCaptcha()){
+    errBox.textContent = 'کد امنیتی درست وارد نشده. دوباره امتحان کن.';
+    drawCaptcha(); document.getElementById('captchaInput').value = '';
+    return;
+  }
+  if(hasAuth){
+    const pwd = document.getElementById('pwInput1').value;
+    if(!pwd){ errBox.textContent = 'رمز عبور رو وارد کن.'; return; }
+    const a = data.auth[id];
+    const hash = await sha256Hex(a.salt + pwd);
+    if(hash === a.hash){ currentUserId = id; enterApp(); }
+    else { errBox.textContent = 'رمز عبور اشتباهه.'; drawCaptcha(); document.getElementById('captchaInput').value=''; }
+  } else {
+    const pwd1 = document.getElementById('pwInput1').value;
+    const pwd2 = document.getElementById('pwInput2').value;
+    const check = validatePassword(pwd1);
+    if(!check.valid){ errBox.textContent = check.message; return; }
+    if(pwd1 !== pwd2){ errBox.textContent = 'تکرار رمز مطابقت نداره.'; return; }
+    const salt = randomSaltHex();
+    const hash = await sha256Hex(salt + pwd1);
+    data.auth[id] = { salt, hash };
+    await saveData();
+    currentUserId = id; enterApp();
+  }
+});
+
+function enterApp(){
+  document.getElementById('changePwCard').style.display = 'none';
+  document.getElementById('personSelect').value = '';
+  currentType = 'income';
+  currentFilter = 'all';
+  resetDateToToday(); closeCalendar(); applyTheme();
+  render();
+  updateStorageIndicator();
+  showStorageBanner();
+  showScreen('app');
+}
+document.getElementById('logoutBtn').addEventListener('click', () => { currentUserId = null; renderLoginScreen(); });
+
+/* ---------- backup / restore ---------- */
+function exportBackup(){
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sandoogh-khanevadeh-${todayIso()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function mergeImportedData(imported){
+  if(!Array.isArray(imported.transactions)) return false;
+  const existingIds = new Set(data.transactions.map(t => t.id));
+  let added = 0;
+  imported.transactions.forEach(t => {
+    if(t && t.id && !existingIds.has(t.id)){ data.transactions.push(t); existingIds.add(t.id); added++; }
+  });
+  (imported.people||[]).forEach(p => { if(p && p.id && !data.people.some(x=>x.id===p.id)) data.people.push(p); });
+  Object.keys(imported.auth||{}).forEach(id => { if(!data.auth[id]) data.auth[id] = imported.auth[id]; });
+  if(imported.categories){
+    ['income','expense'].forEach(cat => {
+      (imported.categories[cat]||[]).forEach(c => { if(!data.categories[cat].includes(c)) data.categories[cat].push(c); });
+    });
+  }
+  return added;
+}
+document.getElementById('backupBtn').addEventListener('click', exportBackup);
+document.getElementById('restoreBtn').addEventListener('click', () => {
+  document.getElementById('restoreFileInput').click();
+});
+document.getElementById('restoreFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    try{
+      const imported = JSON.parse(ev.target.result);
+      const added = mergeImportedData(imported);
+      if(added === false){ alert('این فایل پشتیبان معتبر نیست.'); return; }
+      await saveData();
+      render();
+      alert(added > 0 ? `${added} تراکنش جدید از فایل پشتیبان اضافه شد.` : 'فایل بازیابی شد؛ چیز جدیدی برای اضافه‌کردن نبود.');
+    }catch(err){
+      console.error(err);
+      alert('خطا در خواندن فایل پشتیبان. مطمئن بشید فایل درستیه.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+
+document.getElementById('changePwBtn').addEventListener('click', () => {
+  const card = document.getElementById('changePwCard');
+  const opening = card.style.display === 'none';
+  card.style.display = opening ? 'block' : 'none';
+  document.getElementById('pwRuleText').textContent = PW_RULE_TEXT;
+  document.getElementById('curPwInput').value = '';
+  document.getElementById('newPwInput1').value = '';
+  document.getElementById('newPwInput2').value = '';
+  document.getElementById('changePwMsg').textContent = '';
+  document.getElementById('changePwMsg').className = 'pw-msg';
+});
+document.getElementById('savePwBtn').addEventListener('click', async () => {
+  const cur = document.getElementById('curPwInput').value;
+  const n1 = document.getElementById('newPwInput1').value;
+  const n2 = document.getElementById('newPwInput2').value;
+  const msg = document.getElementById('changePwMsg');
+  const a = data.auth[currentUserId];
+  const curHash = await sha256Hex(a.salt + cur);
+  if(curHash !== a.hash){ msg.textContent = 'رمز فعلی اشتباهه.'; msg.className = 'pw-msg err'; return; }
+  const check = validatePassword(n1);
+  if(!check.valid){ msg.textContent = check.message; msg.className = 'pw-msg err'; return; }
+  if(n1 !== n2){ msg.textContent = 'تکرار رمز جدید مطابقت نداره.'; msg.className = 'pw-msg err'; return; }
+  const salt = randomSaltHex();
+  const hash = await sha256Hex(salt + n1);
+  data.auth[currentUserId] = { salt, hash };
+  await saveData();
+  msg.textContent = 'رمز عبور با موفقیت تغییر کرد.'; msg.className = 'pw-msg ok';
+});
+
+/* ---------- admin ---------- */
+document.getElementById('adminPanelBtn').addEventListener('click', () => {
+  document.getElementById('adminWhoName').textContent = personName(currentUserId);
+  renderAdminPanel();
+  showScreen('adminScreen');
+});
+document.getElementById('adminBackBtn').addEventListener('click', () => { showScreen('app'); render(); });
+
+function renderCatList(containerId, catType){
+  const container = document.getElementById(containerId);
+  container.innerHTML = data.categories[catType].map((cat, i) => `
+    <div class="tag-row">
+      <input type="text" data-type="${catType}" data-idx="${i}" class="cat-name-input" value="${escapeHtml(cat)}">
+      <button type="button" class="mini-del" data-del-type="${catType}" data-del-idx="${i}" title="حذف">✕</button>
+    </div>
+  `).join('');
+  container.querySelectorAll('.cat-name-input').forEach(inp => {
+    inp.addEventListener('change', async (e) => {
+      const t = e.target.dataset.type, idx = Number(e.target.dataset.idx);
+      data.categories[t][idx] = e.target.value.trim() || data.categories[t][idx];
+      await saveData(); render();
+    });
+  });
+  container.querySelectorAll('[data-del-type]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const t = e.target.dataset.delType, idx = Number(e.target.dataset.delIdx);
+      if(data.categories[t].length <= 1){ alert('حداقل باید یک دسته‌بندی بمونه.'); return; }
+      data.categories[t].splice(idx, 1);
+      await saveData(); renderAdminPanel(); render();
+    });
+  });
+}
+
+function renderAdminPanel(){
+  renderCatList('incomeCatList', 'income');
+  renderCatList('expenseCatList', 'expense');
+
+  document.getElementById('addIncomeCatBtn').onclick = async () => {
+    const inp = document.getElementById('newIncomeCat');
+    const v = inp.value.trim(); if(!v) return;
+    data.categories.income.push(v); inp.value=''; await saveData(); renderAdminPanel(); render();
+  };
+  document.getElementById('addExpenseCatBtn').onclick = async () => {
+    const inp = document.getElementById('newExpenseCat');
+    const v = inp.value.trim(); if(!v) return;
+    data.categories.expense.push(v); inp.value=''; await saveData(); renderAdminPanel(); render();
+  };
+
+  const themes = [
+    { id:'grape', label:'انگور 🍇', color:'#6B2D5C' },
+    { id:'classic', label:'کلاسیک 📜', color:'#A9822C' },
+    { id:'slate', label:'مدرن تیره 🌙', color:'#2FA6A0' }
+  ];
+  document.getElementById('themeOptions').innerHTML = themes.map(t => `
+    <div class="theme-swatch ${data.theme===t.id?'active':''}" data-theme-id="${t.id}">
+      <div class="swatch-dot" style="background:${t.color}"></div>${t.label}
+    </div>`).join('');
+  document.querySelectorAll('.theme-swatch').forEach(el => {
+    el.addEventListener('click', async () => {
+      data.theme = el.dataset.themeId; await saveData(); applyTheme(); renderAdminPanel();
+    });
+  });
+
+  document.getElementById('txt_title').value = data.title;
+  document.getElementById('txt_currency').value = data.currency;
+  document.getElementById('txt_title').onchange = async (e) => { data.title = e.target.value.trim() || 'صندوق خانواده'; await saveData(); render(); };
+  document.getElementById('txt_currency').onchange = async (e) => { data.currency = e.target.value.trim() || 'ریال'; await saveData(); render(); };
+}
+function applyTheme(){ document.body.setAttribute('data-theme', data.theme || 'grape'); }
+
+/* ---------- type toggle / filters ---------- */
+document.getElementById('typeIncomeBtn').addEventListener('click', () => setType('income'));
+document.getElementById('typeExpenseBtn').addEventListener('click', () => setType('expense'));
+function setType(t){
+  currentType = t;
+  document.getElementById('typeIncomeBtn').classList.toggle('active', t==='income');
+  document.getElementById('typeExpenseBtn').classList.toggle('active', t==='expense');
+  populateCategorySelect();
+  populatePersonSelect();
+}
+function populatePersonSelect(){
+  const sel = document.getElementById('personSelect');
+  const prevVal = sel.value;
+  const list = currentType === 'income' ? data.people.filter(p => p.canLogin) : data.people;
+  sel.innerHTML = list.map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  const stillValid = list.some(p => p.id === prevVal);
+  if(stillValid) sel.value = prevVal;
+  else sel.value = list.some(p => p.id === currentUserId) ? currentUserId : (list[0] ? list[0].id : '');
+}
+function populateCategorySelect(){
+  const sel = document.getElementById('categorySelect');
+  sel.innerHTML = data.categories[currentType].map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentFilter = btn.dataset.filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+    renderTxList();
+  });
+});
+
+/* ---------- calc ---------- */
+function computeTotals(){
+  const totals = {};
+  data.people.forEach(p => totals[p.id] = { income:0, expense:0 });
+  let totalIncome = 0, totalExpense = 0;
+  data.transactions.forEach(tx => {
+    if(!totals[tx.personId]) totals[tx.personId] = { income:0, expense:0 };
+    if(tx.type === 'income'){ totals[tx.personId].income += Number(tx.amount)||0; totalIncome += Number(tx.amount)||0; }
+    else { totals[tx.personId].expense += Number(tx.amount)||0; totalExpense += Number(tx.amount)||0; }
+  });
+  return { totals, totalIncome, totalExpense, balance: totalIncome - totalExpense };
+}
+
+/* ---------- render ---------- */
+function render(){
+  document.title = data.title;
+  document.getElementById('pageTitle').textContent = data.title;
+  document.getElementById('whoName').textContent = personName(currentUserId);
+  document.getElementById('adminTag').style.display = isCurrentAdmin() ? 'inline-block' : 'none';
+  document.getElementById('adminPanelBtn').style.display = isCurrentAdmin() ? 'inline' : 'none';
+  document.getElementById('amountLbl').textContent = `مبلغ (${data.currency})`;
+  document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
+
+  populatePersonSelect();
+
+  populateCategorySelect();
+
+  const { totals, totalIncome, totalExpense, balance } = computeTotals();
+  const balEl = document.getElementById('balanceAmount');
+  balEl.textContent = (balance<0?'−':'') + fmt(Math.abs(balance)) + ' ' + data.currency;
+  balEl.className = 'amount' + (balance < 0 ? ' neg' : '');
+  document.getElementById('totalIncomeVal').textContent = fmt(totalIncome) + ' ' + data.currency;
+  document.getElementById('totalExpenseVal').textContent = fmt(totalExpense) + ' ' + data.currency;
+
+  document.getElementById('personBreakdown').innerHTML = data.people.map(p => {
+    const t = totals[p.id] || {income:0, expense:0};
+    const net = t.income - t.expense;
+    return `<div class="person-card">
+      <div class="pname">${escapeHtml(p.name)}</div>
+      <div class="person-line inc"><span>واریز</span><span class="v">${fmt(t.income)}</span></div>
+      <div class="person-line exp"><span>برداشت</span><span class="v">${fmt(t.expense)}</span></div>
+      <div class="person-line net"><span>خالص</span><span class="v">${net<0?'−':''}${fmt(Math.abs(net))}</span></div>
+    </div>`;
+  }).join('');
+
+  renderTxList();
+}
+
+function renderTxList(){
+  const list = document.getElementById('txList');
+  let txs = [...data.transactions];
+  if(currentFilter !== 'all') txs = txs.filter(t => t.type === currentFilter);
+  txs.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+
+  if(txs.length === 0){
+    list.innerHTML = '<div class="empty-state">تراکنشی برای نمایش نیست.</div>';
+    return;
+  }
+  list.innerHTML = txs.map(tx => {
+    const icon = tx.type === 'income' ? '↓' : '↑';
+    const sign = tx.type === 'income' ? '+' : '−';
+    return `
+    <div class="tx-row">
+      <div class="tx-icon ${tx.type}">${icon}</div>
+      <div class="tx-main">
+        <div class="tx-desc">${escapeHtml(tx.desc)}</div>
+        <div class="tx-meta">${escapeHtml(tx.category||'')} · ${escapeHtml(personName(tx.personId))} · ${formatDate(tx.date)}</div>
+      </div>
+      <div class="tx-amount ${tx.type}">${sign}${fmt(tx.amount)}</div>
+      <button class="del-btn" data-id="${tx.id}" title="حذف">✕</button>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.del-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = e.target.dataset.id;
+      data.transactions = data.transactions.filter(x => String(x.id) !== String(id));
+      await saveData(); render();
+    });
+  });
+}
+
+function formatDate(dstr){
+  if(!dstr) return '';
+  try{ const d = new Date(dstr + 'T00:00:00'); return d.toLocaleDateString('fa-IR', {year:'numeric', month:'2-digit', day:'2-digit'}); }
+  catch(e){ return dstr; }
+}
+
+/* ---------- init ---------- */
+async function init(){
+  await loadData();
+  applyTheme();
+  resetDateToToday();
+  setType('income');
+
+  document.getElementById('dateDisplay').addEventListener('click', () => {
+    const pop = document.getElementById('calendarPopup');
+    if(pop.style.display === 'block') closeCalendar(); else openCalendar();
+  });
+  document.addEventListener('click', (e) => {
+    const field = document.querySelector('.date-field');
+    if(field && !field.contains(e.target)) closeCalendar();
+  });
+
+  document.getElementById('addForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const desc = document.getElementById('descInput').value.trim();
+    const amount = Number(document.getElementById('amountInput').value);
+    const date = document.getElementById('dateInput').value;
+    const personId = document.getElementById('personSelect').value;
+    const category = document.getElementById('categorySelect').value;
+    if(!desc || !amount || amount <= 0 || !date) return;
+
+    data.transactions.push({
+      id: newId('t'), type: currentType, desc, amount, date, personId, category,
+      enteredById: currentUserId, createdAt: Date.now()
+    });
+    await saveData();
+
+    document.getElementById('descInput').value = '';
+    document.getElementById('amountInput').value = '';
+    resetDateToToday();
+    render();
+  });
+
+  renderLoginScreen();
+}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(e => console.warn('SW register failed', e));
+  });
+}
+
+init();
+</script>
+</body>
+</html>

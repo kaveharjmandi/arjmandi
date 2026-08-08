@@ -3,16 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>صندوق خانواده</title>
+<title>آریانا | گردش مالی خانواده</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#6B2D5C">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="صندوق خانواده">
+<meta name="apple-mobile-web-app-title" content="آریانا">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/dist/font-face.css');
+@import url('https://fonts.bunny.net/css?family=ibm-plex-mono:400,500,600');
 
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
@@ -49,6 +50,7 @@ body[data-theme="slate"]{
 /* ================= LAYOUT ================= */
 .wrap{ max-width:520px; margin:0 auto; padding:26px 20px 60px 20px; position:relative; }
 .site-header{ margin-bottom:18px; text-align:center; }
+.brand-tag{ font-size:11.5px; font-weight:700; letter-spacing:.5px; color:var(--accent); text-transform:uppercase; margin-bottom:2px; }
 h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
 
 .card{
@@ -237,6 +239,14 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .switch input:checked + .switch-track{ background:var(--accent); }
 .switch input:checked + .switch-track::before{ transform:translateX(18px); }
 
+/* ================= TABS (main screen) ================= */
+.tab-nav{ display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:5px; margin-bottom:12px; position:sticky; top:6px; z-index:5; }
+.tab-nav-btn{ flex:1; border:none; background:transparent; border-radius:10px; padding:8px 4px; font-family:inherit; font-size:11px; color:var(--ink-soft); display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; transition:.15s; }
+.tab-nav-btn span{ font-size:10.5px; font-weight:600; }
+.tab-nav-btn.active{ background:var(--accent); color:#fff; }
+.tab-panel{ animation: tabFade .15s ease; }
+@keyframes tabFade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
 /* ================= ADMIN ================= */
 .admin-section{ border-top:1px dashed var(--line); padding-top:14px; margin-top:14px; }
 .admin-section:first-child{border-top:none; padding-top:0; margin-top:0;}
@@ -274,7 +284,8 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
   <!-- LOGIN: single combined screen -->
   <div id="login" class="login-wrap" style="display:none;">
     <div class="login-card">
-      <div class="login-title">ورود به صندوق خانواده</div>
+      <div class="brand-tag" style="text-align:center;">Ariana APP</div>
+      <div class="login-title">ورود به گردش مالی خانواده</div>
       <div class="login-sub">اسمت رو انتخاب کن و رمز عبورت رو وارد کن</div>
 
       <form id="loginForm" autocomplete="on">
@@ -432,7 +443,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 
   <!-- MAIN APP -->
   <div id="app" style="display:none;">
-    <header class="site-header"><h1 id="pageTitle">صندوق خانواده</h1></header>
+    <header class="site-header"><div class="brand-tag">Ariana APP</div><h1 id="pageTitle">گردش مالی خانواده</h1></header>
 
     <div class="user-bar">
       <div class="who">👤 <span id="whoName"></span> <span id="adminTag" class="admin-badge" style="display:none;">مدیر</span> <span id="storageIndicator" class="storage-indicator-pill"></span></div>
@@ -442,6 +453,14 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       </div>
     </div>
 
+    <div class="tab-nav" id="tabNav">
+      <button type="button" class="tab-nav-btn active" data-tab="status">💰<span>وضعیت مالی</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="add">➕<span>ثبت تراکنش</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="breakdown">👤<span>ریز هر شخص</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="list">📋<span>فهرست</span></button>
+    </div>
+
+    <div class="tab-panel" data-tab="status">
     <div class="card">
       <div class="section-title">وضعیت مالی</div>
       <div class="balance-hero">
@@ -453,38 +472,9 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         <div class="stat-tile expense"><div class="val" id="totalExpenseVal">۰</div><div class="lbl">مجموع برداشت</div></div>
       </div>
     </div>
-
-    <div class="card">
-      <div class="section-title">ریز حساب هر شخص</div>
-      <div class="row2" style="margin-bottom:12px;">
-        <div class="field">
-          <label>بازه زمانی</label>
-          <select id="periodTypeSelect">
-            <option value="daily">روزانه</option>
-            <option value="weekly">هفتگی</option>
-            <option value="monthly">ماهانه</option>
-            <option value="yearly">سالانه</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>شخص</label>
-          <select id="breakdownPersonSelect"></select>
-        </div>
-      </div>
-      <div class="cal-header">
-        <button type="button" id="periodPrev">›</button>
-        <div class="cal-title" id="periodLabel"></div>
-        <button type="button" id="periodNext">‹</button>
-      </div>
-      <div class="cal-today-link" id="periodTodayLink">برگشت به الان</div>
-      <div class="stat-row" style="margin-top:14px;">
-        <div class="stat-tile income"><div class="val" id="bdIncomeVal">۰</div><div class="lbl">واریز این بازه</div></div>
-        <div class="stat-tile expense"><div class="val" id="bdExpenseVal">۰</div><div class="lbl">برداشت این بازه</div></div>
-      </div>
-      <div class="total-line"><span>خالص این بازه</span><b id="bdNetVal">۰</b></div>
-      <div class="tx-list" id="bdTxList" style="margin-top:8px;"></div>
     </div>
 
+    <div class="tab-panel" data-tab="add" style="display:none;">
     <div class="card">
       <div class="section-title">ثبت تراکنش جدید</div>
       <div class="type-toggle">
@@ -519,7 +509,42 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         <button type="submit" class="submit-btn" id="submitBtnLbl">ثبت تراکنش</button>
       </form>
     </div>
+    </div>
 
+    <div class="tab-panel" data-tab="breakdown" style="display:none;">
+    <div class="card">
+      <div class="section-title">ریز حساب هر شخص</div>
+      <div class="row2" style="margin-bottom:12px;">
+        <div class="field">
+          <label>بازه زمانی</label>
+          <select id="periodTypeSelect">
+            <option value="daily">روزانه</option>
+            <option value="weekly">هفتگی</option>
+            <option value="monthly">ماهانه</option>
+            <option value="yearly">سالانه</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>شخص</label>
+          <select id="breakdownPersonSelect"></select>
+        </div>
+      </div>
+      <div class="cal-header">
+        <button type="button" id="periodPrev">›</button>
+        <div class="cal-title" id="periodLabel"></div>
+        <button type="button" id="periodNext">‹</button>
+      </div>
+      <div class="cal-today-link" id="periodTodayLink">برگشت به الان</div>
+      <div class="stat-row" style="margin-top:14px;">
+        <div class="stat-tile income"><div class="val" id="bdIncomeVal">۰</div><div class="lbl">واریز این بازه</div></div>
+        <div class="stat-tile expense"><div class="val" id="bdExpenseVal">۰</div><div class="lbl">برداشت این بازه</div></div>
+      </div>
+      <div class="total-line"><span>خالص این بازه</span><b id="bdNetVal">۰</b></div>
+      <div class="tx-list" id="bdTxList" style="margin-top:8px;"></div>
+    </div>
+    </div>
+
+    <div class="tab-panel" data-tab="list" style="display:none;">
     <div class="card">
       <div class="section-title">فهرست تراکنش‌ها</div>
       <div class="filter-row">
@@ -528,6 +553,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         <div class="filter-btn" data-filter="expense">برداشت‌ها</div>
       </div>
       <div class="tx-list" id="txList"></div>
+    </div>
     </div>
   </div>
 
@@ -552,7 +578,7 @@ function newId(prefix){ return prefix + Date.now().toString(36) + Math.random().
 function defaultData(){
   return {
     schema: 1,
-    title: 'صندوق خانواده',
+    title: 'گردش مالی خانواده',
     theme: 'grape',
     currency: 'ریال',
     people: [
@@ -731,7 +757,7 @@ async function registerFingerprint(personId){
     const cred = await navigator.credentials.create({
       publicKey: {
         challenge,
-        rp: { name: 'صندوق خانواده' },
+        rp: { name: 'گردش مالی خانواده' },
         user: { id: userId, name: personId, displayName: personName(personId) },
         pubKeyCredParams: [{ type:'public-key', alg:-7 }, { type:'public-key', alg:-257 }],
         authenticatorSelection: { authenticatorAttachment:'platform', userVerification:'required' },
@@ -1001,6 +1027,7 @@ function enterApp(){
   currentFilter = 'all';
   resetDateToToday(); closeCalendar(); applyTheme();
   render();
+  showTab('status');
   updateStorageIndicator();
   showStorageBanner();
   showScreen('app');
@@ -1090,6 +1117,20 @@ document.getElementById('changePwForm').addEventListener('submit', async (e) => 
   data.auth[currentUserId] = { salt, hash };
   await saveData();
   msg.textContent = 'رمز عبور با موفقیت تغییر کرد.'; msg.className = 'pw-msg ok';
+});
+
+/* ---------- main tabs ---------- */
+function showTab(tab){
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.style.display = (p.dataset.tab === tab) ? '' : 'none';
+  });
+  document.querySelectorAll('.tab-nav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+}
+document.getElementById('tabNav').addEventListener('click', (e) => {
+  const btn = e.target.closest('.tab-nav-btn');
+  if(btn) showTab(btn.dataset.tab);
 });
 
 /* ---------- settings ---------- */
@@ -1223,7 +1264,7 @@ function renderAdminPanel(){
 
   document.getElementById('txt_title').value = data.title;
   document.getElementById('txt_currency').value = data.currency;
-  document.getElementById('txt_title').onchange = async (e) => { data.title = e.target.value.trim() || 'صندوق خانواده'; await saveData(); render(); };
+  document.getElementById('txt_title').onchange = async (e) => { data.title = e.target.value.trim() || 'گردش مالی خانواده'; await saveData(); render(); };
   document.getElementById('txt_currency').onchange = async (e) => { data.currency = e.target.value.trim() || 'ریال'; await saveData(); render(); };
 }
 function applyTheme(){ document.body.setAttribute('data-theme', data.theme || 'grape'); }

@@ -258,20 +258,21 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       <div class="login-title">ورود به صندوق خانواده</div>
       <div class="login-sub">اسمت رو انتخاب کن و رمز عبورت رو وارد کن</div>
 
+      <form id="loginForm" autocomplete="on">
       <div class="login-field">
         <label>اسم</label>
-        <select id="loginNameSelect"></select>
+        <select id="loginNameSelect" name="username" autocomplete="username"></select>
       </div>
 
       <div id="setupNote" class="setup-note" style="display:none;"></div>
 
       <div class="login-field">
         <label id="pwLabel1">رمز عبور</label>
-        <input type="password" id="pwInput1" autocomplete="off">
+        <input type="password" id="pwInput1" name="password" autocomplete="current-password">
       </div>
       <div class="login-field" id="pwField2" style="display:none;">
         <label>تکرار رمز عبور</label>
-        <input type="password" id="pwInput2" autocomplete="off">
+        <input type="password" id="pwInput2" name="new-password" autocomplete="new-password">
       </div>
 
       <div class="captcha-box">
@@ -286,7 +287,9 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       </div>
 
       <div class="login-error" id="pwError"></div>
-      <button class="login-submit" id="pwSubmitBtn">ورود</button>
+      <button class="login-submit" id="pwSubmitBtn" type="submit">ورود</button>
+      <button class="login-submit" id="fpLoginBtn" type="button" style="display:none; margin-top:8px; background:var(--accent2);">👆 ورود با اثر انگشت</button>
+      </form>
     </div>
   </div>
 
@@ -328,6 +331,52 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     </div>
   </div>
 
+  <!-- SETTINGS -->
+  <div id="settingsScreen" style="display:none;">
+    <header class="site-header"><h1>تنظیمات</h1></header>
+    <div class="user-bar">
+      <div class="who">👤 <span id="settingsWhoName"></span></div>
+      <div class="actions"><button id="settingsBackBtn">بازگشت به صندوق</button></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">حساب کاربری</div>
+      <button id="adminPanelBtn" style="display:none; width:100%; margin-bottom:8px;">پنل مدیریت</button>
+      <button id="changePwBtn" style="width:100%;">تغییر رمز عبور</button>
+    </div>
+
+    <div class="card" id="changePwCard" style="display:none;">
+      <div class="section-title">تغییر رمز عبور</div>
+      <div class="pw-rule" id="pwRuleText"></div>
+      <form id="changePwForm" autocomplete="on">
+        <div class="login-field"><label>رمز فعلی</label><input type="password" id="curPwInput" name="current-password" autocomplete="current-password"></div>
+        <div class="login-field"><label>رمز جدید</label><input type="password" id="newPwInput1" name="new-password" autocomplete="new-password"></div>
+        <div class="login-field"><label>تکرار رمز جدید</label><input type="password" id="newPwInput2" autocomplete="new-password"></div>
+        <button class="submit-btn" type="submit" id="savePwBtn">ذخیره رمز جدید</button>
+      </form>
+      <div class="pw-msg" id="changePwMsg"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">ورود با اثر انگشت</div>
+      <div class="pw-rule" id="fpStatusText"></div>
+      <button id="fpToggleBtn" style="width:100%;"></button>
+    </div>
+
+    <div class="card">
+      <div class="section-title">پشتیبان‌گیری و بازیابی</div>
+      <button id="backupBtn" style="width:100%; margin-bottom:8px;">پشتیبان‌گیری (JSON)</button>
+      <button id="restoreBtn" style="width:100%;">بازیابی از فایل پشتیبان</button>
+      <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
+    </div>
+
+    <div class="card">
+      <div class="section-title">خروجی اکسل</div>
+      <div class="pw-rule">فایل اکسل شامل همه‌ی تراکنش‌هاست و توی خود اکسل یا گوگل‌شیت باز می‌شه.</div>
+      <button id="excelExportBtn" style="width:100%;">دانلود خروجی اکسل</button>
+    </div>
+  </div>
+
   <!-- MAIN APP -->
   <div id="app" style="display:none;">
     <header class="site-header"><h1 id="pageTitle">صندوق خانواده</h1></header>
@@ -335,23 +384,9 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     <div class="user-bar">
       <div class="who">👤 <span id="whoName"></span> <span id="adminTag" class="admin-badge" style="display:none;">مدیر</span> <span id="storageIndicator" class="storage-indicator-pill"></span></div>
       <div class="actions">
-        <button id="adminPanelBtn" style="display:none;">پنل مدیریت</button>
-        <button id="backupBtn">پشتیبان‌گیری</button>
-        <button id="restoreBtn">بازیابی</button>
-        <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
-        <button id="changePwBtn">تغییر رمز</button>
+        <button id="settingsBtn">⚙️ تنظیمات</button>
         <button id="logoutBtn">خروج</button>
       </div>
-    </div>
-
-    <div class="card" id="changePwCard" style="display:none;">
-      <div class="section-title">تغییر رمز عبور</div>
-      <div class="pw-rule" id="pwRuleText"></div>
-      <div class="login-field"><label>رمز فعلی</label><input type="password" id="curPwInput" autocomplete="off"></div>
-      <div class="login-field"><label>رمز جدید</label><input type="password" id="newPwInput1" autocomplete="off"></div>
-      <div class="login-field"><label>تکرار رمز جدید</label><input type="password" id="newPwInput2" autocomplete="off"></div>
-      <button class="submit-btn" id="savePwBtn">ذخیره رمز جدید</button>
-      <div class="pw-msg" id="changePwMsg"></div>
     </div>
 
     <div class="card">
@@ -620,6 +655,71 @@ function validatePassword(pwd){
 }
 const PW_RULE_TEXT = 'رمز باید حداقل ۸ کاراکتر باشه و شامل حرف کوچک انگلیسی، حرف بزرگ انگلیسی، عدد و یک نماد باشه.';
 
+/* ---------- fingerprint / WebAuthn ---------- */
+function webauthnSupported(){
+  return !!(window.PublicKeyCredential && navigator.credentials && window.isSecureContext);
+}
+function b64ToBuf(b64){
+  const bin = atob(b64.replace(/-/g,'+').replace(/_/g,'/'));
+  const buf = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) buf[i] = bin.charCodeAt(i);
+  return buf;
+}
+function bufToB64(buf){
+  let bin = '';
+  new Uint8Array(buf).forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+async function registerFingerprint(personId){
+  if(!webauthnSupported()){ alert('این گوشی یا مرورگر از ورود با اثر انگشت پشتیبانی نمی‌کنه.'); return false; }
+  try{
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const userId = crypto.getRandomValues(new Uint8Array(16));
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: { name: 'صندوق خانواده' },
+        user: { id: userId, name: personId, displayName: personName(personId) },
+        pubKeyCredParams: [{ type:'public-key', alg:-7 }, { type:'public-key', alg:-257 }],
+        authenticatorSelection: { authenticatorAttachment:'platform', userVerification:'required' },
+        timeout: 60000
+      }
+    });
+    if(!cred) return false;
+    if(!data.auth[personId]) data.auth[personId] = {};
+    data.auth[personId].webauthnId = bufToB64(cred.rawId);
+    await saveData();
+    return true;
+  }catch(err){
+    console.error('WebAuthn register failed', err);
+    alert('فعال‌سازی اثر انگشت ناموفق بود. ممکنه گوشی‌تون قفل اثرانگشت/فیس نداشته باشه یا اجازه ندادید.');
+    return false;
+  }
+}
+async function loginWithFingerprint(personId){
+  if(!webauthnSupported()) return false;
+  const credId = data.auth[personId] && data.auth[personId].webauthnId;
+  if(!credId) return false;
+  try{
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        allowCredentials: [{ id: b64ToBuf(credId), type:'public-key' }],
+        userVerification: 'required',
+        timeout: 60000
+      }
+    });
+    return !!assertion;
+  }catch(err){
+    console.error('WebAuthn login failed', err);
+    return false;
+  }
+}
+function removeFingerprint(personId){
+  if(data.auth[personId]) delete data.auth[personId].webauthnId;
+}
+
 /* ---------- captcha ---------- */
 function generateCaptchaCode(){
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -759,7 +859,7 @@ function renderCalendar(){
 
 /* ---------- screens ---------- */
 function showScreen(id){
-  ['loading','login','app','adminScreen'].forEach(s => {
+  ['loading','login','app','adminScreen','settingsScreen'].forEach(s => {
     document.getElementById(s).style.display = (s === id) ? '' : 'none';
   });
 }
@@ -793,12 +893,24 @@ function updateLoginMode(){
     document.getElementById('pwField2').style.display = 'block';
     document.getElementById('pwSubmitBtn').textContent = 'ساخت رمز و ورود';
   }
+  const fpBtn = document.getElementById('fpLoginBtn');
+  const hasFp = webauthnSupported() && !!(data.auth[id] && data.auth[id].webauthnId);
+  fpBtn.style.display = hasFp ? 'block' : 'none';
 }
 document.getElementById('loginNameSelect').addEventListener('change', updateLoginMode);
 document.getElementById('captchaRefresh').addEventListener('click', () => {
   drawCaptcha(); document.getElementById('captchaInput').value = '';
 });
-document.getElementById('pwSubmitBtn').addEventListener('click', async () => {
+document.getElementById('fpLoginBtn').addEventListener('click', async () => {
+  const id = document.getElementById('loginNameSelect').value;
+  const errBox = document.getElementById('pwError');
+  errBox.textContent = '';
+  const ok = await loginWithFingerprint(id);
+  if(ok){ currentUserId = id; enterApp(); }
+  else { errBox.textContent = 'ورود با اثر انگشت ناموفق بود. با رمز عبور وارد شو.'; }
+});
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
   const id = document.getElementById('loginNameSelect').value;
   const hasAuth = !!(data.auth[id] && data.auth[id].hash);
   const errBox = document.getElementById('pwError');
@@ -906,7 +1018,8 @@ document.getElementById('changePwBtn').addEventListener('click', () => {
   document.getElementById('changePwMsg').textContent = '';
   document.getElementById('changePwMsg').className = 'pw-msg';
 });
-document.getElementById('savePwBtn').addEventListener('click', async () => {
+document.getElementById('changePwForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
   const cur = document.getElementById('curPwInput').value;
   const n1 = document.getElementById('newPwInput1').value;
   const n2 = document.getElementById('newPwInput2').value;
@@ -923,6 +1036,71 @@ document.getElementById('savePwBtn').addEventListener('click', async () => {
   await saveData();
   msg.textContent = 'رمز عبور با موفقیت تغییر کرد.'; msg.className = 'pw-msg ok';
 });
+
+/* ---------- settings ---------- */
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  document.getElementById('settingsWhoName').textContent = personName(currentUserId);
+  document.getElementById('adminPanelBtn').style.display = isCurrentAdmin() ? 'block' : 'none';
+  document.getElementById('changePwCard').style.display = 'none';
+  renderFingerprintSection();
+  showScreen('settingsScreen');
+});
+document.getElementById('settingsBackBtn').addEventListener('click', () => { showScreen('app'); render(); });
+
+function renderFingerprintSection(){
+  const section = document.getElementById('fpToggleBtn').closest('.card');
+  if(!webauthnSupported()){
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+  const enabled = !!(data.auth[currentUserId] && data.auth[currentUserId].webauthnId);
+  document.getElementById('fpStatusText').textContent = enabled
+    ? 'ورود سریع با اثر انگشت روی این گوشی فعاله.'
+    : 'با فعال‌کردن این گزینه، دفعه‌های بعد می‌تونی به‌جای تایپ رمز، با اثر انگشت یا فیس همین گوشی وارد بشی.';
+  const btn = document.getElementById('fpToggleBtn');
+  btn.textContent = enabled ? 'غیرفعال‌کردن اثر انگشت' : 'فعال‌کردن اثر انگشت روی این گوشی';
+  btn.onclick = async () => {
+    if(enabled){
+      removeFingerprint(currentUserId);
+      await saveData();
+      renderFingerprintSection();
+    } else {
+      const ok = await registerFingerprint(currentUserId);
+      if(ok) renderFingerprintSection();
+    }
+  };
+}
+
+/* ---------- excel export ---------- */
+function exportExcel(){
+  const rows = [...data.transactions].sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  const head = ['تاریخ', 'نوع', 'شخص', 'دسته‌بندی', 'توضیح', `مبلغ (${data.currency})`];
+  let html = '<table dir="rtl"><thead><tr>' + head.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '</tr></thead><tbody>';
+  rows.forEach(tx => {
+    const typeLabel = tx.type === 'income' ? 'واریز' : 'برداشت';
+    html += '<tr>' +
+      `<td>${escapeHtml(formatDate(tx.date))}</td>` +
+      `<td>${escapeHtml(typeLabel)}</td>` +
+      `<td>${escapeHtml(personName(tx.personId))}</td>` +
+      `<td>${escapeHtml(tx.category||'')}</td>` +
+      `<td>${escapeHtml(tx.desc||'')}</td>` +
+      `<td>${tx.type==='expense'?'-':''}${fmt(tx.amount)}</td>` +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  const full = `\uFEFF<html><head><meta charset="UTF-8"></head><body>${html}</body></html>`;
+  const blob = new Blob([full], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sandoogh-khanevadeh-${todayIso()}.xls`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+document.getElementById('excelExportBtn').addEventListener('click', exportExcel);
 
 /* ---------- admin ---------- */
 document.getElementById('adminPanelBtn').addEventListener('click', () => {

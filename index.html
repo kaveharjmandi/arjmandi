@@ -218,6 +218,25 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .pw-msg.err{color:var(--debit);}
 .pw-msg.ok{color:var(--credit);}
 
+.visually-hidden-field{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+/* ================= SETTINGS ================= */
+.settings-card{ padding:0; overflow:hidden; }
+.settings-item{ display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer; border-bottom:1px solid var(--line); }
+.settings-item:last-child{ border-bottom:none; }
+.settings-item:active{ background:var(--bg); }
+.settings-icon{ width:34px; height:34px; border-radius:9px; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.settings-text{ flex:1; min-width:0; }
+.settings-title{ font-size:14px; font-weight:700; color:var(--ink); }
+.settings-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; line-height:1.5; }
+.settings-chevron{ color:var(--ink-soft); font-size:16px; flex-shrink:0; }
+.switch{ position:relative; width:42px; height:24px; flex-shrink:0; display:inline-block; }
+.switch input{ opacity:0; width:0; height:0; position:absolute; }
+.switch-track{ position:absolute; inset:0; background:var(--line); border-radius:999px; transition:.15s; cursor:pointer; }
+.switch-track::before{ content:''; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0,0,0,0.25); }
+.switch input:checked + .switch-track{ background:var(--accent); }
+.switch input:checked + .switch-track::before{ transform:translateX(18px); }
+
 /* ================= ADMIN ================= */
 .admin-section{ border-top:1px dashed var(--line); padding-top:14px; margin-top:14px; }
 .admin-section:first-child{border-top:none; padding-top:0; margin-top:0;}
@@ -259,6 +278,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       <div class="login-sub">اسمت رو انتخاب کن و رمز عبورت رو وارد کن</div>
 
       <form id="loginForm" autocomplete="on">
+      <input type="text" id="loginUsernameShadow" name="username" autocomplete="username" class="visually-hidden-field" tabindex="-1" readonly>
       <div class="login-field">
         <label>اسم</label>
         <select id="loginNameSelect" name="username" autocomplete="username"></select>
@@ -298,7 +318,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     <header class="site-header"><h1>پنل مدیریت</h1></header>
     <div class="user-bar">
       <div class="who">👤 <span id="adminWhoName"></span></div>
-      <div class="actions"><button id="adminBackBtn">بازگشت به صندوق</button></div>
+      <div class="actions"><button id="adminBackBtn">‹ بازگشت به تنظیمات</button></div>
     </div>
     <div class="card">
       <div class="admin-section">
@@ -336,44 +356,77 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     <header class="site-header"><h1>تنظیمات</h1></header>
     <div class="user-bar">
       <div class="who">👤 <span id="settingsWhoName"></span></div>
-      <div class="actions"><button id="settingsBackBtn">بازگشت به صندوق</button></div>
+      <div class="actions"><button id="settingsBackBtn">‹ بازگشت به صندوق</button></div>
     </div>
 
-    <div class="card">
-      <div class="section-title">حساب کاربری</div>
-      <button id="adminPanelBtn" style="display:none; width:100%; margin-bottom:8px;">پنل مدیریت</button>
-      <button id="changePwBtn" style="width:100%;">تغییر رمز عبور</button>
+    <div class="card settings-card">
+      <div class="settings-item" id="adminPanelBtn" style="display:none;">
+        <div class="settings-icon">🛠️</div>
+        <div class="settings-text">
+          <div class="settings-title">پنل مدیریت</div>
+          <div class="settings-sub">دسته‌بندی‌ها، تم و متن‌های صندوق</div>
+        </div>
+        <div class="settings-chevron">‹</div>
+      </div>
+
+      <div class="settings-item" id="changePwBtn">
+        <div class="settings-icon">🔑</div>
+        <div class="settings-text">
+          <div class="settings-title">تغییر رمز عبور</div>
+        </div>
+        <div class="settings-chevron">‹</div>
+      </div>
+
+      <div class="settings-item" id="fpToggleRow">
+        <div class="settings-icon">👆</div>
+        <div class="settings-text">
+          <div class="settings-title">ورود با اثر انگشت</div>
+          <div class="settings-sub" id="fpStatusText"></div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="fpToggleInput">
+          <span class="switch-track"></span>
+        </label>
+      </div>
+
+      <div class="settings-item" id="backupBtn">
+        <div class="settings-icon">⬇️</div>
+        <div class="settings-text">
+          <div class="settings-title">پشتیبان‌گیری (JSON)</div>
+        </div>
+        <div class="settings-chevron">‹</div>
+      </div>
+
+      <div class="settings-item" id="restoreBtn">
+        <div class="settings-icon">⬆️</div>
+        <div class="settings-text">
+          <div class="settings-title">بازیابی از فایل پشتیبان</div>
+        </div>
+        <div class="settings-chevron">‹</div>
+        <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
+      </div>
+
+      <div class="settings-item" id="excelExportBtn">
+        <div class="settings-icon">📊</div>
+        <div class="settings-text">
+          <div class="settings-title">خروجی اکسل</div>
+          <div class="settings-sub">دانلود همه‌ی تراکنش‌ها</div>
+        </div>
+        <div class="settings-chevron">‹</div>
+      </div>
     </div>
 
     <div class="card" id="changePwCard" style="display:none;">
       <div class="section-title">تغییر رمز عبور</div>
       <div class="pw-rule" id="pwRuleText"></div>
       <form id="changePwForm" autocomplete="on">
+        <input type="text" id="pwFormUsername" name="username" autocomplete="username" class="visually-hidden-field" tabindex="-1">
         <div class="login-field"><label>رمز فعلی</label><input type="password" id="curPwInput" name="current-password" autocomplete="current-password"></div>
         <div class="login-field"><label>رمز جدید</label><input type="password" id="newPwInput1" name="new-password" autocomplete="new-password"></div>
         <div class="login-field"><label>تکرار رمز جدید</label><input type="password" id="newPwInput2" autocomplete="new-password"></div>
         <button class="submit-btn" type="submit" id="savePwBtn">ذخیره رمز جدید</button>
       </form>
       <div class="pw-msg" id="changePwMsg"></div>
-    </div>
-
-    <div class="card">
-      <div class="section-title">ورود با اثر انگشت</div>
-      <div class="pw-rule" id="fpStatusText"></div>
-      <button id="fpToggleBtn" style="width:100%;"></button>
-    </div>
-
-    <div class="card">
-      <div class="section-title">پشتیبان‌گیری و بازیابی</div>
-      <button id="backupBtn" style="width:100%; margin-bottom:8px;">پشتیبان‌گیری (JSON)</button>
-      <button id="restoreBtn" style="width:100%;">بازیابی از فایل پشتیبان</button>
-      <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
-    </div>
-
-    <div class="card">
-      <div class="section-title">خروجی اکسل</div>
-      <div class="pw-rule">فایل اکسل شامل همه‌ی تراکنش‌هاست و توی خود اکسل یا گوگل‌شیت باز می‌شه.</div>
-      <button id="excelExportBtn" style="width:100%;">دانلود خروجی اکسل</button>
     </div>
   </div>
 
@@ -880,6 +933,7 @@ function renderLoginScreen(){
 function updateLoginMode(){
   const id = document.getElementById('loginNameSelect').value || pendingLoginId;
   pendingLoginId = id;
+  document.getElementById('loginUsernameShadow').value = id;
   const hasAuth = !!(data.auth[id] && data.auth[id].hash);
   if(hasAuth){
     document.getElementById('setupNote').style.display = 'none';
@@ -1012,6 +1066,7 @@ document.getElementById('changePwBtn').addEventListener('click', () => {
   const opening = card.style.display === 'none';
   card.style.display = opening ? 'block' : 'none';
   document.getElementById('pwRuleText').textContent = PW_RULE_TEXT;
+  document.getElementById('pwFormUsername').value = currentUserId;
   document.getElementById('curPwInput').value = '';
   document.getElementById('newPwInput1').value = '';
   document.getElementById('newPwInput2').value = '';
@@ -1040,7 +1095,7 @@ document.getElementById('changePwForm').addEventListener('submit', async (e) => 
 /* ---------- settings ---------- */
 document.getElementById('settingsBtn').addEventListener('click', () => {
   document.getElementById('settingsWhoName').textContent = personName(currentUserId);
-  document.getElementById('adminPanelBtn').style.display = isCurrentAdmin() ? 'block' : 'none';
+  document.getElementById('adminPanelBtn').style.display = isCurrentAdmin() ? 'flex' : 'none';
   document.getElementById('changePwCard').style.display = 'none';
   renderFingerprintSection();
   showScreen('settingsScreen');
@@ -1048,26 +1103,27 @@ document.getElementById('settingsBtn').addEventListener('click', () => {
 document.getElementById('settingsBackBtn').addEventListener('click', () => { showScreen('app'); render(); });
 
 function renderFingerprintSection(){
-  const section = document.getElementById('fpToggleBtn').closest('.card');
+  const row = document.getElementById('fpToggleRow');
   if(!webauthnSupported()){
-    section.style.display = 'none';
+    row.style.display = 'none';
     return;
   }
-  section.style.display = '';
+  row.style.display = 'flex';
   const enabled = !!(data.auth[currentUserId] && data.auth[currentUserId].webauthnId);
   document.getElementById('fpStatusText').textContent = enabled
-    ? 'ورود سریع با اثر انگشت روی این گوشی فعاله.'
-    : 'با فعال‌کردن این گزینه، دفعه‌های بعد می‌تونی به‌جای تایپ رمز، با اثر انگشت یا فیس همین گوشی وارد بشی.';
-  const btn = document.getElementById('fpToggleBtn');
-  btn.textContent = enabled ? 'غیرفعال‌کردن اثر انگشت' : 'فعال‌کردن اثر انگشت روی این گوشی';
-  btn.onclick = async () => {
-    if(enabled){
+    ? 'روی این گوشی فعاله — دفعه‌ی بعد می‌تونی با اثر انگشت وارد بشی.'
+    : 'به‌جای تایپ رمز، با اثر انگشت یا فیس همین گوشی وارد شو.';
+  const input = document.getElementById('fpToggleInput');
+  input.checked = enabled;
+  input.onchange = async () => {
+    if(input.checked){
+      const ok = await registerFingerprint(currentUserId);
+      if(!ok) input.checked = false;
+      renderFingerprintSection();
+    } else {
       removeFingerprint(currentUserId);
       await saveData();
       renderFingerprintSection();
-    } else {
-      const ok = await registerFingerprint(currentUserId);
-      if(ok) renderFingerprintSection();
     }
   };
 }
@@ -1108,7 +1164,7 @@ document.getElementById('adminPanelBtn').addEventListener('click', () => {
   renderAdminPanel();
   showScreen('adminScreen');
 });
-document.getElementById('adminBackBtn').addEventListener('click', () => { showScreen('app'); render(); });
+document.getElementById('adminBackBtn').addEventListener('click', () => { showScreen('settingsScreen'); });
 
 function renderCatList(containerId, catType){
   const container = document.getElementById(containerId);

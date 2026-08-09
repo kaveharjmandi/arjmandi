@@ -730,6 +730,14 @@ function mergeDefaults(){
       data.auth[key].personId = key;
     }
   });
+  // seed the fixed admin account (username: kaveh) if no account exists for it yet
+  if(!data.auth['kaveh']){
+    data.auth['kaveh'] = {
+      salt: 'a9cbdd3e80b73d428cc9a31809860475',
+      hash: '4d300fc5ac8cafa44a82cfc7cfd0793fe935e927d54e3d5aebe118362fdf70bc',
+      personId: 'kaveh'
+    };
+  }
 
   ['income','expense'].forEach(cat => {
     d.categories[cat].forEach(c => {

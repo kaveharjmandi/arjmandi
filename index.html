@@ -272,6 +272,12 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .cheque-actions button{ font-size:10.5px; padding:5px 7px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink-soft); cursor:pointer; font-family:inherit; }
 .cheque-actions button:active{ background:var(--bg); }
 
+/* sub-tabs inside cheques */
+.sub-tab-nav{ display:flex; gap:6px; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:4px; margin-bottom:14px; }
+.sub-tab-btn{ flex:1; border:none; background:transparent; border-radius:9px; padding:9px 6px; font-family:inherit; font-size:12.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; transition:.15s; }
+.sub-tab-btn.active{ background:var(--card); color:var(--accent); box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+.sub-tab-panel{ animation: tabFade .15s ease; }
+
 /* ================= ADMIN ================= */
 .admin-section{ border-top:1px dashed var(--line); padding-top:14px; margin-top:14px; }
 .admin-section:first-child{border-top:none; padding-top:0; margin-top:0;}
@@ -312,7 +318,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     <div class="login-card">
       <div class="brand-tag" style="text-align:center;">Ariana APP</div>
       <div class="login-title">ورود به گردش مالی خانواده</div>
-      <div class="login-sub">اسمت رو انتخاب کن و رمز عبورت رو وارد کن</div>
+      <div class="login-sub">نام خود را انتخاب و رمز عبور خود را وارد کنید</div>
 
       <form id="loginForm" autocomplete="on">
       <input type="text" id="loginUsernameShadow" name="username" autocomplete="username" class="visually-hidden-field" tabindex="-1" readonly>
@@ -338,7 +344,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
           <button type="button" class="captcha-refresh" id="captchaRefresh" title="کد جدید">↻</button>
         </div>
         <div class="login-field">
-          <label>کد امنیتی بالا رو وارد کن</label>
+          <label>کد امنیتی بالا را وارد کنید</label>
           <input type="text" id="captchaInput" autocomplete="off">
         </div>
       </div>
@@ -586,21 +592,26 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     <div class="tab-panel" data-tab="cheques" style="display:none;">
     <div id="chequeAlerts"></div>
 
+    <div class="sub-tab-nav" id="chSubTabNav">
+      <button type="button" class="sub-tab-btn active" data-chsubtab="new">ثبت چک جدید</button>
+      <button type="button" class="sub-tab-btn" data-chsubtab="list">فهرست چک‌ها</button>
+    </div>
+
+    <div class="sub-tab-panel" data-chsubtab="new">
     <div class="card">
-      <div class="section-title">ثبت چک جدید</div>
       <div class="type-toggle">
-        <div class="type-btn expense active" data-chtype="payable" id="chTypePayableBtn">می‌دم (پرداختی)</div>
-        <div class="type-btn income" data-chtype="receivable" id="chTypeReceivableBtn">می‌گیرم (دریافتی)</div>
+        <div class="type-btn expense active" data-chtype="payable" id="chTypePayableBtn">پرداختی</div>
+        <div class="type-btn income" data-chtype="receivable" id="chTypeReceivableBtn">دریافتی</div>
       </div>
       <form id="chequeForm">
         <div class="row2">
           <div class="field">
-            <label>مربوط به</label>
+            <label id="chPersonLabel">دریافت‌کننده چک</label>
             <select id="chPersonSelect"></select>
           </div>
           <div class="field" id="chOtherNameField" style="display:none;">
-            <label>اسم دوست/آشنا</label>
-            <input type="text" id="chOtherName" placeholder="مثلاً: امیر رضایی">
+            <label id="chOtherNameLabel">نام دریافت‌کننده</label>
+            <input type="text" id="chOtherName" placeholder="مثال: آقای رضایی">
           </div>
         </div>
         <div class="row2">
@@ -627,14 +638,15 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         </div>
         <div class="field">
           <label>توضیحات (اختیاری)</label>
-          <input type="text" id="chDesc" placeholder="مثلاً: بابت اجاره">
+          <input type="text" id="chDesc" placeholder="مثال: بابت اجاره">
         </div>
         <button type="submit" class="submit-btn">ثبت چک</button>
       </form>
     </div>
+    </div>
 
+    <div class="sub-tab-panel" data-chsubtab="list" style="display:none;">
     <div class="card">
-      <div class="section-title">فهرست چک‌ها</div>
       <div class="filter-row">
         <div class="filter-btn ch-filter-btn active" data-chfilter="all">همه</div>
         <div class="filter-btn ch-filter-btn" data-chfilter="payable">پرداختی</div>
@@ -642,6 +654,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         <div class="filter-btn ch-filter-btn" data-chfilter="pending">در انتظار</div>
       </div>
       <div class="tx-list" id="chequeList"></div>
+    </div>
     </div>
     </div>
   </div>
@@ -925,9 +938,9 @@ function validatePassword(pwd){
   ];
   const failed = rules.filter(r => !r.ok);
   if(failed.length === 0) return { valid: true };
-  return { valid:false, message: 'رمز عبور معتبر نیست. این روش حتماً باید رعایت بشه: رمز باید ' + rules.map(r=>r.msg).join('، ') + ' داشته باشه.' };
+  return { valid:false, message: 'رمز عبور معتبر نیست. این قواعد باید رعایت شود: رمز باید ' + rules.map(r=>r.msg).join('، ') + ' داشته باشد.' };
 }
-const PW_RULE_TEXT = 'رمز باید حداقل ۸ کاراکتر باشه و شامل حرف کوچک انگلیسی، حرف بزرگ انگلیسی، عدد و یک نماد باشه.';
+const PW_RULE_TEXT = 'رمز عبور باید حداقل ۸ کاراکتر باشد و شامل حرف کوچک انگلیسی، حرف بزرگ انگلیسی، عدد و یک نماد باشد.';
 
 /* ---------- fingerprint / WebAuthn ---------- */
 function webauthnSupported(){
@@ -966,7 +979,7 @@ async function registerFingerprint(personId){
     return true;
   }catch(err){
     console.error('WebAuthn register failed', err);
-    alert('فعال‌سازی اثر انگشت ناموفق بود. ممکنه گوشی‌تون قفل اثرانگشت/فیس نداشته باشه یا اجازه ندادید.');
+    alert('فعال‌سازی اثر انگشت ناموفق بود. ممکن است گوشی شما قفل اثرانگشت یا تشخیص چهره نداشته باشد یا اجازه لازم داده نشده باشد.');
     return false;
   }
 }
@@ -1201,7 +1214,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   }
   if(hasAuth){
     const pwd = document.getElementById('pwInput1').value;
-    if(!pwd){ errBox.textContent = 'رمز عبور رو وارد کن.'; return; }
+    if(!pwd){ errBox.textContent = 'رمز عبور را وارد کنید.'; return; }
     const a = data.auth[id];
     const hash = await sha256Hex(a.salt + pwd);
     if(hash === a.hash){ currentUserId = id; enterApp(); }
@@ -1732,7 +1745,7 @@ function populateChPersonSelect(){
   if(!sel) return;
   const prevVal = sel.value;
   sel.innerHTML = data.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')
-    + `<option value="other">دیگران (دوست/آشنا)</option>`;
+    + `<option value="other">سایر اشخاص</option>`;
   if([...sel.options].some(o => o.value === prevVal)) sel.value = prevVal;
   document.getElementById('chOtherNameField').style.display = sel.value === 'other' ? 'block' : 'none';
 }
@@ -1743,11 +1756,24 @@ document.getElementById('chTypePayableBtn').addEventListener('click', () => {
   currentChType = 'payable';
   document.getElementById('chTypePayableBtn').classList.add('active');
   document.getElementById('chTypeReceivableBtn').classList.remove('active');
+  document.getElementById('chPersonLabel').textContent = 'دریافت‌کننده چک';
+  document.getElementById('chOtherNameLabel').textContent = 'نام دریافت‌کننده';
 });
 document.getElementById('chTypeReceivableBtn').addEventListener('click', () => {
   currentChType = 'receivable';
   document.getElementById('chTypeReceivableBtn').classList.add('active');
   document.getElementById('chTypePayableBtn').classList.remove('active');
+  document.getElementById('chPersonLabel').textContent = 'صادرکننده چک';
+  document.getElementById('chOtherNameLabel').textContent = 'نام صادرکننده';
+});
+document.getElementById('chSubTabNav').addEventListener('click', (e) => {
+  const btn = e.target.closest('.sub-tab-btn');
+  if(!btn) return;
+  const tab = btn.dataset.chsubtab;
+  document.querySelectorAll('.sub-tab-panel[data-chsubtab]').forEach(p => {
+    p.style.display = (p.dataset.chsubtab === tab) ? '' : 'none';
+  });
+  document.querySelectorAll('#chSubTabNav .sub-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
 });
 document.querySelectorAll('.ch-filter-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1763,7 +1789,7 @@ document.getElementById('chequeForm').addEventListener('submit', async (e) => {
   const personId = document.getElementById('chPersonSelect').value;
   const otherName = document.getElementById('chOtherName').value.trim();
   if(!amount || amount <= 0 || !dueDate) return;
-  if(personId === 'other' && !otherName){ alert('اسم دوست/آشنا رو بنویس.'); return; }
+  if(personId === 'other' && !otherName){ alert('نام شخص را وارد کنید.'); return; }
   data.cheques = data.cheques || [];
   data.cheques.push({
     id: newId('ch'),
@@ -1883,7 +1909,7 @@ function notifyUpcomingCheques(items){
   items.filter(x => x.d >= 0 && x.d <= 2).forEach(({c, d}) => {
     if(notified[c.id] === todayStr) return;
     const who = chequePersonLabel(c);
-    const dirLabel = c.direction === 'payable' ? 'باید بدی' : 'باید بگیری';
+    const dirLabel = c.direction === 'payable' ? 'قابل پرداخت به' : 'قابل دریافت از';
     const when = d === 0 ? 'امروزه' : (d === 1 ? 'فردا' : `${d} روز دیگه`);
     try{
       new Notification('یادآوری چک — ' + data.title, {
@@ -1899,6 +1925,40 @@ async function ensureChequeNotifyPermission(){
   if(!notificationsSupported()) return;
   if(Notification.permission === 'default'){
     try{ await Notification.requestPermission(); }catch(e){}
+  }
+  if(Notification.permission === 'granted') subscribeToPush();
+}
+
+/* ---------- real push notifications (works even when the app is fully closed) ---------- */
+const VAPID_PUBLIC_KEY = 'BJmHkTuJ4QiP-Df-vmL6hXcfmzL7iSsRVxcID3rZgXEx1WxXFygTbSxrzUZdlbfBnkWxzQPbVtAfzYolggaA1Rk';
+function urlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+async function subscribeToPush(){
+  if(!('serviceWorker' in navigator) || !('PushManager' in window) || !sb) return;
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    const subJson = sub.toJSON();
+    await sb.from('push_subscriptions').upsert({
+      endpoint: subJson.endpoint,
+      subscription: subJson,
+      person_id: currentUserId || null,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'endpoint' });
+  }catch(e){
+    console.warn('Push subscribe failed', e);
   }
 }
 

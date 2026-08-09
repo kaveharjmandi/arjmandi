@@ -276,6 +276,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
   .stat-row{grid-template-columns:1fr 1fr;}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body data-theme="grape">
 <div class="wrap">
@@ -613,7 +614,62 @@ function mergeDefaults(){
   });
 }
 
-let storageMode = 'cloud'; // 'cloud' | 'local' | 'none'
+let storageMode = 'sync'; // 'sync' (Supabase, cross-device) | 'cloud' | 'local' | 'none'
+
+/* ---------- Supabase (cross-device sync) ---------- */
+const SUPABASE_URL = 'https://ltzczluleawwtqrpyadd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0emN6bHVsZWF3d3RxcnB5YWRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyMzU5MDMsImV4cCI6MjEwMTgxMTkwM30.zr5lEIZ4JsfdZewo8GYs4PGoymRkTl29PWdaZJHMZa0';
+const SUPABASE_ROW_ID = 'family';
+let sb = null;
+let sbLastSavedJson = null; // to ignore our own realtime echoes
+try{
+  if(window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY){
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+}catch(e){ console.warn('Supabase init failed', e); }
+
+async function sbLoad(){
+  if(!sb) return null;
+  try{
+    const { data: row, error } = await sb.from('app_state').select('data').eq('id', SUPABASE_ROW_ID).maybeSingle();
+    if(error) throw error;
+    return row ? row.data : undefined; // undefined = no row yet
+  }catch(e){
+    console.warn('Supabase load failed, falling back', e);
+    return null;
+  }
+}
+async function sbSave(obj){
+  if(!sb) return false;
+  try{
+    const jsonStr = JSON.stringify(obj);
+    sbLastSavedJson = jsonStr;
+    const { error } = await sb.from('app_state').upsert({ id: SUPABASE_ROW_ID, data: obj, updated_at: new Date().toISOString() });
+    if(error) throw error;
+    return true;
+  }catch(e){
+    console.warn('Supabase save failed', e);
+    return false;
+  }
+}
+function sbSubscribeRealtime(){
+  if(!sb) return;
+  sb.channel('app_state_changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state', filter: `id=eq.${SUPABASE_ROW_ID}` }, (payload) => {
+      if(!payload.new || !payload.new.data) return;
+      const incomingJson = JSON.stringify(payload.new.data);
+      if(incomingJson === sbLastSavedJson) return; // our own write echoing back
+      data = payload.new.data;
+      mergeDefaults();
+      try{ localStorage.setItem(STORAGE_KEY, incomingJson); }catch(e){}
+      storageMode = 'sync';
+      updateStorageIndicator();
+      if(document.getElementById('app').style.display !== 'none'){
+        render();
+      }
+    })
+    .subscribe();
+}
 
 async function storageGet(key){
   if(typeof window.storage !== 'undefined'){
@@ -653,9 +709,11 @@ async function storageSet(key, value){
 
 async function loadData(){
   try{
-    const res = await storageGet(STORAGE_KEY);
-    if(res && res.value){
-      data = JSON.parse(res.value);
+    const sbData = await sbLoad();
+    if(sbData){
+      data = sbData;
+      storageMode = 'sync';
+      sbLastSavedJson = JSON.stringify(sbData);
       const d = defaultData();
       if(!data.categories) data.categories = d.categories;
       if(!data.theme) data.theme = 'grape';
@@ -665,10 +723,48 @@ async function loadData(){
       if(!Array.isArray(data.people)) data.people = d.people;
       if(!data.auth) data.auth = {};
       mergeDefaults();
-      await saveData();
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
+      sbSubscribeRealtime();
+    } else if(sbData === undefined && sb){
+      // Supabase reachable but no row yet -> seed it from local data (or defaults)
+      const res = await storageGet(STORAGE_KEY);
+      if(res && res.value){
+        data = JSON.parse(res.value);
+      } else {
+        data = defaultData();
+      }
+      const d = defaultData();
+      if(!data.categories) data.categories = d.categories;
+      if(!data.theme) data.theme = 'grape';
+      if(!data.title) data.title = d.title;
+      if(!data.currency) data.currency = d.currency;
+      if(!Array.isArray(data.transactions)) data.transactions = [];
+      if(!Array.isArray(data.people)) data.people = d.people;
+      if(!data.auth) data.auth = {};
+      mergeDefaults();
+      await sbSave(data);
+      storageMode = 'sync';
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
+      sbSubscribeRealtime();
     } else {
-      data = defaultData();
-      await saveData();
+      // Supabase unreachable (offline or not configured) -> fall back to local cache
+      const res = await storageGet(STORAGE_KEY);
+      if(res && res.value){
+        data = JSON.parse(res.value);
+        const d = defaultData();
+        if(!data.categories) data.categories = d.categories;
+        if(!data.theme) data.theme = 'grape';
+        if(!data.title) data.title = d.title;
+        if(!data.currency) data.currency = d.currency;
+        if(!Array.isArray(data.transactions)) data.transactions = [];
+        if(!Array.isArray(data.people)) data.people = d.people;
+        if(!data.auth) data.auth = {};
+        mergeDefaults();
+        await saveData();
+      } else {
+        data = defaultData();
+        await saveData();
+      }
     }
   }catch(e){
     console.error('Storage error', e);
@@ -676,19 +772,26 @@ async function loadData(){
     data = defaultData();
   }
   showStorageBanner();
+  updateStorageIndicator();
 }
 async function saveData(){
-  const ok = await storageSet(STORAGE_KEY, JSON.stringify(data));
-  if(!ok){ showStorageBanner(); }
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
+  const sbOk = await sbSave(data);
+  if(sbOk){
+    storageMode = 'sync';
+  } else {
+    const ok = await storageSet(STORAGE_KEY, JSON.stringify(data));
+    if(!ok){ showStorageBanner(); }
+  }
   updateStorageIndicator();
 }
 function showStorageBanner(){
   const b = document.getElementById('storageBanner');
   if(!b) return;
-  if(storageMode === 'cloud'){ b.style.display = 'none'; return; }
+  if(storageMode === 'sync' || storageMode === 'cloud'){ b.style.display = 'none'; return; }
   b.style.display = 'block';
   if(storageMode === 'local'){
-    b.innerHTML = '<b>ذخیره‌سازی محلی (فقط همین گوشی)</b>این فایل به‌صورت مستقل باز شده، پس اطلاعات فقط روی همین گوشی ذخیره می‌شه (دیگه با بستن صفحه پاک نمی‌شه). برای انتقال اطلاعات به گوشی دیگه، از دکمه‌های «پشتیبان‌گیری» و «بازیابی» کنار اسمتون استفاده کنید.';
+    b.innerHTML = '<b>ذخیره‌سازی محلی (فقط همین گوشی)</b>اتصال به دیتابیس آنلاین برقرار نشد (احتمالاً اینترنت وصل نیست)، پس فعلاً فقط روی همین گوشی ذخیره می‌شه. به‌محض وصل‌شدن اینترنت، خودش با بقیه گوشی‌ها همگام می‌شه.';
   } else {
     b.innerHTML = '<b>⚠️ ذخیره‌سازی در دسترس نیست</b>مرورگرتون اجازه ذخیره‌سازی نمی‌ده (مثلاً حالت مرور خصوصی). اطلاعات فقط تا وقتی این صفحه بازه می‌مونه و با بستنش از بین می‌ره.';
   }
@@ -696,8 +799,9 @@ function showStorageBanner(){
 function updateStorageIndicator(){
   const el = document.getElementById('storageIndicator');
   if(!el) return;
-  if(storageMode === 'cloud') el.textContent = '☁️ همگام';
-  else if(storageMode === 'local') el.textContent = '📱 محلی';
+  if(storageMode === 'sync') el.textContent = '☁️ همگام روی همه گوشی‌ها';
+  else if(storageMode === 'cloud') el.textContent = '☁️ همگام';
+  else if(storageMode === 'local') el.textContent = '📱 محلی (آفلاین)';
   else el.textContent = '⚠️ ذخیره نشد';
 }
 

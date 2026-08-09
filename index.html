@@ -1972,10 +1972,11 @@ async function init(){
     if(pop.style.display === 'block') chDatePicker.close(); else chDatePicker.open();
   });
   document.addEventListener('click', (e) => {
+    const path = e.composedPath ? e.composedPath() : [];
     const field = document.querySelector('.date-field');
-    if(field && !field.contains(e.target)) txDatePicker.close();
+    if(field && !path.includes(field)) txDatePicker.close();
     const chField = document.querySelector('.ch-date-field');
-    if(chField && !chField.contains(e.target)) chDatePicker.close();
+    if(chField && !path.includes(chField)) chDatePicker.close();
   });
 
   document.getElementById('addForm').addEventListener('submit', async (e) => {

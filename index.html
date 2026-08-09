@@ -587,7 +587,8 @@ function defaultData(){
       { id:'hadiseh', name:'حدیثه', isAdmin:false, canLogin:true },
       { id:'ariana', name:'آریانا', isAdmin:false, canLogin:false },
       { id:'sorena', name:'سورنا', isAdmin:false, canLogin:false },
-      { id:'ashkan', name:'اشکان', isAdmin:false, canLogin:false }
+      { id:'ashkan', name:'اشکان', isAdmin:false, canLogin:false },
+      { id:'family', name:'خانواده', isAdmin:false, canLogin:false }
     ],
     auth: {},
     categories: {
@@ -791,7 +792,7 @@ function showStorageBanner(){
   if(storageMode === 'sync' || storageMode === 'cloud'){ b.style.display = 'none'; return; }
   b.style.display = 'block';
   if(storageMode === 'local'){
-    b.innerHTML = '<b>ذخیره‌سازی محلی (فقط همین گوشی)</b>اتصال به دیتابیس آنلاین برقرار نشد (احتمالاً اینترنت وصل نیست)، پس فعلاً فقط روی همین گوشی ذخیره می‌شه. به‌محض وصل‌شدن اینترنت، خودش با بقیه گوشی‌ها همگام می‌شه.';
+    b.innerHTML = '<b>📴 آفلاین</b>اتصال به دیتابیس آنلاین برقرار نشد (احتمالاً اینترنت وصل نیست)، پس فعلاً فقط روی همین گوشی ذخیره می‌شه. به‌محض وصل‌شدن اینترنت، خودش با بقیه گوشی‌ها همگام می‌شه.';
   } else {
     b.innerHTML = '<b>⚠️ ذخیره‌سازی در دسترس نیست</b>مرورگرتون اجازه ذخیره‌سازی نمی‌ده (مثلاً حالت مرور خصوصی). اطلاعات فقط تا وقتی این صفحه بازه می‌مونه و با بستنش از بین می‌ره.';
   }
@@ -799,9 +800,9 @@ function showStorageBanner(){
 function updateStorageIndicator(){
   const el = document.getElementById('storageIndicator');
   if(!el) return;
-  if(storageMode === 'sync') el.textContent = '☁️ همگام روی همه گوشی‌ها';
-  else if(storageMode === 'cloud') el.textContent = '☁️ همگام';
-  else if(storageMode === 'local') el.textContent = '📱 محلی (آفلاین)';
+  if(storageMode === 'sync') el.textContent = '🟢 آنلاین';
+  else if(storageMode === 'cloud') el.textContent = '🟢 آنلاین';
+  else if(storageMode === 'local') el.textContent = '📴 آفلاین';
   else el.textContent = '⚠️ ذخیره نشد';
 }
 

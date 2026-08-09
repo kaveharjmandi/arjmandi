@@ -317,17 +317,16 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
   <div id="login" class="login-wrap" style="display:none;">
     <div class="login-card">
       <div class="brand-tag" style="text-align:center;">Ariana APP</div>
-      <div class="login-title">ورود به گردش مالی خانواده</div>
-      <div class="login-sub">نام خود را انتخاب و رمز عبور خود را وارد کنید</div>
+      <div class="login-title" id="loginTitle">ورود به گردش مالی خانواده</div>
+      <div class="login-sub" id="loginSub">نام کاربری و رمز عبور خود را وارد کنید</div>
 
       <form id="loginForm" autocomplete="on">
-      <input type="text" id="loginUsernameShadow" name="username" autocomplete="username" class="visually-hidden-field" tabindex="-1" readonly>
-      <div class="login-field">
-        <label>اسم</label>
-        <select id="loginNameSelect" name="username" autocomplete="username"></select>
-      </div>
-
       <div id="setupNote" class="setup-note" style="display:none;"></div>
+
+      <div class="login-field">
+        <label>نام کاربری</label>
+        <input type="text" id="loginUsernameInput" name="username" autocomplete="username" placeholder="مثلاً: admin">
+      </div>
 
       <div class="login-field">
         <label id="pwLabel1">رمز عبور</label>
@@ -364,6 +363,19 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       <div class="actions"><button id="adminBackBtn">‹ بازگشت به تنظیمات</button></div>
     </div>
     <div class="card">
+      <div class="admin-section">
+        <div class="admin-subtitle">حساب‌های کاربری</div>
+        <div id="accountsList"></div>
+        <div class="add-row" style="flex-direction:column; align-items:stretch; gap:6px; margin-top:10px;">
+          <input type="text" id="newAccUsername" placeholder="نام کاربری جدید (انگلیسی)">
+          <select id="newAccPerson"></select>
+          <input type="password" id="newAccPw1" placeholder="رمز عبور">
+          <input type="password" id="newAccPw2" placeholder="تکرار رمز عبور">
+          <div class="pw-rule" id="newAccPwRule" style="margin-bottom:0;"></div>
+          <div class="pw-msg" id="newAccMsg"></div>
+          <button type="button" id="addAccountBtn" style="align-self:flex-start;">ایجاد حساب و رمز</button>
+        </div>
+      </div>
       <div class="admin-section">
         <div class="admin-subtitle">دسته‌بندی‌های واریز</div>
         <div id="incomeCatList"></div>
@@ -666,6 +678,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 const STORAGE_KEY = 'family-fund-data';
 let data = null;
 let currentUserId = null;
+let currentUsername = null;
 let pendingLoginId = null;
 let captchaCode = '';
 let currentType = 'income';
@@ -710,6 +723,13 @@ function mergeDefaults(){
   });
   data.people.forEach(p => { if(p.canLogin === undefined) p.canLogin = true; });
   if(!Array.isArray(data.cheques)) data.cheques = [];
+  if(!data.auth) data.auth = {};
+  // migrate old scheme where the auth key WAS the personId (no explicit personId field yet)
+  Object.keys(data.auth).forEach(key => {
+    if(data.auth[key] && !data.auth[key].personId){
+      data.auth[key].personId = key;
+    }
+  });
 
   ['income','expense'].forEach(cat => {
     d.categories[cat].forEach(c => {
@@ -957,24 +977,26 @@ function bufToB64(buf){
   new Uint8Array(buf).forEach(b => bin += String.fromCharCode(b));
   return btoa(bin);
 }
-async function registerFingerprint(personId){
+async function registerFingerprint(username){
   if(!webauthnSupported()){ alert('این گوشی یا مرورگر از ورود با اثر انگشت پشتیبانی نمی‌کنه.'); return false; }
   try{
+    const acc = data.auth[username];
+    const displayName = acc ? personName(acc.personId) : username;
     const challenge = crypto.getRandomValues(new Uint8Array(32));
     const userId = crypto.getRandomValues(new Uint8Array(16));
     const cred = await navigator.credentials.create({
       publicKey: {
         challenge,
         rp: { name: 'گردش مالی خانواده' },
-        user: { id: userId, name: personId, displayName: personName(personId) },
+        user: { id: userId, name: username, displayName },
         pubKeyCredParams: [{ type:'public-key', alg:-7 }, { type:'public-key', alg:-257 }],
         authenticatorSelection: { authenticatorAttachment:'platform', userVerification:'required' },
         timeout: 60000
       }
     });
     if(!cred) return false;
-    if(!data.auth[personId]) data.auth[personId] = {};
-    data.auth[personId].webauthnId = bufToB64(cred.rawId);
+    if(!data.auth[username]) return false;
+    data.auth[username].webauthnId = bufToB64(cred.rawId);
     await saveData();
     return true;
   }catch(err){
@@ -983,9 +1005,9 @@ async function registerFingerprint(personId){
     return false;
   }
 }
-async function loginWithFingerprint(personId){
+async function loginWithFingerprint(username){
   if(!webauthnSupported()) return false;
-  const credId = data.auth[personId] && data.auth[personId].webauthnId;
+  const credId = data.auth[username] && data.auth[username].webauthnId;
   if(!credId) return false;
   try{
     const challenge = crypto.getRandomValues(new Uint8Array(32));
@@ -1003,8 +1025,8 @@ async function loginWithFingerprint(personId){
     return false;
   }
 }
-function removeFingerprint(personId){
-  if(data.auth[personId]) delete data.auth[personId].webauthnId;
+function removeFingerprint(username){
+  if(data.auth[username]) delete data.auth[username].webauthnId;
 }
 
 /* ---------- captcha ---------- */
@@ -1156,80 +1178,109 @@ function showScreen(id){
   });
 }
 
+function hasAnyAccounts(){
+  return data.auth && Object.keys(data.auth).length > 0;
+}
+function normalizeUsername(s){
+  return (s || '').trim().toLowerCase();
+}
 function renderLoginScreen(){
-  const sel = document.getElementById('loginNameSelect');
-  const loginables = data.people.filter(p => p.canLogin);
-  sel.innerHTML = loginables.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
-  pendingLoginId = loginables[0] ? loginables[0].id : null;
-  updateLoginMode();
+  const bootstrap = !hasAnyAccounts();
+  const userInput = document.getElementById('loginUsernameInput');
+
+  if(bootstrap){
+    document.getElementById('loginTitle').textContent = 'راه‌اندازی حساب مدیر';
+    document.getElementById('loginSub').textContent = 'این اولین باریه که این صندوق راه‌اندازی می‌شه. یه رمز عبور برای حساب مدیر بساز.';
+    userInput.value = 'admin';
+    userInput.readOnly = true;
+    document.getElementById('setupNote').style.display = 'block';
+    document.getElementById('setupNote').textContent = 'نام کاربری مدیر همیشه «admin» هست. رمزش رو خودت الان بساز و بعداً می‌تونی از پنل مدیریت برای بقیه‌ی اعضا هم حساب بسازی. ' + PW_RULE_TEXT;
+    document.getElementById('pwLabel1').textContent = 'رمز عبور مدیر';
+    document.getElementById('pwField2').style.display = 'block';
+    document.getElementById('pwSubmitBtn').textContent = 'ساخت حساب مدیر و ورود';
+  } else {
+    document.getElementById('loginTitle').textContent = 'ورود به گردش مالی خانواده';
+    document.getElementById('loginSub').textContent = 'نام کاربری و رمز عبور خود را وارد کنید';
+    userInput.value = '';
+    userInput.readOnly = false;
+    document.getElementById('setupNote').style.display = 'none';
+    document.getElementById('pwLabel1').textContent = 'رمز عبور';
+    document.getElementById('pwField2').style.display = 'none';
+    document.getElementById('pwSubmitBtn').textContent = 'ورود';
+  }
+
   drawCaptcha();
   document.getElementById('captchaInput').value = '';
   document.getElementById('pwInput1').value = '';
   document.getElementById('pwInput2').value = '';
   document.getElementById('pwError').textContent = '';
+  document.getElementById('fpLoginBtn').style.display = 'none';
   showScreen('login');
+  setTimeout(() => { if(!bootstrap) userInput.focus(); }, 50);
 }
-function updateLoginMode(){
-  const id = document.getElementById('loginNameSelect').value || pendingLoginId;
-  pendingLoginId = id;
-  document.getElementById('loginUsernameShadow').value = id;
-  const hasAuth = !!(data.auth[id] && data.auth[id].hash);
-  if(hasAuth){
-    document.getElementById('setupNote').style.display = 'none';
-    document.getElementById('pwLabel1').textContent = 'رمز عبور';
-    document.getElementById('pwField2').style.display = 'none';
-    document.getElementById('pwSubmitBtn').textContent = 'ورود';
-  } else {
-    document.getElementById('setupNote').style.display = 'block';
-    document.getElementById('setupNote').textContent = 'این اولین ورودته. یه رمز عبور برای خودت بساز. ' + PW_RULE_TEXT;
-    document.getElementById('pwLabel1').textContent = 'رمز عبور جدید';
-    document.getElementById('pwField2').style.display = 'block';
-    document.getElementById('pwSubmitBtn').textContent = 'ساخت رمز و ورود';
+document.getElementById('loginUsernameInput').addEventListener('input', () => {
+  if(hasAnyAccounts()){
+    const uname = normalizeUsername(document.getElementById('loginUsernameInput').value);
+    const acc = data.auth[uname];
+    const fpBtn = document.getElementById('fpLoginBtn');
+    fpBtn.style.display = (webauthnSupported() && acc && acc.webauthnId) ? 'block' : 'none';
   }
-  const fpBtn = document.getElementById('fpLoginBtn');
-  const hasFp = webauthnSupported() && !!(data.auth[id] && data.auth[id].webauthnId);
-  fpBtn.style.display = hasFp ? 'block' : 'none';
-}
-document.getElementById('loginNameSelect').addEventListener('change', updateLoginMode);
+});
 document.getElementById('captchaRefresh').addEventListener('click', () => {
   drawCaptcha(); document.getElementById('captchaInput').value = '';
 });
 document.getElementById('fpLoginBtn').addEventListener('click', async () => {
-  const id = document.getElementById('loginNameSelect').value;
+  const uname = normalizeUsername(document.getElementById('loginUsernameInput').value);
   const errBox = document.getElementById('pwError');
   errBox.textContent = '';
-  const ok = await loginWithFingerprint(id);
-  if(ok){ currentUserId = id; enterApp(); }
-  else { errBox.textContent = 'ورود با اثر انگشت ناموفق بود. با رمز عبور وارد شو.'; }
+  const ok = await loginWithFingerprint(uname);
+  if(ok){
+    const acc = data.auth[uname];
+    currentUserId = acc.personId; currentUsername = uname; enterApp();
+  } else {
+    errBox.textContent = 'ورود با اثر انگشت ناموفق بود. با رمز عبور وارد شو.';
+  }
 });
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const id = document.getElementById('loginNameSelect').value;
-  const hasAuth = !!(data.auth[id] && data.auth[id].hash);
   const errBox = document.getElementById('pwError');
+  const bootstrap = !hasAnyAccounts();
+
   if(!checkCaptcha()){
     errBox.textContent = 'کد امنیتی درست وارد نشده. دوباره امتحان کن.';
     drawCaptcha(); document.getElementById('captchaInput').value = '';
     return;
   }
-  if(hasAuth){
-    const pwd = document.getElementById('pwInput1').value;
-    if(!pwd){ errBox.textContent = 'رمز عبور را وارد کنید.'; return; }
-    const a = data.auth[id];
-    const hash = await sha256Hex(a.salt + pwd);
-    if(hash === a.hash){ currentUserId = id; enterApp(); }
-    else { errBox.textContent = 'رمز عبور اشتباهه.'; drawCaptcha(); document.getElementById('captchaInput').value=''; }
-  } else {
+
+  if(bootstrap){
     const pwd1 = document.getElementById('pwInput1').value;
     const pwd2 = document.getElementById('pwInput2').value;
     const check = validatePassword(pwd1);
     if(!check.valid){ errBox.textContent = check.message; return; }
     if(pwd1 !== pwd2){ errBox.textContent = 'تکرار رمز مطابقت نداره.'; return; }
+    const adminPerson = data.people.find(p => p.isAdmin) || data.people[0];
     const salt = randomSaltHex();
     const hash = await sha256Hex(salt + pwd1);
-    data.auth[id] = { salt, hash };
+    data.auth['admin'] = { salt, hash, personId: adminPerson.id };
     await saveData();
-    currentUserId = id; enterApp();
+    currentUserId = adminPerson.id; currentUsername = 'admin';
+    enterApp();
+    return;
+  }
+
+  const uname = normalizeUsername(document.getElementById('loginUsernameInput').value);
+  if(!uname){ errBox.textContent = 'نام کاربری رو وارد کن.'; return; }
+  const acc = data.auth[uname];
+  if(!acc){ errBox.textContent = 'همچین حساب کاربری‌ای وجود نداره. از مدیر بخواه براتون بسازه.'; return; }
+  const pwd = document.getElementById('pwInput1').value;
+  if(!pwd){ errBox.textContent = 'رمز عبور رو وارد کن.'; return; }
+  const hash = await sha256Hex(acc.salt + pwd);
+  if(hash === acc.hash){
+    currentUserId = acc.personId; currentUsername = uname;
+    enterApp();
+  } else {
+    errBox.textContent = 'نام کاربری یا رمز عبور اشتباهه.';
+    drawCaptcha(); document.getElementById('captchaInput').value = '';
   }
 });
 
@@ -1245,7 +1296,7 @@ function enterApp(){
   showStorageBanner();
   showScreen('app');
 }
-document.getElementById('logoutBtn').addEventListener('click', () => { currentUserId = null; renderLoginScreen(); });
+document.getElementById('logoutBtn').addEventListener('click', () => { currentUserId = null; currentUsername = null; renderLoginScreen(); });
 
 /* ---------- backup / restore ---------- */
 function exportBackup(){
@@ -1306,7 +1357,7 @@ document.getElementById('changePwBtn').addEventListener('click', () => {
   const opening = card.style.display === 'none';
   card.style.display = opening ? 'block' : 'none';
   document.getElementById('pwRuleText').textContent = PW_RULE_TEXT;
-  document.getElementById('pwFormUsername').value = currentUserId;
+  document.getElementById('pwFormUsername').value = currentUsername;
   document.getElementById('curPwInput').value = '';
   document.getElementById('newPwInput1').value = '';
   document.getElementById('newPwInput2').value = '';
@@ -1319,7 +1370,7 @@ document.getElementById('changePwForm').addEventListener('submit', async (e) => 
   const n1 = document.getElementById('newPwInput1').value;
   const n2 = document.getElementById('newPwInput2').value;
   const msg = document.getElementById('changePwMsg');
-  const a = data.auth[currentUserId];
+  const a = data.auth[currentUsername];
   const curHash = await sha256Hex(a.salt + cur);
   if(curHash !== a.hash){ msg.textContent = 'رمز فعلی اشتباهه.'; msg.className = 'pw-msg err'; return; }
   const check = validatePassword(n1);
@@ -1327,7 +1378,7 @@ document.getElementById('changePwForm').addEventListener('submit', async (e) => 
   if(n1 !== n2){ msg.textContent = 'تکرار رمز جدید مطابقت نداره.'; msg.className = 'pw-msg err'; return; }
   const salt = randomSaltHex();
   const hash = await sha256Hex(salt + n1);
-  data.auth[currentUserId] = { salt, hash };
+  data.auth[currentUsername] = { salt, hash, personId: currentUserId };
   await saveData();
   msg.textContent = 'رمز عبور با موفقیت تغییر کرد.'; msg.className = 'pw-msg ok';
 });
@@ -1366,7 +1417,7 @@ function renderFingerprintSection(){
     return;
   }
   row.style.display = 'flex';
-  const enabled = !!(data.auth[currentUserId] && data.auth[currentUserId].webauthnId);
+  const enabled = !!(data.auth[currentUsername] && data.auth[currentUsername].webauthnId);
   document.getElementById('fpStatusText').textContent = enabled
     ? 'روی این گوشی فعاله — دفعه‌ی بعد می‌تونی با اثر انگشت وارد بشی.'
     : 'به‌جای تایپ رمز، با اثر انگشت یا فیس همین گوشی وارد شو.';
@@ -1374,11 +1425,11 @@ function renderFingerprintSection(){
   input.checked = enabled;
   input.onchange = async () => {
     if(input.checked){
-      const ok = await registerFingerprint(currentUserId);
+      const ok = await registerFingerprint(currentUsername);
       if(!ok) input.checked = false;
       renderFingerprintSection();
     } else {
-      removeFingerprint(currentUserId);
+      removeFingerprint(currentUsername);
       await saveData();
       renderFingerprintSection();
     }
@@ -1448,7 +1499,96 @@ function renderCatList(containerId, catType){
   });
 }
 
+function renderAccountsList(){
+  const list = document.getElementById('accountsList');
+  const usernames = Object.keys(data.auth);
+  if(usernames.length === 0){
+    list.innerHTML = '<div class="empty-state">هنوز حسابی ساخته نشده.</div>';
+  } else {
+    list.innerHTML = usernames.map(u => {
+      const acc = data.auth[u];
+      const pName = personName(acc.personId);
+      const isMe = u === currentUsername;
+      return `
+      <div class="tag-row" style="flex-direction:column; align-items:stretch; gap:6px; border-bottom:1px dashed var(--line); padding-bottom:10px; margin-bottom:10px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div><b>${escapeHtml(u)}</b> <span style="color:var(--ink-soft); font-size:12px;">— ${escapeHtml(pName)}</span> ${u==='admin'?'<span class="admin-badge">مدیر</span>':''}</div>
+          ${isMe ? '' : `<button type="button" class="mini-del" data-del-acc="${escapeHtml(u)}" title="حذف حساب">✕</button>`}
+        </div>
+        <div style="display:flex; gap:6px;">
+          <input type="password" class="reset-pw-input" data-user="${escapeHtml(u)}" placeholder="رمز جدید (اختیاری)" style="flex:1; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:7px 9px; font-size:12px;">
+          <button type="button" class="reset-pw-btn" data-user="${escapeHtml(u)}" style="background:var(--bg-deep); color:var(--ink); border:none; border-radius:6px; padding:0 10px; font-size:12px; cursor:pointer;">تغییر رمز</button>
+        </div>
+        <div class="pw-msg" id="resetMsg_${escapeHtml(u)}"></div>
+      </div>`;
+    }).join('');
+
+    list.querySelectorAll('[data-del-acc]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const u = e.target.dataset.delAcc;
+        if(!confirm(`حساب کاربری «${u}» حذف بشه؟ اون شخص دیگه نمی‌تونه با این حساب وارد بشه.`)) return;
+        delete data.auth[u];
+        await saveData();
+        renderAccountsList();
+      });
+    });
+    list.querySelectorAll('.reset-pw-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const u = e.target.dataset.user;
+        const input = list.querySelector(`.reset-pw-input[data-user="${CSS.escape(u)}"]`);
+        const msg = document.getElementById('resetMsg_' + u);
+        const pwd = input.value;
+        const check = validatePassword(pwd);
+        if(!check.valid){ msg.textContent = check.message; msg.className = 'pw-msg err'; return; }
+        const salt = randomSaltHex();
+        const hash = await sha256Hex(salt + pwd);
+        data.auth[u].salt = salt;
+        data.auth[u].hash = hash;
+        await saveData();
+        input.value = '';
+        msg.textContent = 'رمز این حساب عوض شد.'; msg.className = 'pw-msg ok';
+      });
+    });
+  }
+
+  const personSel = document.getElementById('newAccPerson');
+  personSel.innerHTML = data.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  document.getElementById('newAccPwRule').textContent = PW_RULE_TEXT;
+  document.getElementById('newAccMsg').textContent = '';
+}
+document.getElementById('addAccountBtn').addEventListener('click', async () => {
+  const uInput = document.getElementById('newAccUsername');
+  const username = normalizeUsername(uInput.value);
+  const personId = document.getElementById('newAccPerson').value;
+  const pwd1 = document.getElementById('newAccPw1').value;
+  const pwd2 = document.getElementById('newAccPw2').value;
+  const msg = document.getElementById('newAccMsg');
+
+  if(!username || !/^[a-z0-9_.]+$/.test(username)){
+    msg.textContent = 'نام کاربری باید فقط حروف انگلیسی کوچک، عدد، نقطه یا زیرخط باشه.'; msg.className = 'pw-msg err'; return;
+  }
+  if(data.auth[username]){
+    msg.textContent = 'این نام کاربری قبلاً استفاده شده.'; msg.className = 'pw-msg err'; return;
+  }
+  const check = validatePassword(pwd1);
+  if(!check.valid){ msg.textContent = check.message; msg.className = 'pw-msg err'; return; }
+  if(pwd1 !== pwd2){ msg.textContent = 'تکرار رمز مطابقت نداره.'; msg.className = 'pw-msg err'; return; }
+
+  const salt = randomSaltHex();
+  const hash = await sha256Hex(salt + pwd1);
+  data.auth[username] = { salt, hash, personId };
+  await saveData();
+
+  uInput.value = '';
+  document.getElementById('newAccPw1').value = '';
+  document.getElementById('newAccPw2').value = '';
+  msg.textContent = `حساب «${username}» ساخته شد. این نام کاربری و رمز رو به همون فرد بده.`;
+  msg.className = 'pw-msg ok';
+  renderAccountsList();
+});
+
 function renderAdminPanel(){
+  renderAccountsList();
   renderCatList('incomeCatList', 'income');
   renderCatList('expenseCatList', 'expense');
 

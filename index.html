@@ -607,11 +607,11 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         <div class="row2">
           <div class="field">
             <label id="chPersonLabel">دریافت‌کننده چک</label>
-            <select id="chPersonSelect"></select>
+            <input type="text" id="chPersonName" placeholder="مثال: آقای کاوه ارجمندی" required>
           </div>
-          <div class="field" id="chOtherNameField" style="display:none;">
-            <label id="chOtherNameLabel">نام دریافت‌کننده</label>
-            <input type="text" id="chOtherName" placeholder="مثال: آقای رضایی">
+          <div class="field">
+            <label id="chNationalIdLabel">کد ملی دریافت‌کننده</label>
+            <input type="text" id="chNationalId" inputmode="numeric" placeholder="مثال: 0123456789">
           </div>
         </div>
         <div class="row2">
@@ -1668,7 +1668,6 @@ function render(){
   document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
 
   populatePersonSelect();
-  populateChPersonSelect();
 
   populateCategorySelect();
 
@@ -1737,34 +1736,26 @@ function daysDiff(iso){
   return Math.round((due - today) / 86400000);
 }
 function chequePersonLabel(c){
-  if(c.personId === 'other') return c.otherName || 'دوست/آشنا';
-  return personName(c.personId);
+  if(c.personName) return c.personName;
+  if(c.personId === 'other') return c.otherName || 'سایر اشخاص'; // legacy records
+  if(c.personId) return personName(c.personId); // legacy records
+  return 'نامشخص';
 }
-function populateChPersonSelect(){
-  const sel = document.getElementById('chPersonSelect');
-  if(!sel) return;
-  const prevVal = sel.value;
-  sel.innerHTML = data.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')
-    + `<option value="other">سایر اشخاص</option>`;
-  if([...sel.options].some(o => o.value === prevVal)) sel.value = prevVal;
-  document.getElementById('chOtherNameField').style.display = sel.value === 'other' ? 'block' : 'none';
-}
-document.getElementById('chPersonSelect').addEventListener('change', () => {
-  document.getElementById('chOtherNameField').style.display = document.getElementById('chPersonSelect').value === 'other' ? 'block' : 'none';
-});
 document.getElementById('chTypePayableBtn').addEventListener('click', () => {
   currentChType = 'payable';
   document.getElementById('chTypePayableBtn').classList.add('active');
   document.getElementById('chTypeReceivableBtn').classList.remove('active');
   document.getElementById('chPersonLabel').textContent = 'دریافت‌کننده چک';
-  document.getElementById('chOtherNameLabel').textContent = 'نام دریافت‌کننده';
+  document.getElementById('chNationalIdLabel').textContent = 'کد ملی دریافت‌کننده';
+  document.getElementById('chPersonName').placeholder = 'مثال: آقای کاوه ارجمندی';
 });
 document.getElementById('chTypeReceivableBtn').addEventListener('click', () => {
   currentChType = 'receivable';
   document.getElementById('chTypeReceivableBtn').classList.add('active');
   document.getElementById('chTypePayableBtn').classList.remove('active');
   document.getElementById('chPersonLabel').textContent = 'صادرکننده چک';
-  document.getElementById('chOtherNameLabel').textContent = 'نام صادرکننده';
+  document.getElementById('chNationalIdLabel').textContent = 'کد ملی صادرکننده';
+  document.getElementById('chPersonName').placeholder = 'مثال: آقای کاوه ارجمندی';
 });
 document.getElementById('chSubTabNav').addEventListener('click', (e) => {
   const btn = e.target.closest('.sub-tab-btn');
@@ -1786,16 +1777,16 @@ document.getElementById('chequeForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const amount = Number(document.getElementById('chAmount').value);
   const dueDate = document.getElementById('chDateInput').value;
-  const personId = document.getElementById('chPersonSelect').value;
-  const otherName = document.getElementById('chOtherName').value.trim();
+  const personName_ = document.getElementById('chPersonName').value.trim();
+  const nationalId = document.getElementById('chNationalId').value.trim();
   if(!amount || amount <= 0 || !dueDate) return;
-  if(personId === 'other' && !otherName){ alert('نام شخص را وارد کنید.'); return; }
+  if(!personName_){ alert('نام شخص را وارد کنید.'); return; }
   data.cheques = data.cheques || [];
   data.cheques.push({
     id: newId('ch'),
     direction: currentChType,
-    personId,
-    otherName: personId === 'other' ? otherName : '',
+    personName: personName_,
+    nationalId,
     amount, dueDate,
     number: document.getElementById('chNumber').value.trim(),
     bank: document.getElementById('chBank').value.trim(),
@@ -1808,7 +1799,8 @@ document.getElementById('chequeForm').addEventListener('submit', async (e) => {
   document.getElementById('chNumber').value = '';
   document.getElementById('chBank').value = '';
   document.getElementById('chDesc').value = '';
-  document.getElementById('chOtherName').value = '';
+  document.getElementById('chPersonName').value = '';
+  document.getElementById('chNationalId').value = '';
   chDatePicker.resetToToday();
   renderChequeList();
   renderChequeAlerts();
@@ -1859,7 +1851,7 @@ function renderChequeList(){
     else if(c.status === 'cancelled') badge = '<span class="cheque-badge cancelled">باطل شده</span>';
     else if(d < 0) badge = '<span class="cheque-badge overdue">گذشته</span>';
     else if(d <= 2) badge = '<span class="cheque-badge due-soon">نزدیک سررسید</span>';
-    const subParts = [c.bank, c.number ? `شماره ${faDigits(c.number)}` : '', c.desc].filter(Boolean);
+    const subParts = [c.bank, c.number ? `شماره ${faDigits(c.number)}` : '', c.nationalId ? `کد ملی ${faDigits(c.nationalId)}` : '', c.desc].filter(Boolean);
     const sub = subParts.join(' • ');
     let actions;
     if(c.status === 'pending'){

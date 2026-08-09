@@ -157,6 +157,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .row2 .field{flex:1;}
 
 .date-field{position:relative;}
+.ch-date-field{position:relative;}
 .date-display{
   width:100%; border:1px solid var(--line); border-radius:6px; background:var(--bg);
   font-family:'Vazirmatn',sans-serif; font-size:14px; color:var(--ink); padding:10px 10px;
@@ -246,6 +247,30 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .tab-nav-btn.active{ background:var(--accent); color:#fff; }
 .tab-panel{ animation: tabFade .15s ease; }
 @keyframes tabFade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+/* ================= CHEQUES ================= */
+.cheque-alert-banner{ background:#FFF4E5; border:1px solid #F0B860; color:#8A5A00; border-radius:12px; padding:10px 12px; font-size:12.5px; line-height:1.9; margin-bottom:12px; }
+.cheque-alert-banner b{ display:block; margin-bottom:2px; font-size:13px; }
+.cheque-row{ display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--line); }
+.cheque-row:last-child{ border-bottom:none; }
+.cheque-icon{ width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+.cheque-icon.payable{ background:rgba(139,58,86,0.15); color:var(--debit); }
+.cheque-icon.receivable{ background:rgba(76,122,61,0.15); color:var(--credit); }
+.cheque-info{ flex:1; min-width:0; }
+.cheque-title{ font-size:13.5px; font-weight:700; color:var(--ink); }
+.cheque-sub{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+.cheque-badge{ display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px; margin-inline-start:6px; }
+.cheque-badge.due-soon{ background:#FFF4E5; color:#8A5A00; }
+.cheque-badge.overdue{ background:rgba(139,58,86,0.15); color:var(--debit); }
+.cheque-badge.cashed{ background:rgba(76,122,61,0.15); color:var(--credit); }
+.cheque-badge.bounced{ background:rgba(139,58,86,0.15); color:var(--debit); }
+.cheque-badge.cancelled{ background:var(--line); color:var(--ink-soft); }
+.cheque-amount{ font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; white-space:nowrap; }
+.cheque-amount.income{ color:var(--credit); }
+.cheque-amount.expense{ color:var(--debit); }
+.cheque-actions{ display:flex; gap:4px; flex-shrink:0; }
+.cheque-actions button{ font-size:10.5px; padding:5px 7px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink-soft); cursor:pointer; font-family:inherit; }
+.cheque-actions button:active{ background:var(--bg); }
 
 /* ================= ADMIN ================= */
 .admin-section{ border-top:1px dashed var(--line); padding-top:14px; margin-top:14px; }
@@ -459,6 +484,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       <button type="button" class="tab-nav-btn" data-tab="add">➕<span>ثبت تراکنش</span></button>
       <button type="button" class="tab-nav-btn" data-tab="breakdown">👤<span>ریز هر شخص</span></button>
       <button type="button" class="tab-nav-btn" data-tab="list">📋<span>فهرست</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="cheques">🧾<span>چک‌ها</span></button>
     </div>
 
     <div class="tab-panel" data-tab="status">
@@ -549,11 +575,73 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     <div class="card">
       <div class="section-title">فهرست تراکنش‌ها</div>
       <div class="filter-row">
-        <div class="filter-btn active" data-filter="all">همه</div>
-        <div class="filter-btn" data-filter="income">واریزها</div>
-        <div class="filter-btn" data-filter="expense">برداشت‌ها</div>
+        <div class="filter-btn tx-filter-btn active" data-filter="all">همه</div>
+        <div class="filter-btn tx-filter-btn" data-filter="income">واریزها</div>
+        <div class="filter-btn tx-filter-btn" data-filter="expense">برداشت‌ها</div>
       </div>
       <div class="tx-list" id="txList"></div>
+    </div>
+    </div>
+
+    <div class="tab-panel" data-tab="cheques" style="display:none;">
+    <div id="chequeAlerts"></div>
+
+    <div class="card">
+      <div class="section-title">ثبت چک جدید</div>
+      <div class="type-toggle">
+        <div class="type-btn expense active" data-chtype="payable" id="chTypePayableBtn">می‌دم (پرداختی)</div>
+        <div class="type-btn income" data-chtype="receivable" id="chTypeReceivableBtn">می‌گیرم (دریافتی)</div>
+      </div>
+      <form id="chequeForm">
+        <div class="row2">
+          <div class="field">
+            <label>مربوط به</label>
+            <select id="chPersonSelect"></select>
+          </div>
+          <div class="field" id="chOtherNameField" style="display:none;">
+            <label>اسم دوست/آشنا</label>
+            <input type="text" id="chOtherName" placeholder="مثلاً: امیر رضایی">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>مبلغ (ریال)</label>
+            <input type="number" id="chAmount" min="0" step="1" required inputmode="decimal">
+          </div>
+          <div class="field ch-date-field">
+            <label>تاریخ سررسید</label>
+            <input type="text" id="chDateDisplay" class="date-display" readonly placeholder="انتخاب تاریخ">
+            <input type="hidden" id="chDateInput" required>
+            <div id="chCalendarPopup" class="calendar-popup" style="display:none;"></div>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>شماره چک (اختیاری)</label>
+            <input type="text" id="chNumber" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label>نام بانک (اختیاری)</label>
+            <input type="text" id="chBank">
+          </div>
+        </div>
+        <div class="field">
+          <label>توضیحات (اختیاری)</label>
+          <input type="text" id="chDesc" placeholder="مثلاً: بابت اجاره">
+        </div>
+        <button type="submit" class="submit-btn">ثبت چک</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="section-title">فهرست چک‌ها</div>
+      <div class="filter-row">
+        <div class="filter-btn ch-filter-btn active" data-chfilter="all">همه</div>
+        <div class="filter-btn ch-filter-btn" data-chfilter="payable">پرداختی</div>
+        <div class="filter-btn ch-filter-btn" data-chfilter="receivable">دریافتی</div>
+        <div class="filter-btn ch-filter-btn" data-chfilter="pending">در انتظار</div>
+      </div>
+      <div class="tx-list" id="chequeList"></div>
     </div>
     </div>
   </div>
@@ -595,7 +683,8 @@ function defaultData(){
       income: ['حقوق', 'کارانه', 'پاداش / عیدی', 'سایر درآمد'],
       expense: ['خانه و اجاره', 'خرید و خواربار', 'قبض و اشتراک', 'بچه‌ها', 'تحصیل', 'ورزش', 'پوشاک و اکسسوری', 'درمان', 'برداشت چک', 'سایر هزینه']
     },
-    transactions: []
+    transactions: [],
+    cheques: []
   };
 }
 
@@ -607,6 +696,7 @@ function mergeDefaults(){
     else if(existing.canLogin === undefined) existing.canLogin = defP.canLogin;
   });
   data.people.forEach(p => { if(p.canLogin === undefined) p.canLogin = true; });
+  if(!Array.isArray(data.cheques)) data.cheques = [];
 
   ['income','expense'].forEach(cat => {
     d.categories[cat].forEach(c => {
@@ -989,57 +1079,62 @@ function isoToJalali(iso){ const [gy,gm,gd] = iso.split('-').map(Number); return
 function jalaliToIso(jy, jm, jd){ const [gy,gm,gd] = jalaliToGregorian(jy, jm, jd); return `${gy}-${String(gm).padStart(2,'0')}-${String(gd).padStart(2,'0')}`; }
 function faDigits(n){ const map=['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹']; return String(n).replace(/[0-9]/g, d => map[d]); }
 
-let calState = { jy:0, jm:0, selectedIso:null };
 function todayIso(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-function resetDateToToday(){
-  const iso = todayIso(); setSelectedDate(iso);
-  const [jy,jm] = isoToJalali(iso); calState.jy = jy; calState.jm = jm;
-}
-function setSelectedDate(iso){
-  calState.selectedIso = iso;
-  document.getElementById('dateInput').value = iso;
-  const [jy,jm,jd] = isoToJalali(iso);
-  document.getElementById('dateDisplay').value = `${faDigits(jy)}/${faDigits(String(jm).padStart(2,'0'))}/${faDigits(String(jd).padStart(2,'0'))} (${JALALI_MONTHS[jm-1]})`;
-}
-function openCalendar(){
-  const iso = calState.selectedIso || todayIso();
-  const [jy,jm] = isoToJalali(iso); calState.jy = jy; calState.jm = jm;
-  renderCalendar();
-  document.getElementById('calendarPopup').style.display = 'block';
-}
-function closeCalendar(){ document.getElementById('calendarPopup').style.display = 'none'; }
-function renderCalendar(){
-  const pop = document.getElementById('calendarPopup');
-  const { jy, jm } = calState;
-  const monthLen = jalaliMonthLength(jy, jm);
-  const iso1 = jalaliToIso(jy, jm, 1);
-  const [gy,gm,gd] = iso1.split('-').map(Number);
-  const jsDow = new Date(gy, gm-1, gd).getDay();
-  const startOffset = mod(jsDow + 1, 7);
-  const todayI = todayIso();
-  let cells = '';
-  for(let i=0;i<startOffset;i++) cells += `<div class="cal-day empty"></div>`;
-  for(let d=1; d<=monthLen; d++){
-    const iso = jalaliToIso(jy, jm, d);
-    const isToday = iso === todayI;
-    const isSel = iso === calState.selectedIso;
-    cells += `<div class="cal-day${isToday?' today':''}${isSel?' selected':''}" data-iso="${iso}">${faDigits(d)}</div>`;
+function makeDatePicker(ids){
+  const state = { jy:0, jm:0, selectedIso:null };
+  function setSelected(iso){
+    state.selectedIso = iso;
+    document.getElementById(ids.input).value = iso;
+    const [jy,jm,jd] = isoToJalali(iso);
+    document.getElementById(ids.display).value = `${faDigits(jy)}/${faDigits(String(jm).padStart(2,'0'))}/${faDigits(String(jd).padStart(2,'0'))} (${JALALI_MONTHS[jm-1]})`;
   }
-  pop.innerHTML = `
-    <div class="cal-header">
-      <button type="button" id="calPrev">›</button>
-      <div class="cal-title">${JALALI_MONTHS[jm-1]} ${faDigits(jy)}</div>
-      <button type="button" id="calNext">‹</button>
-    </div>
-    <div class="cal-grid">${JALALI_DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('')}${cells}</div>
-    <div class="cal-today-link" id="calToday">امروز</div>`;
-  pop.querySelectorAll('.cal-day[data-iso]').forEach(el => {
-    el.addEventListener('click', () => { setSelectedDate(el.dataset.iso); closeCalendar(); });
-  });
-  document.getElementById('calPrev').addEventListener('click', () => { calState.jm--; if(calState.jm<1){calState.jm=12;calState.jy--;} renderCalendar(); });
-  document.getElementById('calNext').addEventListener('click', () => { calState.jm++; if(calState.jm>12){calState.jm=1;calState.jy++;} renderCalendar(); });
-  document.getElementById('calToday').addEventListener('click', () => { resetDateToToday(); renderCalendar(); });
+  function resetToToday(){
+    const iso = todayIso(); setSelected(iso);
+    const [jy,jm] = isoToJalali(iso); state.jy = jy; state.jm = jm;
+  }
+  function open(){
+    const iso = state.selectedIso || todayIso();
+    const [jy,jm] = isoToJalali(iso); state.jy = jy; state.jm = jm;
+    render();
+    document.getElementById(ids.popup).style.display = 'block';
+  }
+  function close(){ document.getElementById(ids.popup).style.display = 'none'; }
+  function render(){
+    const pop = document.getElementById(ids.popup);
+    const { jy, jm } = state;
+    const monthLen = jalaliMonthLength(jy, jm);
+    const iso1 = jalaliToIso(jy, jm, 1);
+    const [gy,gm,gd] = iso1.split('-').map(Number);
+    const jsDow = new Date(gy, gm-1, gd).getDay();
+    const startOffset = mod(jsDow + 1, 7);
+    const todayI = todayIso();
+    let cells = '';
+    for(let i=0;i<startOffset;i++) cells += `<div class="cal-day empty"></div>`;
+    for(let d=1; d<=monthLen; d++){
+      const iso = jalaliToIso(jy, jm, d);
+      const isToday = iso === todayI;
+      const isSel = iso === state.selectedIso;
+      cells += `<div class="cal-day${isToday?' today':''}${isSel?' selected':''}" data-iso="${iso}">${faDigits(d)}</div>`;
+    }
+    pop.innerHTML = `
+      <div class="cal-header">
+        <button type="button" class="cal-nav-prev">›</button>
+        <div class="cal-title">${JALALI_MONTHS[jm-1]} ${faDigits(jy)}</div>
+        <button type="button" class="cal-nav-next">‹</button>
+      </div>
+      <div class="cal-grid">${JALALI_DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('')}${cells}</div>
+      <div class="cal-today-link cal-nav-today">امروز</div>`;
+    pop.querySelectorAll('.cal-day[data-iso]').forEach(el => {
+      el.addEventListener('click', () => { setSelected(el.dataset.iso); close(); });
+    });
+    pop.querySelector('.cal-nav-prev').addEventListener('click', () => { state.jm--; if(state.jm<1){state.jm=12;state.jy--;} render(); });
+    pop.querySelector('.cal-nav-next').addEventListener('click', () => { state.jm++; if(state.jm>12){state.jm=1;state.jy++;} render(); });
+    pop.querySelector('.cal-nav-today').addEventListener('click', () => { resetToToday(); render(); });
+  }
+  return { state, setSelected, resetToToday, open, close, render };
 }
+const txDatePicker = makeDatePicker({ display:'dateDisplay', input:'dateInput', popup:'calendarPopup' });
+const chDatePicker = makeDatePicker({ display:'chDateDisplay', input:'chDateInput', popup:'chCalendarPopup' });
 
 /* ---------- screens ---------- */
 function showScreen(id){
@@ -1130,7 +1225,7 @@ function enterApp(){
   document.getElementById('personSelect').value = '';
   currentType = 'income';
   currentFilter = 'all';
-  resetDateToToday(); closeCalendar(); applyTheme();
+  txDatePicker.resetToToday(); txDatePicker.close(); chDatePicker.resetToToday(); chDatePicker.close(); applyTheme();
   render();
   showTab('status');
   updateStorageIndicator();
@@ -1235,7 +1330,10 @@ function showTab(tab){
 }
 document.getElementById('tabNav').addEventListener('click', (e) => {
   const btn = e.target.closest('.tab-nav-btn');
-  if(btn) showTab(btn.dataset.tab);
+  if(btn){
+    showTab(btn.dataset.tab);
+    if(btn.dataset.tab === 'cheques') ensureChequeNotifyPermission();
+  }
 });
 
 /* ---------- settings ---------- */
@@ -1398,10 +1496,10 @@ function populateCategorySelect(){
   sel.innerHTML = data.categories[currentType].map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
 }
 
-document.querySelectorAll('.filter-btn').forEach(btn => {
+document.querySelectorAll('.tx-filter-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     currentFilter = btn.dataset.filter;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.tx-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
     renderTxList();
   });
 });
@@ -1553,11 +1651,11 @@ function render(){
   document.getElementById('pageTitle').textContent = data.title;
   document.getElementById('whoName').textContent = personName(currentUserId);
   document.getElementById('adminTag').style.display = isCurrentAdmin() ? 'inline-block' : 'none';
-  document.getElementById('adminPanelBtn').style.display = isCurrentAdmin() ? 'inline' : 'none';
   document.getElementById('amountLbl').textContent = `مبلغ (${data.currency})`;
   document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
 
   populatePersonSelect();
+  populateChPersonSelect();
 
   populateCategorySelect();
 
@@ -1571,6 +1669,8 @@ function render(){
   renderBreakdown();
 
   renderTxList();
+  renderChequeList();
+  renderChequeAlerts();
 }
 
 function renderTxList(){
@@ -1612,20 +1712,218 @@ function formatDate(dstr){
   catch(e){ return dstr; }
 }
 
+/* ---------- cheques ---------- */
+let currentChType = 'payable';
+let currentChFilter = 'all';
+
+function daysDiff(iso){
+  const [gy,gm,gd] = iso.split('-').map(Number);
+  const due = new Date(gy, gm-1, gd);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((due - today) / 86400000);
+}
+function chequePersonLabel(c){
+  if(c.personId === 'other') return c.otherName || 'دوست/آشنا';
+  return personName(c.personId);
+}
+function populateChPersonSelect(){
+  const sel = document.getElementById('chPersonSelect');
+  if(!sel) return;
+  const prevVal = sel.value;
+  sel.innerHTML = data.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')
+    + `<option value="other">دیگران (دوست/آشنا)</option>`;
+  if([...sel.options].some(o => o.value === prevVal)) sel.value = prevVal;
+  document.getElementById('chOtherNameField').style.display = sel.value === 'other' ? 'block' : 'none';
+}
+document.getElementById('chPersonSelect').addEventListener('change', () => {
+  document.getElementById('chOtherNameField').style.display = document.getElementById('chPersonSelect').value === 'other' ? 'block' : 'none';
+});
+document.getElementById('chTypePayableBtn').addEventListener('click', () => {
+  currentChType = 'payable';
+  document.getElementById('chTypePayableBtn').classList.add('active');
+  document.getElementById('chTypeReceivableBtn').classList.remove('active');
+});
+document.getElementById('chTypeReceivableBtn').addEventListener('click', () => {
+  currentChType = 'receivable';
+  document.getElementById('chTypeReceivableBtn').classList.add('active');
+  document.getElementById('chTypePayableBtn').classList.remove('active');
+});
+document.querySelectorAll('.ch-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentChFilter = btn.dataset.chfilter;
+    document.querySelectorAll('.ch-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+    renderChequeList();
+  });
+});
+document.getElementById('chequeForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const amount = Number(document.getElementById('chAmount').value);
+  const dueDate = document.getElementById('chDateInput').value;
+  const personId = document.getElementById('chPersonSelect').value;
+  const otherName = document.getElementById('chOtherName').value.trim();
+  if(!amount || amount <= 0 || !dueDate) return;
+  if(personId === 'other' && !otherName){ alert('اسم دوست/آشنا رو بنویس.'); return; }
+  data.cheques = data.cheques || [];
+  data.cheques.push({
+    id: newId('ch'),
+    direction: currentChType,
+    personId,
+    otherName: personId === 'other' ? otherName : '',
+    amount, dueDate,
+    number: document.getElementById('chNumber').value.trim(),
+    bank: document.getElementById('chBank').value.trim(),
+    desc: document.getElementById('chDesc').value.trim(),
+    status: 'pending',
+    createdAt: Date.now()
+  });
+  await saveData();
+  document.getElementById('chAmount').value = '';
+  document.getElementById('chNumber').value = '';
+  document.getElementById('chBank').value = '';
+  document.getElementById('chDesc').value = '';
+  document.getElementById('chOtherName').value = '';
+  chDatePicker.resetToToday();
+  renderChequeList();
+  renderChequeAlerts();
+});
+
+function renderChequeAlerts(){
+  const box = document.getElementById('chequeAlerts');
+  if(!box) return;
+  const items = (data.cheques || [])
+    .filter(c => c.status === 'pending')
+    .map(c => ({ c, d: daysDiff(c.dueDate) }))
+    .filter(x => x.d <= 2);
+  if(!items.length){ box.innerHTML = ''; return; }
+  items.sort((a,b) => a.d - b.d);
+  const lines = items.map(({c,d}) => {
+    const who = chequePersonLabel(c);
+    const dirLabel = c.direction === 'payable' ? 'پرداخت به' : 'دریافت از';
+    let when;
+    if(d < 0) when = `${faDigits(Math.abs(d))} روز گذشته`;
+    else if(d === 0) when = 'امروز';
+    else if(d === 1) when = 'فردا';
+    else when = `${faDigits(d)} روز دیگه`;
+    return `<div>• چک ${dirLabel} ${escapeHtml(who)} به مبلغ ${fmt(c.amount)} ${escapeHtml(data.currency)} — سررسید: ${when}</div>`;
+  }).join('');
+  box.innerHTML = `<div class="cheque-alert-banner"><b>🔔 یادآوری چک‌ها</b>${lines}</div>`;
+  notifyUpcomingCheques(items);
+}
+
+function renderChequeList(){
+  const list = document.getElementById('chequeList');
+  if(!list) return;
+  let items = [...(data.cheques || [])];
+  if(currentChFilter === 'payable') items = items.filter(c => c.direction === 'payable');
+  else if(currentChFilter === 'receivable') items = items.filter(c => c.direction === 'receivable');
+  else if(currentChFilter === 'pending') items = items.filter(c => c.status === 'pending');
+  items.sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+
+  if(!items.length){
+    list.innerHTML = '<div class="empty-state">چکی برای نمایش نیست.</div>';
+    return;
+  }
+  list.innerHTML = items.map(c => {
+    const who = chequePersonLabel(c);
+    const d = daysDiff(c.dueDate);
+    let badge = '';
+    if(c.status === 'cashed') badge = '<span class="cheque-badge cashed">پاس شده</span>';
+    else if(c.status === 'bounced') badge = '<span class="cheque-badge bounced">برگشتی</span>';
+    else if(c.status === 'cancelled') badge = '<span class="cheque-badge cancelled">باطل شده</span>';
+    else if(d < 0) badge = '<span class="cheque-badge overdue">گذشته</span>';
+    else if(d <= 2) badge = '<span class="cheque-badge due-soon">نزدیک سررسید</span>';
+    const subParts = [c.bank, c.number ? `شماره ${faDigits(c.number)}` : '', c.desc].filter(Boolean);
+    const sub = subParts.join(' • ');
+    let actions;
+    if(c.status === 'pending'){
+      actions = `<button data-act="cashed" data-id="${c.id}">پاس شد</button>
+        <button data-act="bounced" data-id="${c.id}">برگشتی</button>
+        <button data-act="delete" data-id="${c.id}">حذف</button>`;
+    } else {
+      actions = `<button data-act="pending" data-id="${c.id}">بازگردانی</button>
+        <button data-act="delete" data-id="${c.id}">حذف</button>`;
+    }
+    return `<div class="cheque-row">
+      <div class="cheque-icon ${c.direction}">${c.direction === 'payable' ? '↗️' : '↙️'}</div>
+      <div class="cheque-info">
+        <div class="cheque-title">${escapeHtml(who)}${badge}</div>
+        <div class="cheque-sub">سررسید ${escapeHtml(formatDate(c.dueDate))}${sub ? ' • ' + escapeHtml(sub) : ''}</div>
+      </div>
+      <div class="cheque-amount ${c.direction === 'payable' ? 'expense' : 'income'}">${fmt(c.amount)}</div>
+      <div class="cheque-actions">${actions}</div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('button[data-act]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const act = btn.dataset.act;
+      const c = data.cheques.find(x => x.id === id);
+      if(!c) return;
+      if(act === 'delete'){
+        if(!confirm('این چک حذف بشه؟')) return;
+        data.cheques = data.cheques.filter(x => x.id !== id);
+      } else {
+        c.status = act;
+      }
+      await saveData();
+      renderChequeList();
+      renderChequeAlerts();
+    });
+  });
+}
+
+/* ---------- cheque browser notifications (best-effort, only while app is open) ---------- */
+function notificationsSupported(){ return 'Notification' in window; }
+function notifyUpcomingCheques(items){
+  if(!notificationsSupported() || Notification.permission !== 'granted') return;
+  const todayStr = todayIso();
+  let notified = {};
+  try{ notified = JSON.parse(localStorage.getItem('chequeNotified') || '{}'); }catch(e){}
+  items.filter(x => x.d >= 0 && x.d <= 2).forEach(({c, d}) => {
+    if(notified[c.id] === todayStr) return;
+    const who = chequePersonLabel(c);
+    const dirLabel = c.direction === 'payable' ? 'باید بدی' : 'باید بگیری';
+    const when = d === 0 ? 'امروزه' : (d === 1 ? 'فردا' : `${d} روز دیگه`);
+    try{
+      new Notification('یادآوری چک — ' + data.title, {
+        body: `چکی که ${dirLabel} به ${who}، سررسیدش ${when}. مبلغ: ${fmt(c.amount)} ${data.currency}`,
+        icon: 'icons/icon-192.png'
+      });
+    }catch(e){}
+    notified[c.id] = todayStr;
+  });
+  try{ localStorage.setItem('chequeNotified', JSON.stringify(notified)); }catch(e){}
+}
+async function ensureChequeNotifyPermission(){
+  if(!notificationsSupported()) return;
+  if(Notification.permission === 'default'){
+    try{ await Notification.requestPermission(); }catch(e){}
+  }
+}
+
 /* ---------- init ---------- */
 async function init(){
   await loadData();
   applyTheme();
-  resetDateToToday();
+  txDatePicker.resetToToday();
+  chDatePicker.resetToToday();
   setType('income');
+  setInterval(() => { if(document.getElementById('app').style.display !== 'none') renderChequeAlerts(); }, 60*60*1000);
 
   document.getElementById('dateDisplay').addEventListener('click', () => {
     const pop = document.getElementById('calendarPopup');
-    if(pop.style.display === 'block') closeCalendar(); else openCalendar();
+    if(pop.style.display === 'block') txDatePicker.close(); else txDatePicker.open();
+  });
+  document.getElementById('chDateDisplay').addEventListener('click', () => {
+    const pop = document.getElementById('chCalendarPopup');
+    if(pop.style.display === 'block') chDatePicker.close(); else chDatePicker.open();
   });
   document.addEventListener('click', (e) => {
     const field = document.querySelector('.date-field');
-    if(field && !field.contains(e.target)) closeCalendar();
+    if(field && !field.contains(e.target)) txDatePicker.close();
+    const chField = document.querySelector('.ch-date-field');
+    if(chField && !chField.contains(e.target)) chDatePicker.close();
   });
 
   document.getElementById('addForm').addEventListener('submit', async (e) => {
@@ -1645,7 +1943,7 @@ async function init(){
 
     document.getElementById('descInput').value = '';
     document.getElementById('amountInput').value = '';
-    resetDateToToday();
+    txDatePicker.resetToToday();
     render();
   });
 

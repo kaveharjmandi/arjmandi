@@ -633,17 +633,6 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       </div>
     </div>
 
-    <div class="tab-nav" id="tabNav">
-      <button type="button" class="tab-nav-btn active" data-tab="status">💰<span>وضعیت مالی</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="add">➕<span>ثبت تراکنش</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="breakdown">👤<span>ریز هر شخص</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="list">📋<span>فهرست</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="cheques">🧾<span>چک‌ها</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="charts">📊<span>نمودارها</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="goals">🎯<span>اهداف و وام</span></button>
-    </div>
-
-    <div class="tab-panel" data-tab="status">
     <div class="bank-card" id="bankCard">
       <div class="bank-card-shine"></div>
       <div class="bank-card-top">
@@ -666,9 +655,21 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       <div id="streakBox"></div>
       <div id="budgetProgressBox"></div>
     </div>
+
+    <div class="tab-nav" id="tabNav">
+      <button type="button" class="tab-nav-btn active" data-tab="transactions">💳<span>تراکنش‌ها</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="breakdown">👤<span>ریز هر شخص</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="cheques">🧾<span>چک‌ها</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="reports">📊<span>گزارش و اهداف</span></button>
     </div>
 
-    <div class="tab-panel" data-tab="add" style="display:none;">
+    <div class="tab-panel" data-tab="transactions">
+    <div class="sub-tab-nav" id="txSubTabNav">
+      <button type="button" class="sub-tab-btn active" data-txsubtab="add">ثبت تراکنش جدید</button>
+      <button type="button" class="sub-tab-btn" data-txsubtab="list">فهرست تراکنش‌ها</button>
+    </div>
+
+    <div class="sub-tab-panel" data-txsubtab="add">
     <div class="card">
       <div class="section-title">ثبت تراکنش جدید</div>
       <div class="type-toggle">
@@ -732,6 +733,25 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     </div>
     </div>
 
+    <div class="sub-tab-panel" data-txsubtab="list" style="display:none;">
+    <div class="card">
+      <div class="section-title">فهرست تراکنش‌ها</div>
+      <div class="row2" style="margin-bottom:10px;">
+        <input type="text" id="txSearchInput" placeholder="جست‌وجو در توضیح یا دسته‌بندی…" style="flex:2; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:9px 10px; font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink);">
+        <select id="txPersonFilterSelect" style="flex:1; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:9px 10px; font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink);">
+          <option value="all">همه افراد</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <div class="filter-btn tx-filter-btn active" data-filter="all">همه</div>
+        <div class="filter-btn tx-filter-btn" data-filter="income">واریزها</div>
+        <div class="filter-btn tx-filter-btn" data-filter="expense">برداشت‌ها</div>
+      </div>
+      <div class="tx-list" id="txList"></div>
+    </div>
+    </div>
+    </div>
+
     <div class="tab-panel" data-tab="breakdown" style="display:none;">
     <div class="card">
       <div class="section-title">ریز حساب هر شخص</div>
@@ -762,24 +782,6 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       </div>
       <div class="total-line"><span>خالص این بازه</span><b id="bdNetVal">۰</b></div>
       <div class="tx-list" id="bdTxList" style="margin-top:8px;"></div>
-    </div>
-    </div>
-
-    <div class="tab-panel" data-tab="list" style="display:none;">
-    <div class="card">
-      <div class="section-title">فهرست تراکنش‌ها</div>
-      <div class="row2" style="margin-bottom:10px;">
-        <input type="text" id="txSearchInput" placeholder="جست‌وجو در توضیح یا دسته‌بندی…" style="flex:2; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:9px 10px; font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink);">
-        <select id="txPersonFilterSelect" style="flex:1; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:9px 10px; font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink);">
-          <option value="all">همه افراد</option>
-        </select>
-      </div>
-      <div class="filter-row">
-        <div class="filter-btn tx-filter-btn active" data-filter="all">همه</div>
-        <div class="filter-btn tx-filter-btn" data-filter="income">واریزها</div>
-        <div class="filter-btn tx-filter-btn" data-filter="expense">برداشت‌ها</div>
-      </div>
-      <div class="tx-list" id="txList"></div>
     </div>
     </div>
 
@@ -852,7 +854,13 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     </div>
     </div>
 
-    <div class="tab-panel" data-tab="charts" style="display:none;">
+    <div class="tab-panel" data-tab="reports" style="display:none;">
+    <div class="sub-tab-nav" id="reportsSubTabNav">
+      <button type="button" class="sub-tab-btn active" data-reportsubtab="charts">نمودارها</button>
+      <button type="button" class="sub-tab-btn" data-reportsubtab="goals">اهداف و وام</button>
+    </div>
+
+    <div class="sub-tab-panel" data-reportsubtab="charts">
     <div class="card">
       <div class="section-title">هزینه‌ها بر اساس دسته‌بندی (این ماه)</div>
       <div id="pieChartBox"></div>
@@ -868,7 +876,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     </div>
     </div>
 
-    <div class="tab-panel" data-tab="goals" style="display:none;">
+    <div class="sub-tab-panel" data-reportsubtab="goals" style="display:none;">
     <div class="card">
       <div class="section-title">🎯 جیب‌های پس‌انداز</div>
       <div id="goalsList"></div>
@@ -899,6 +907,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         </div>
         <button type="button" id="createLoanBtn" class="submit-btn">ثبت وام</button>
       </div>
+    </div>
     </div>
     </div>
   </div>
@@ -1720,7 +1729,8 @@ function enterApp(){
   txDatePicker.resetToToday(); txDatePicker.close(); chDatePicker.resetToToday(); chDatePicker.close(); applyTheme();
   generateRecurringIfDue().then(() => render());
   render();
-  showTab('status');
+  showTab('transactions');
+  showTxSubTab('add');
   updateStorageIndicator();
   showStorageBanner();
   showScreen('app');
@@ -1858,13 +1868,36 @@ function showTab(tab){
     b.classList.toggle('active', b.dataset.tab === tab);
   });
 }
+function showTxSubTab(tab){
+  document.querySelectorAll('.sub-tab-panel[data-txsubtab]').forEach(p => {
+    p.style.display = (p.dataset.txsubtab === tab) ? '' : 'none';
+  });
+  document.querySelectorAll('#txSubTabNav .sub-tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.txsubtab === tab);
+  });
+}
+document.getElementById('txSubTabNav').addEventListener('click', (e) => {
+  const btn = e.target.closest('.sub-tab-btn');
+  if(btn) showTxSubTab(btn.dataset.txsubtab);
+});
+function showReportsSubTab(tab){
+  document.querySelectorAll('.sub-tab-panel[data-reportsubtab]').forEach(p => {
+    p.style.display = (p.dataset.reportsubtab === tab) ? '' : 'none';
+  });
+  document.querySelectorAll('#reportsSubTabNav .sub-tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.reportsubtab === tab);
+  });
+}
+document.getElementById('reportsSubTabNav').addEventListener('click', (e) => {
+  const btn = e.target.closest('.sub-tab-btn');
+  if(btn) showReportsSubTab(btn.dataset.reportsubtab);
+});
 document.getElementById('tabNav').addEventListener('click', (e) => {
   const btn = e.target.closest('.tab-nav-btn');
   if(btn){
     showTab(btn.dataset.tab);
     if(btn.dataset.tab === 'cheques') ensureChequeNotifyPermission();
-    if(btn.dataset.tab === 'charts') renderCharts();
-    if(btn.dataset.tab === 'goals') renderGoalsAndLoans();
+    if(btn.dataset.tab === 'reports'){ renderCharts(); renderGoalsAndLoans(); }
   }
 });
 
@@ -3120,7 +3153,8 @@ function startEditTransaction(id){
   const tx = data.transactions.find(t => String(t.id) === String(id));
   if(!tx) return;
   editingTxId = id;
-  showTab('add');
+  showTab('transactions');
+  showTxSubTab('add');
   setType(tx.type);
   document.getElementById('personSelect').value = tx.personId;
   populateCategorySelect();

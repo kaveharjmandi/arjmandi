@@ -1688,6 +1688,30 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   }
 });
 
+const SESSION_KEY = 'sandoogh-session';
+const SESSION_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90 days rolling
+function saveSession(){
+  try{
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      personId: currentUserId, username: currentUsername, ts: Date.now()
+    }));
+  }catch(e){}
+}
+function clearSession(){
+  try{ localStorage.removeItem(SESSION_KEY); }catch(e){}
+}
+function loadValidSession(){
+  try{
+    const raw = localStorage.getItem(SESSION_KEY);
+    if(!raw) return null;
+    const s = JSON.parse(raw);
+    if(!s || !s.personId || !s.username) return null;
+    if(Date.now() - (s.ts || 0) > SESSION_MAX_AGE_MS) return null;
+    if(!data.auth[s.username] || data.auth[s.username].personId !== s.personId) return null;
+    if(!getPerson(s.personId)) return null;
+    return s;
+  }catch(e){ return null; }
+}
 function enterApp(){
   document.getElementById('changePwCard').style.display = 'none';
   document.getElementById('personSelect').value = '';
@@ -1701,8 +1725,9 @@ function enterApp(){
   showStorageBanner();
   showScreen('app');
   checkNoEntryReminder();
+  saveSession();
 }
-document.getElementById('logoutBtn').addEventListener('click', () => { currentUserId = null; currentUsername = null; renderLoginScreen(); });
+document.getElementById('logoutBtn').addEventListener('click', () => { currentUserId = null; currentUsername = null; clearSession(); renderLoginScreen(); });
 
 /* ---------- backup / restore ---------- */
 function exportBackup(){
@@ -3650,7 +3675,11 @@ async function init(){
     render();
   });
 
-  if(!tryShowPinlockScreen()) renderLoginScreen();
+  const activeSession = loadValidSession();
+  if(activeSession){
+    currentUserId = activeSession.personId; currentUsername = activeSession.username;
+    enterApp();
+  } else if(!tryShowPinlockScreen()) renderLoginScreen();
 }
 
 /* ---------- live jalali clock ---------- */

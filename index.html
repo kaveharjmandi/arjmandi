@@ -377,6 +377,26 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         </div>
       </div>
       <div class="admin-section">
+        <div class="admin-subtitle">بودجه ماهانه دسته‌های برداشت</div>
+        <div id="budgetsList"></div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-subtitle">تراکنش‌های تکرارشونده (مثل حقوق یا اجاره)</div>
+        <div id="recurringList"></div>
+        <div class="add-row" style="flex-direction:column; align-items:stretch; gap:6px; margin-top:10px;">
+          <div class="type-toggle">
+            <div class="type-btn income active" data-rectype="income" id="recTypeIncomeBtn">واریز</div>
+            <div class="type-btn expense" data-rectype="expense" id="recTypeExpenseBtn">برداشت</div>
+          </div>
+          <select id="newRecPerson"></select>
+          <select id="newRecCategory"></select>
+          <input type="text" id="newRecDesc" placeholder="توضیح (مثلاً: حقوق ماهانه)">
+          <input type="number" id="newRecAmount" placeholder="مبلغ" min="0">
+          <input type="number" id="newRecDay" placeholder="روز ثبت خودکار در ماه شمسی (۱ تا ۳۰)" min="1" max="30">
+          <button type="button" id="addRecurringBtn" style="align-self:flex-start;">افزودن تراکنش تکرارشونده</button>
+        </div>
+      </div>
+      <div class="admin-section">
         <div class="admin-subtitle">دسته‌بندی‌های واریز</div>
         <div id="incomeCatList"></div>
         <div class="add-row">
@@ -469,6 +489,20 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         </div>
         <div class="settings-chevron">‹</div>
       </div>
+
+      <div class="settings-item" id="activityLogBtn">
+        <div class="settings-icon">🕒</div>
+        <div class="settings-text">
+          <div class="settings-title">تاریخچه فعالیت</div>
+          <div class="settings-sub">کی چه تغییری داده</div>
+        </div>
+        <div class="settings-chevron">‹</div>
+      </div>
+    </div>
+
+    <div class="card" id="activityLogCard" style="display:none;">
+      <div class="section-title">تاریخچه فعالیت</div>
+      <div id="activityLogList"></div>
     </div>
 
     <div class="card" id="changePwCard" style="display:none;">
@@ -503,6 +537,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       <button type="button" class="tab-nav-btn" data-tab="breakdown">👤<span>ریز هر شخص</span></button>
       <button type="button" class="tab-nav-btn" data-tab="list">📋<span>فهرست</span></button>
       <button type="button" class="tab-nav-btn" data-tab="cheques">🧾<span>چک‌ها</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="charts">📊<span>نمودارها</span></button>
     </div>
 
     <div class="tab-panel" data-tab="status">
@@ -516,6 +551,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         <div class="stat-tile income"><div class="val" id="totalIncomeVal">۰</div><div class="lbl">مجموع واریز</div></div>
         <div class="stat-tile expense"><div class="val" id="totalExpenseVal">۰</div><div class="lbl">مجموع برداشت</div></div>
       </div>
+      <div id="budgetProgressBox"></div>
     </div>
     </div>
 
@@ -550,6 +586,18 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
             <input type="hidden" id="dateInput" required>
             <div id="calendarPopup" class="calendar-popup" style="display:none;"></div>
           </div>
+        </div>
+        <div class="field">
+          <label>عکس رسید (اختیاری)</label>
+          <input type="file" id="photoInput" accept="image/*">
+          <div id="photoPreviewBox" style="display:none; margin-top:8px;">
+            <img id="photoPreviewImg" style="max-width:100%; max-height:160px; border-radius:8px; border:1px solid var(--line);">
+            <button type="button" id="photoRemoveBtn" class="mini-del" style="display:block; margin-top:4px;">حذف عکس</button>
+          </div>
+        </div>
+        <div id="editModeBar" style="display:none; align-items:center; justify-content:space-between; background:var(--bg-deep); border-radius:8px; padding:8px 10px; font-size:12px;">
+          <span>در حال ویرایش تراکنش</span>
+          <span id="cancelEditBtn" style="text-decoration:underline; cursor:pointer; color:var(--accent-deep);">لغو ویرایش</span>
         </div>
         <button type="submit" class="submit-btn" id="submitBtnLbl">ثبت تراکنش</button>
       </form>
@@ -592,6 +640,12 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     <div class="tab-panel" data-tab="list" style="display:none;">
     <div class="card">
       <div class="section-title">فهرست تراکنش‌ها</div>
+      <div class="row2" style="margin-bottom:10px;">
+        <input type="text" id="txSearchInput" placeholder="جست‌وجو در توضیح یا دسته‌بندی…" style="flex:2; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:9px 10px; font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink);">
+        <select id="txPersonFilterSelect" style="flex:1; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:9px 10px; font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink);">
+          <option value="all">همه افراد</option>
+        </select>
+      </div>
       <div class="filter-row">
         <div class="filter-btn tx-filter-btn active" data-filter="all">همه</div>
         <div class="filter-btn tx-filter-btn" data-filter="income">واریزها</div>
@@ -669,6 +723,22 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     </div>
     </div>
     </div>
+
+    <div class="tab-panel" data-tab="charts" style="display:none;">
+    <div class="card">
+      <div class="section-title">هزینه‌ها بر اساس دسته‌بندی (این ماه)</div>
+      <div id="pieChartBox"></div>
+      <div id="pieChartLegend" style="margin-top:10px;"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">روند ۶ ماه اخیر (واریز و برداشت)</div>
+      <div id="barChartBox"></div>
+      <div style="display:flex; gap:14px; justify-content:center; margin-top:8px; font-size:11px; color:var(--ink-soft);">
+        <span><span style="display:inline-block; width:10px; height:10px; background:var(--credit); border-radius:2px;"></span> واریز</span>
+        <span><span style="display:inline-block; width:10px; height:10px; background:var(--debit); border-radius:2px;"></span> برداشت</span>
+      </div>
+    </div>
+    </div>
   </div>
 
   <footer id="liveClock" class="live-clock"></footer>
@@ -710,7 +780,10 @@ function defaultData(){
       expense: ['خانه و اجاره', 'خرید و خواربار', 'قبض و اشتراک', 'بچه‌ها', 'تحصیل', 'ورزش', 'پوشاک و اکسسوری', 'درمان', 'برداشت چک', 'سایر هزینه']
     },
     transactions: [],
-    cheques: []
+    cheques: [],
+    budgets: {},
+    recurring: [],
+    activityLog: []
   };
 }
 
@@ -723,6 +796,9 @@ function mergeDefaults(){
   });
   data.people.forEach(p => { if(p.canLogin === undefined) p.canLogin = true; });
   if(!Array.isArray(data.cheques)) data.cheques = [];
+  if(!data.budgets) data.budgets = {};
+  if(!Array.isArray(data.recurring)) data.recurring = [];
+  if(!Array.isArray(data.activityLog)) data.activityLog = [];
   if(!data.auth) data.auth = {};
   // migrate old scheme where the auth key WAS the personId (no explicit personId field yet)
   Object.keys(data.auth).forEach(key => {
@@ -941,6 +1017,17 @@ function getPerson(id){ return data.people.find(p => p.id === id); }
 function personName(id){ const p = getPerson(id); return p ? p.name : '؟'; }
 function currentPerson(){ return getPerson(currentUserId); }
 function isCurrentAdmin(){ const p = currentPerson(); return !!(p && p.isAdmin); }
+
+function logActivity(action, details){
+  if(!Array.isArray(data.activityLog)) data.activityLog = [];
+  data.activityLog.unshift({
+    action, details,
+    by: currentUsername || currentUserId || '؟',
+    byName: personName(currentUserId),
+    at: Date.now()
+  });
+  if(data.activityLog.length > 300) data.activityLog.length = 300;
+}
 
 /* ---------- helpers ---------- */
 function fmt(n){ n = Math.round(n); return n.toLocaleString('en-US'); }
@@ -1223,6 +1310,7 @@ function renderLoginScreen(){
   document.getElementById('pwInput2').value = '';
   document.getElementById('pwError').textContent = '';
   document.getElementById('fpLoginBtn').style.display = 'none';
+  if(!bootstrap) checkLockout(document.getElementById('pwError'));
   showScreen('login');
   setTimeout(() => { if(!bootstrap) userInput.focus(); }, 50);
 }
@@ -1249,10 +1337,46 @@ document.getElementById('fpLoginBtn').addEventListener('click', async () => {
     errBox.textContent = 'ورود با اثر انگشت ناموفق بود. با رمز عبور وارد شو.';
   }
 });
+/* ---------- login lockout (anti brute-force, per device) ---------- */
+const LOCKOUT_KEY = 'sandoogh-login-lockout';
+const LOCKOUT_MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 2 * 60 * 1000;
+function getLockoutState(){
+  try{
+    const raw = localStorage.getItem(LOCKOUT_KEY);
+    return raw ? JSON.parse(raw) : { count: 0, lockUntil: 0 };
+  }catch(e){ return { count: 0, lockUntil: 0 }; }
+}
+function setLockoutState(st){
+  try{ localStorage.setItem(LOCKOUT_KEY, JSON.stringify(st)); }catch(e){}
+}
+function registerFailedLogin(){
+  const st = getLockoutState();
+  st.count = (st.count || 0) + 1;
+  if(st.count >= LOCKOUT_MAX_ATTEMPTS){
+    st.lockUntil = Date.now() + LOCKOUT_DURATION_MS;
+    st.count = 0;
+  }
+  setLockoutState(st);
+}
+function clearLockout(){ setLockoutState({ count: 0, lockUntil: 0 }); }
+function checkLockout(errBox){
+  const st = getLockoutState();
+  if(st.lockUntil && Date.now() < st.lockUntil){
+    const remainingSec = Math.ceil((st.lockUntil - Date.now()) / 1000);
+    const mm = Math.floor(remainingSec / 60), ss = remainingSec % 60;
+    errBox.textContent = `به‌خاطر چند بار رمز اشتباه، ورود موقتاً قفله. ${faDigits(mm)}:${faDigits(String(ss).padStart(2,'0'))} دیگه صبر کن.`;
+    return true;
+  }
+  return false;
+}
+
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const errBox = document.getElementById('pwError');
   const bootstrap = !hasAnyAccounts();
+
+  if(!bootstrap && checkLockout(errBox)) return;
 
   if(!checkCaptcha()){
     errBox.textContent = 'کد امنیتی درست وارد نشده. دوباره امتحان کن.';
@@ -1272,6 +1396,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     data.auth['admin'] = { salt, hash, personId: adminPerson.id };
     await saveData();
     currentUserId = adminPerson.id; currentUsername = 'admin';
+    clearLockout();
     enterApp();
     return;
   }
@@ -1279,15 +1404,22 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   const uname = normalizeUsername(document.getElementById('loginUsernameInput').value);
   if(!uname){ errBox.textContent = 'نام کاربری رو وارد کن.'; return; }
   const acc = data.auth[uname];
-  if(!acc){ errBox.textContent = 'همچین حساب کاربری‌ای وجود نداره. از مدیر بخواه براتون بسازه.'; return; }
+  if(!acc){
+    errBox.textContent = 'همچین حساب کاربری‌ای وجود نداره. از مدیر بخواه براتون بسازه.';
+    registerFailedLogin();
+    return;
+  }
   const pwd = document.getElementById('pwInput1').value;
   if(!pwd){ errBox.textContent = 'رمز عبور رو وارد کن.'; return; }
   const hash = await sha256Hex(acc.salt + pwd);
   if(hash === acc.hash){
     currentUserId = acc.personId; currentUsername = uname;
+    clearLockout();
     enterApp();
   } else {
     errBox.textContent = 'نام کاربری یا رمز عبور اشتباهه.';
+    registerFailedLogin();
+    if(checkLockout(errBox)){ /* message already set with remaining time */ }
     drawCaptcha(); document.getElementById('captchaInput').value = '';
   }
 });
@@ -1298,6 +1430,7 @@ function enterApp(){
   currentType = 'income';
   currentFilter = 'all';
   txDatePicker.resetToToday(); txDatePicker.close(); chDatePicker.resetToToday(); chDatePicker.close(); applyTheme();
+  generateRecurringIfDue().then(() => render());
   render();
   showTab('status');
   updateStorageIndicator();
@@ -1363,6 +1496,7 @@ document.getElementById('restoreFileInput').addEventListener('change', (e) => {
 document.getElementById('changePwBtn').addEventListener('click', () => {
   const card = document.getElementById('changePwCard');
   const opening = card.style.display === 'none';
+  document.getElementById('activityLogCard').style.display = 'none';
   card.style.display = opening ? 'block' : 'none';
   document.getElementById('pwRuleText').textContent = PW_RULE_TEXT;
   document.getElementById('pwFormUsername').value = currentUsername;
@@ -1372,6 +1506,40 @@ document.getElementById('changePwBtn').addEventListener('click', () => {
   document.getElementById('changePwMsg').textContent = '';
   document.getElementById('changePwMsg').className = 'pw-msg';
 });
+document.getElementById('activityLogBtn').addEventListener('click', () => {
+  const card = document.getElementById('activityLogCard');
+  const opening = card.style.display === 'none';
+  document.getElementById('changePwCard').style.display = 'none';
+  card.style.display = opening ? 'block' : 'none';
+  if(opening) renderActivityLog();
+});
+function renderActivityLog(){
+  const box = document.getElementById('activityLogList');
+  const log = data.activityLog || [];
+  if(log.length === 0){
+    box.innerHTML = '<div class="empty-state">هنوز فعالیتی ثبت نشده.</div>';
+    return;
+  }
+  const ACTION_LABELS = {
+    add_tx: '➕ ثبت تراکنش', edit_tx: '✎ ویرایش تراکنش', delete_tx: '✕ حذف تراکنش',
+    undo_delete_tx: '↩️ بازگردانی تراکنش', recurring_tx: '🔁 تراکنش خودکار',
+    add_account: '👤 ساخت حساب', delete_account: '👤 حذف حساب', reset_password: '🔑 تغییر رمز'
+  };
+  box.innerHTML = log.slice(0, 100).map(entry => {
+    const d = new Date(entry.at);
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const [jy,jm,jd] = isoToJalali(iso);
+    const timeStr = `${faDigits(String(d.getHours()).padStart(2,'0'))}:${faDigits(String(d.getMinutes()).padStart(2,'0'))}`;
+    const dateStr = `${faDigits(jd)} ${JALALI_MONTHS[jm-1]}`;
+    return `<div class="tx-row" style="align-items:flex-start;">
+      <div class="tx-main">
+        <div class="tx-desc">${ACTION_LABELS[entry.action] || entry.action}</div>
+        <div class="tx-meta">${escapeHtml(entry.details||'')}</div>
+        <div class="tx-meta">توسط ${escapeHtml(entry.byName || entry.by)} · ${dateStr} ${timeStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
 document.getElementById('changePwForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const cur = document.getElementById('curPwInput').value;
@@ -1405,6 +1573,7 @@ document.getElementById('tabNav').addEventListener('click', (e) => {
   if(btn){
     showTab(btn.dataset.tab);
     if(btn.dataset.tab === 'cheques') ensureChequeNotifyPermission();
+    if(btn.dataset.tab === 'charts') renderCharts();
   }
 });
 
@@ -1536,6 +1705,7 @@ function renderAccountsList(){
         const u = e.target.dataset.delAcc;
         if(!confirm(`حساب کاربری «${u}» حذف بشه؟ اون شخص دیگه نمی‌تونه با این حساب وارد بشه.`)) return;
         delete data.auth[u];
+        logActivity('delete_account', `حساب «${u}» حذف شد`);
         await saveData();
         renderAccountsList();
       });
@@ -1552,6 +1722,7 @@ function renderAccountsList(){
         const hash = await sha256Hex(salt + pwd);
         data.auth[u].salt = salt;
         data.auth[u].hash = hash;
+        logActivity('reset_password', `رمز حساب «${u}» توسط مدیر عوض شد`);
         await saveData();
         input.value = '';
         msg.textContent = 'رمز این حساب عوض شد.'; msg.className = 'pw-msg ok';
@@ -1585,6 +1756,7 @@ document.getElementById('addAccountBtn').addEventListener('click', async () => {
   const salt = randomSaltHex();
   const hash = await sha256Hex(salt + pwd1);
   data.auth[username] = { salt, hash, personId };
+  logActivity('add_account', `حساب «${username}» برای ${personName(personId)} ساخته شد`);
   await saveData();
 
   uInput.value = '';
@@ -1599,6 +1771,8 @@ function renderAdminPanel(){
   renderAccountsList();
   renderCatList('incomeCatList', 'income');
   renderCatList('expenseCatList', 'expense');
+  renderBudgetsList();
+  renderRecurringList();
 
   document.getElementById('addIncomeCatBtn').onclick = async () => {
     const inp = document.getElementById('newIncomeCat');
@@ -1633,6 +1807,238 @@ function renderAdminPanel(){
 }
 function applyTheme(){ document.body.setAttribute('data-theme', data.theme || 'grape'); }
 
+/* ---------- budgets ---------- */
+function renderBudgetsList(){
+  const box = document.getElementById('budgetsList');
+  box.innerHTML = data.categories.expense.map(cat => `
+    <div class="tag-row">
+      <span style="flex:1; font-size:13px;">${escapeHtml(cat)}</span>
+      <input type="number" min="0" class="budget-input" data-cat="${escapeHtml(cat)}"
+        value="${data.budgets[cat] || ''}" placeholder="بدون سقف"
+        style="width:120px; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:6px 8px; font-size:12px;">
+    </div>
+  `).join('');
+  box.querySelectorAll('.budget-input').forEach(inp => {
+    inp.addEventListener('change', async (e) => {
+      const cat = e.target.dataset.cat;
+      const val = Number(e.target.value);
+      if(val > 0) data.budgets[cat] = val; else delete data.budgets[cat];
+      await saveData();
+      render();
+    });
+  });
+}
+function monthSpendForCategory(category){
+  const range = getPeriodRange('monthly', todayIso());
+  return data.transactions
+    .filter(t => t.type === 'expense' && t.category === category && t.date >= range.start && t.date <= range.end)
+    .reduce((sum,t) => sum + (Number(t.amount)||0), 0);
+}
+function checkBudgetWarning(category){
+  const budget = data.budgets[category];
+  if(!budget) return;
+  const spent = monthSpendForCategory(category);
+  if(spent >= budget){
+    alert(`⚠️ بودجه ماهانه دسته «${category}» (${fmt(budget)} ${data.currency}) پر شده! تا الان ${fmt(spent)} ${data.currency} خرج شده.`);
+  } else if(spent >= budget * 0.8){
+    alert(`نزدیک سقف بودجه دسته «${category}» هستید: ${fmt(spent)} از ${fmt(budget)} ${data.currency}`);
+  }
+}
+function renderBudgetProgress(){
+  const box = document.getElementById('budgetProgressBox');
+  if(!box) return;
+  const cats = Object.keys(data.budgets || {});
+  if(cats.length === 0){ box.innerHTML = ''; return; }
+  box.innerHTML = '<div class="section-title" style="margin-top:14px;">بودجه این ماه</div>' + cats.map(cat => {
+    const budget = data.budgets[cat];
+    const spent = monthSpendForCategory(cat);
+    const pct = Math.min(100, Math.round((spent / budget) * 100));
+    const barColor = pct >= 100 ? 'var(--debit)' : (pct >= 80 ? '#C9822C' : 'var(--credit)');
+    return `<div style="margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+        <span>${escapeHtml(cat)}</span><span>${fmt(spent)} / ${fmt(budget)}</span>
+      </div>
+      <div style="background:var(--bg); border-radius:6px; height:8px; overflow:hidden;">
+        <div style="width:${pct}%; height:100%; background:${barColor};"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- recurring transactions ---------- */
+let recurringType = 'income';
+document.getElementById('recTypeIncomeBtn').addEventListener('click', () => {
+  recurringType = 'income';
+  document.getElementById('recTypeIncomeBtn').classList.add('active');
+  document.getElementById('recTypeExpenseBtn').classList.remove('active');
+  populateRecurringCategorySelect();
+});
+document.getElementById('recTypeExpenseBtn').addEventListener('click', () => {
+  recurringType = 'expense';
+  document.getElementById('recTypeExpenseBtn').classList.add('active');
+  document.getElementById('recTypeIncomeBtn').classList.remove('active');
+  populateRecurringCategorySelect();
+});
+function populateRecurringCategorySelect(){
+  const sel = document.getElementById('newRecCategory');
+  sel.innerHTML = data.categories[recurringType].map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+}
+function renderRecurringList(){
+  const personSel = document.getElementById('newRecPerson');
+  personSel.innerHTML = data.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  populateRecurringCategorySelect();
+
+  const box = document.getElementById('recurringList');
+  if(!data.recurring || data.recurring.length === 0){
+    box.innerHTML = '<div class="empty-state">هنوز تراکنش تکرارشونده‌ای تعریف نشده.</div>';
+    return;
+  }
+  box.innerHTML = data.recurring.map(r => `
+    <div class="tag-row">
+      <span style="flex:1; font-size:12px;">
+        ${r.type==='income'?'⬇️ واریز':'⬆️ برداشت'} — ${escapeHtml(r.desc)} — ${fmt(r.amount)} ${data.currency}
+        — ${escapeHtml(personName(r.personId))} — هر ماه روز ${faDigits(r.dayOfMonth)}
+      </span>
+      <button type="button" class="mini-del" data-del-rec="${r.id}" title="حذف">✕</button>
+    </div>
+  `).join('');
+  box.querySelectorAll('[data-del-rec]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      data.recurring = data.recurring.filter(r => r.id !== e.target.dataset.delRec);
+      await saveData();
+      renderRecurringList();
+    });
+  });
+}
+document.getElementById('addRecurringBtn').addEventListener('click', async () => {
+  const personId = document.getElementById('newRecPerson').value;
+  const category = document.getElementById('newRecCategory').value;
+  const desc = document.getElementById('newRecDesc').value.trim();
+  const amount = Number(document.getElementById('newRecAmount').value);
+  const dayOfMonth = Number(document.getElementById('newRecDay').value);
+  if(!desc || !amount || amount <= 0 || !dayOfMonth || dayOfMonth < 1 || dayOfMonth > 30){
+    alert('لطفاً همه فیلدها رو درست پر کن (روز باید بین ۱ تا ۳۰ باشه).');
+    return;
+  }
+  data.recurring.push({ id: newId('r'), type: recurringType, personId, category, desc, amount, dayOfMonth, active: true });
+  await saveData();
+  document.getElementById('newRecDesc').value = '';
+  document.getElementById('newRecAmount').value = '';
+  document.getElementById('newRecDay').value = '';
+  renderRecurringList();
+});
+async function generateRecurringIfDue(){
+  if(!data.recurring || data.recurring.length === 0) return;
+  const [jy, jm, jd] = isoToJalali(todayIso());
+  let changed = false;
+  data.recurring.forEach(r => {
+    if(r.active === false) return;
+    const day = Math.min(r.dayOfMonth, jalaliMonthLength(jy, jm));
+    if(jd < day) return;
+    const already = data.transactions.some(t => t.recurringId === r.id && (() => {
+      const [ty,tm] = isoToJalali(t.date); return ty === jy && tm === jm;
+    })());
+    if(already) return;
+    const dateIso = jalaliToIso(jy, jm, day);
+    data.transactions.push({
+      id: newId('t'), type: r.type, desc: r.desc, amount: r.amount, date: dateIso,
+      personId: r.personId, category: r.category, recurringId: r.id,
+      enteredById: currentUserId || 'system', createdAt: Date.now()
+    });
+    logActivity('recurring_tx', `تراکنش تکرارشونده خودکار ثبت شد: ${r.desc}`);
+    changed = true;
+  });
+  if(changed) await saveData();
+}
+
+/* ---------- charts ---------- */
+const CHART_COLORS = ['#6B2D5C','#5C7A3D','#A9822C','#8B3A56','#2FA6A0','#5B84DA','#C9822C','#4C7A3D','#9A5FB0','#3D5FAE'];
+
+function renderCharts(){
+  renderPieChart();
+  renderBarChart();
+}
+
+function renderPieChart(){
+  const range = getPeriodRange('monthly', todayIso());
+  const totalsByCategory = {};
+  data.transactions.forEach(t => {
+    if(t.type !== 'expense') return;
+    if(t.date < range.start || t.date > range.end) return;
+    const cat = t.category || 'سایر';
+    totalsByCategory[cat] = (totalsByCategory[cat] || 0) + (Number(t.amount) || 0);
+  });
+  const entries = Object.entries(totalsByCategory).sort((a,b) => b[1]-a[1]);
+  const box = document.getElementById('pieChartBox');
+  const legend = document.getElementById('pieChartLegend');
+
+  if(entries.length === 0){
+    box.innerHTML = '<div class="empty-state">این ماه هزینه‌ای ثبت نشده.</div>';
+    legend.innerHTML = '';
+    return;
+  }
+
+  const total = entries.reduce((s,[,v]) => s+v, 0);
+  const cx = 110, cy = 110, r = 90;
+  let angleStart = -90;
+  let paths = '';
+  entries.forEach(([cat,val], i) => {
+    const fraction = val / total;
+    const angleEnd = angleStart + fraction * 360;
+    const largeArc = (angleEnd - angleStart) > 180 ? 1 : 0;
+    const x1 = cx + r * Math.cos(angleStart * Math.PI/180);
+    const y1 = cy + r * Math.sin(angleStart * Math.PI/180);
+    const x2 = cx + r * Math.cos(angleEnd * Math.PI/180);
+    const y2 = cy + r * Math.sin(angleEnd * Math.PI/180);
+    const color = CHART_COLORS[i % CHART_COLORS.length];
+    if(entries.length === 1){
+      paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/>`;
+    } else {
+      paths += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2} Z" fill="${color}"/>`;
+    }
+    angleStart = angleEnd;
+  });
+  box.innerHTML = `<svg viewBox="0 0 220 220" style="max-width:240px; display:block; margin:0 auto;">${paths}</svg>`;
+
+  legend.innerHTML = entries.map(([cat,val], i) => {
+    const pct = Math.round((val/total)*100);
+    const color = CHART_COLORS[i % CHART_COLORS.length];
+    return `<div style="display:flex; align-items:center; gap:8px; font-size:12px; padding:4px 0;">
+      <span style="width:10px; height:10px; border-radius:50%; background:${color}; flex-shrink:0;"></span>
+      <span style="flex:1;">${escapeHtml(cat)}</span>
+      <span style="color:var(--ink-soft);">${fmt(val)} (${faDigits(pct)}٪)</span>
+    </div>`;
+  }).join('');
+}
+
+function renderBarChart(){
+  const months = [];
+  let anchor = todayIso();
+  for(let i=5; i>=0; i--){
+    const iso = i === 0 ? anchor : addJalaliMonths(anchor, -i);
+    const range = getPeriodRange('monthly', iso);
+    const income = data.transactions.filter(t => t.type==='income' && t.date>=range.start && t.date<=range.end)
+      .reduce((s,t)=>s+(Number(t.amount)||0),0);
+    const expense = data.transactions.filter(t => t.type==='expense' && t.date>=range.start && t.date<=range.end)
+      .reduce((s,t)=>s+(Number(t.amount)||0),0);
+    months.push({ label: range.label.split(' ')[0], income, expense });
+  }
+  const maxVal = Math.max(1, ...months.map(m => Math.max(m.income, m.expense)));
+  const chartH = 140, barW = 16, gap = 10, groupW = barW*2 + 6;
+  const svgW = months.length * (groupW + gap) + gap;
+  let bars = '';
+  months.forEach((m, i) => {
+    const gx = gap + i * (groupW + gap);
+    const incH = Math.round((m.income / maxVal) * chartH);
+    const expH = Math.round((m.expense / maxVal) * chartH);
+    bars += `<rect x="${gx}" y="${chartH - incH + 20}" width="${barW}" height="${incH}" fill="var(--credit)" rx="2"/>`;
+    bars += `<rect x="${gx + barW + 4}" y="${chartH - expH + 20}" width="${barW}" height="${expH}" fill="var(--debit)" rx="2"/>`;
+    bars += `<text x="${gx + barW + 2}" y="${chartH + 36}" font-size="10" fill="var(--ink-soft)" text-anchor="middle">${escapeHtml(m.label)}</text>`;
+  });
+  document.getElementById('barChartBox').innerHTML =
+    `<svg viewBox="0 0 ${svgW} ${chartH + 40}" style="width:100%; max-width:480px; display:block; margin:0 auto;">${bars}</svg>`;
+}
+
 /* ---------- type toggle / filters ---------- */
 document.getElementById('typeIncomeBtn').addEventListener('click', () => setType('income'));
 document.getElementById('typeExpenseBtn').addEventListener('click', () => setType('expense'));
@@ -1664,6 +2070,15 @@ document.querySelectorAll('.tx-filter-btn').forEach(btn => {
     renderTxList();
   });
 });
+document.getElementById('txSearchInput').addEventListener('input', renderTxList);
+document.getElementById('txPersonFilterSelect').addEventListener('change', renderTxList);
+function populateTxPersonFilter(){
+  const sel = document.getElementById('txPersonFilterSelect');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="all">همه افراد</option>' +
+    data.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  sel.value = data.people.some(p => p.id === prev) ? prev : 'all';
+}
 
 /* ---------- calc ---------- */
 function computeTotals(){
@@ -1825,9 +2240,11 @@ function render(){
   balEl.className = 'amount' + (balance < 0 ? ' neg' : '');
   document.getElementById('totalIncomeVal').textContent = fmt(totalIncome) + ' ' + data.currency;
   document.getElementById('totalExpenseVal').textContent = fmt(totalExpense) + ' ' + data.currency;
+  renderBudgetProgress();
 
   renderBreakdown();
 
+  populateTxPersonFilter();
   renderTxList();
   renderChequeList();
   renderChequeAlerts();
@@ -1837,6 +2254,16 @@ function renderTxList(){
   const list = document.getElementById('txList');
   let txs = [...data.transactions];
   if(currentFilter !== 'all') txs = txs.filter(t => t.type === currentFilter);
+  const searchVal = (document.getElementById('txSearchInput')?.value || '').trim().toLowerCase();
+  if(searchVal){
+    txs = txs.filter(t =>
+      (t.desc||'').toLowerCase().includes(searchVal) ||
+      (t.category||'').toLowerCase().includes(searchVal)
+    );
+  }
+  const personFilterVal = document.getElementById('txPersonFilterSelect')?.value || 'all';
+  if(personFilterVal !== 'all') txs = txs.filter(t => t.personId === personFilterVal);
+
   txs.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
 
   if(txs.length === 0){
@@ -1846,23 +2273,164 @@ function renderTxList(){
   list.innerHTML = txs.map(tx => {
     const icon = tx.type === 'income' ? '↓' : '↑';
     const sign = tx.type === 'income' ? '+' : '−';
+    const editedTag = tx.editedAt ? ' <span title="ویرایش شده">✎</span>' : '';
+    const photoThumb = tx.photo ? `<img src="${tx.photo}" class="tx-thumb" data-full="${tx.photo}">` : '';
     return `
     <div class="tx-row">
       <div class="tx-icon ${tx.type}">${icon}</div>
       <div class="tx-main">
-        <div class="tx-desc">${escapeHtml(tx.desc)}</div>
+        <div class="tx-desc">${escapeHtml(tx.desc)}${editedTag}</div>
         <div class="tx-meta">${escapeHtml(tx.category||'')} · ${escapeHtml(personName(tx.personId))} · ${formatDate(tx.date)}</div>
       </div>
+      ${photoThumb}
       <div class="tx-amount ${tx.type}">${sign}${fmt(tx.amount)}</div>
+      <button class="edit-btn" data-id="${tx.id}" title="ویرایش">✎</button>
       <button class="del-btn" data-id="${tx.id}" title="حذف">✕</button>
     </div>`;
   }).join('');
+
+  list.querySelectorAll('.tx-thumb').forEach(img => {
+    img.addEventListener('click', () => openPhotoLightbox(img.dataset.full));
+  });
+  list.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => startEditTransaction(btn.dataset.id));
+  });
   list.querySelectorAll('.del-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const id = e.target.dataset.id;
-      data.transactions = data.transactions.filter(x => String(x.id) !== String(id));
-      await saveData(); render();
-    });
+    btn.addEventListener('click', () => deleteTransactionWithUndo(btn.dataset.id));
+  });
+}
+
+/* ---------- edit transaction ---------- */
+let editingTxId = null;
+let pendingPhotoDataUrl = null;
+
+function startEditTransaction(id){
+  const tx = data.transactions.find(t => String(t.id) === String(id));
+  if(!tx) return;
+  editingTxId = id;
+  showTab('add');
+  setType(tx.type);
+  document.getElementById('personSelect').value = tx.personId;
+  populateCategorySelect();
+  document.getElementById('categorySelect').value = tx.category || '';
+  document.getElementById('descInput').value = tx.desc;
+  document.getElementById('amountInput').value = tx.amount;
+  txDatePicker.setSelected(tx.date);
+  pendingPhotoDataUrl = tx.photo || null;
+  updatePhotoPreview();
+  document.getElementById('editModeBar').style.display = 'flex';
+  document.getElementById('submitBtnLbl').textContent = 'ذخیره تغییرات';
+}
+function cancelEditTransaction(){
+  editingTxId = null;
+  pendingPhotoDataUrl = null;
+  document.getElementById('editModeBar').style.display = 'none';
+  document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
+  document.getElementById('descInput').value = '';
+  document.getElementById('amountInput').value = '';
+  updatePhotoPreview();
+  txDatePicker.resetToToday();
+}
+document.getElementById('cancelEditBtn').addEventListener('click', cancelEditTransaction);
+
+/* ---------- photo attach ---------- */
+function compressImageFile(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 900;
+        const scale = Math.min(1, maxW / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.6));
+      };
+      img.onerror = reject;
+      img.src = ev.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+function updatePhotoPreview(){
+  const box = document.getElementById('photoPreviewBox');
+  const img = document.getElementById('photoPreviewImg');
+  if(pendingPhotoDataUrl){
+    img.src = pendingPhotoDataUrl;
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+  document.getElementById('photoInput').value = '';
+}
+document.getElementById('photoInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    pendingPhotoDataUrl = await compressImageFile(file);
+    updatePhotoPreview();
+  }catch(err){
+    console.error(err);
+    alert('خطا در بارگذاری عکس.');
+  }
+});
+document.getElementById('photoRemoveBtn').addEventListener('click', () => {
+  pendingPhotoDataUrl = null;
+  updatePhotoPreview();
+});
+function openPhotoLightbox(src){
+  let overlay = document.getElementById('photoLightbox');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'photoLightbox';
+    overlay.className = 'photo-lightbox';
+    overlay.innerHTML = '<img id="photoLightboxImg">';
+    overlay.addEventListener('click', () => overlay.style.display = 'none');
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('photoLightboxImg').src = src;
+  overlay.style.display = 'flex';
+}
+
+/* ---------- undo delete ---------- */
+function showUndoToast(message, onUndo){
+  let toast = document.getElementById('undoToast');
+  if(!toast){
+    toast = document.createElement('div');
+    toast.id = 'undoToast';
+    toast.className = 'undo-toast';
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `<span>${escapeHtml(message)}</span><button type="button" id="undoToastBtn">بازگردانی</button>`;
+  toast.style.display = 'flex';
+  const btn = document.getElementById('undoToastBtn');
+  let undone = false;
+  const timeoutId = setTimeout(() => { toast.style.display = 'none'; }, 5000);
+  btn.onclick = () => {
+    if(undone) return;
+    undone = true;
+    clearTimeout(timeoutId);
+    toast.style.display = 'none';
+    onUndo();
+  };
+}
+function deleteTransactionWithUndo(id){
+  const idx = data.transactions.findIndex(t => String(t.id) === String(id));
+  if(idx === -1) return;
+  const tx = data.transactions[idx];
+  data.transactions.splice(idx, 1);
+  render();
+  logActivity('delete_tx', `${tx.type==='income'?'واریز':'برداشت'} ${fmt(tx.amount)} - ${tx.desc} (${personName(tx.personId)})`);
+  saveData();
+  showUndoToast('تراکنش حذف شد', async () => {
+    data.transactions.splice(idx, 0, tx);
+    logActivity('undo_delete_tx', `${tx.desc}`);
+    await saveData();
+    render();
   });
 }
 
@@ -2103,6 +2671,21 @@ async function subscribeToPush(){
 }
 
 /* ---------- init ---------- */
+/* ---------- auto logout on inactivity ---------- */
+const IDLE_LIMIT_MS = 15 * 60 * 1000; // 15 minutes
+let lastActivityAt = Date.now();
+['click','keydown','touchstart','mousemove','scroll'].forEach(evt => {
+  document.addEventListener(evt, () => { lastActivityAt = Date.now(); }, { passive:true });
+});
+setInterval(() => {
+  const appVisible = document.getElementById('app').style.display !== 'none';
+  if(appVisible && currentUserId && (Date.now() - lastActivityAt) > IDLE_LIMIT_MS){
+    currentUserId = null; currentUsername = null;
+    renderLoginScreen();
+    document.getElementById('pwError').textContent = 'به‌خاطر عدم فعالیت، خودکار خارج شدید.';
+  }
+}, 30 * 1000);
+
 async function init(){
   await loadData();
   applyTheme();
@@ -2136,14 +2719,35 @@ async function init(){
     const category = document.getElementById('categorySelect').value;
     if(!desc || !amount || amount <= 0 || !date) return;
 
-    data.transactions.push({
-      id: newId('t'), type: currentType, desc, amount, date, personId, category,
-      enteredById: currentUserId, createdAt: Date.now()
-    });
+    if(editingTxId){
+      const tx = data.transactions.find(t => String(t.id) === String(editingTxId));
+      if(tx){
+        tx.desc = desc; tx.amount = amount; tx.date = date; tx.personId = personId;
+        tx.category = category; tx.type = currentType; tx.photo = pendingPhotoDataUrl || null;
+        tx.editedAt = Date.now(); tx.editedBy = currentUserId;
+        logActivity('edit_tx', `${currentType==='income'?'واریز':'برداشت'} ${fmt(amount)} - ${desc} (${personName(personId)})`);
+      }
+      editingTxId = null;
+      document.getElementById('editModeBar').style.display = 'none';
+      document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
+    } else {
+      data.transactions.push({
+        id: newId('t'), type: currentType, desc, amount, date, personId, category,
+        photo: pendingPhotoDataUrl || null,
+        enteredById: currentUserId, createdAt: Date.now()
+      });
+      logActivity('add_tx', `${currentType==='income'?'واریز':'برداشت'} ${fmt(amount)} - ${desc} (${personName(personId)})`);
+    }
     await saveData();
+
+    if(currentType === 'expense' && data.budgets && data.budgets[category] > 0){
+      checkBudgetWarning(category);
+    }
 
     document.getElementById('descInput').value = '';
     document.getElementById('amountInput').value = '';
+    pendingPhotoDataUrl = null;
+    updatePhotoPreview();
     txDatePicker.resetToToday();
     render();
   });

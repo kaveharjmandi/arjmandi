@@ -393,6 +393,49 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 @media (max-width:360px){
   .stat-row{grid-template-columns:1fr 1fr;}
 }
+
+/* ---------- toasts / modal / lightbox ---------- */
+.undo-toast{
+  display:none; position:fixed; left:16px; right:16px; bottom:20px; z-index:200;
+  background:var(--ink); color:#fff; border-radius:12px; padding:12px 16px;
+  align-items:center; justify-content:space-between; gap:12px; font-size:13px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.3); max-width:480px; margin:0 auto;
+}
+.undo-toast button{
+  background:var(--accent); color:#fff; border:none; border-radius:8px; padding:7px 14px;
+  font-size:12.5px; font-weight:700; cursor:pointer; font-family:'Vazirmatn',sans-serif; white-space:nowrap;
+}
+.success-toast{
+  position:fixed; top:16px; left:16px; right:16px; z-index:210;
+  background:var(--credit); color:#fff; border-radius:12px; padding:13px 16px;
+  font-size:13px; font-weight:700; text-align:center; max-width:480px; margin:0 auto;
+  box-shadow:0 6px 20px rgba(0,0,0,0.25);
+  opacity:0; transform:translateY(-12px); transition:opacity .25s ease, transform .25s ease;
+  pointer-events:none;
+}
+.success-toast.show{ opacity:1; transform:translateY(0); }
+.photo-lightbox{
+  display:none; position:fixed; inset:0; z-index:220; background:rgba(0,0,0,0.85);
+  align-items:center; justify-content:center; padding:20px;
+}
+.photo-lightbox img{ max-width:100%; max-height:90vh; border-radius:8px; }
+.confirm-modal-overlay{
+  display:none; position:fixed; inset:0; z-index:230; background:rgba(0,0,0,0.5);
+  align-items:center; justify-content:center; padding:20px;
+}
+.confirm-modal-overlay.show{ display:flex; }
+.confirm-modal-box{
+  background:var(--card-bg); border-radius:14px; padding:22px 20px; max-width:340px; width:100%;
+  text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.3);
+}
+.confirm-modal-msg{ font-size:14px; color:var(--ink); line-height:1.8; margin-bottom:18px; }
+.confirm-modal-actions{ display:flex; gap:10px; }
+.confirm-modal-actions button{
+  flex:1; border:none; border-radius:8px; padding:11px; font-size:13.5px; font-weight:700;
+  cursor:pointer; font-family:'Vazirmatn',sans-serif;
+}
+.confirm-modal-yes{ background:var(--debit); color:#fff; }
+.confirm-modal-no{ background:var(--bg); color:var(--ink); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
@@ -2224,8 +2267,11 @@ function renderCatList(containerId, catType){
     btn.addEventListener('click', async (e) => {
       const t = e.target.dataset.delType, idx = Number(e.target.dataset.delIdx);
       if(data.categories[t].length <= 1){ alert('حداقل باید یک دسته‌بندی بمونه.'); return; }
+      const catName = data.categories[t][idx];
+      if(!(await confirmAsync(`دسته‌بندی «${catName}» حذف بشه؟`))) return;
       data.categories[t].splice(idx, 1);
       await saveData(); renderAdminPanel(); render();
+      showSuccessToast('دسته‌بندی حذف شد');
     });
   });
 }
@@ -2282,7 +2328,7 @@ function renderAccountsList(){
     list.querySelectorAll('[data-del-acc]').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const u = e.target.dataset.delAcc;
-        if(!confirm(`حساب کاربری «${u}» حذف بشه؟ اون شخص دیگه نمی‌تونه با این حساب وارد بشه.`)) return;
+        if(!(await confirmAsync(`حساب کاربری «${u}» حذف بشه؟ اون شخص دیگه نمی‌تونه با این حساب وارد بشه.`))) return;
         delete data.auth[u];
         logActivity('delete_account', `حساب «${u}» حذف شد`);
         await saveData();
@@ -2554,9 +2600,11 @@ function renderRecurringList(){
   `).join('');
   box.querySelectorAll('[data-del-rec]').forEach(btn => {
     btn.addEventListener('click', async (e) => {
+      if(!(await confirmAsync('این تراکنش تکرارشونده حذف بشه؟'))) return;
       data.recurring = data.recurring.filter(r => r.id !== e.target.dataset.delRec);
       await saveData();
       renderRecurringList();
+      showSuccessToast('حذف شد');
     });
   });
 }
@@ -2576,6 +2624,7 @@ document.getElementById('addRecurringBtn').addEventListener('click', async () =>
   document.getElementById('newRecAmount').value = '';
   document.getElementById('newRecDay').value = '';
   renderRecurringList();
+  showSuccessToast('تراکنش تکرارشونده ثبت شد');
 });
 async function generateRecurringIfDue(){
   if(!data.recurring || data.recurring.length === 0) return;
@@ -2707,6 +2756,7 @@ document.getElementById('createGoalBtn').addEventListener('click', async () => {
   document.getElementById('newGoalEmoji').value = '';
   document.getElementById('newGoalForm').style.display = 'none';
   renderGoalsAndLoans();
+  showSuccessToast('جیب پس‌انداز ساخته شد');
 });
 async function contributeToGoal(id){
   const goal = data.goals.find(g => g.id === id);
@@ -2724,11 +2774,12 @@ async function contributeToGoal(id){
   await saveData();
   renderGoalsAndLoans();
   render();
+  showSuccessToast('به هدف اضافه شد');
 }
 async function deleteGoal(id){
   const goal = data.goals.find(g => g.id === id);
   if(!goal) return;
-  if(!confirm(`جیب «${goal.name}» حذف بشه؟ (تراکنش‌های قبلی‌اش توی فهرست می‌مونن)`)) return;
+  if(!(await confirmAsync(`جیب «${goal.name}» حذف بشه؟ (تراکنش‌های قبلی‌اش توی فهرست می‌مونن)`))) return;
   data.goals = data.goals.filter(g => g.id !== id);
   await saveData();
   renderGoalsAndLoans();
@@ -2782,12 +2833,13 @@ document.getElementById('createLoanBtn').addEventListener('click', async () => {
   document.getElementById('newLoanPaidCount').value = '0';
   document.getElementById('newLoanForm').style.display = 'none';
   renderGoalsAndLoans();
+  showSuccessToast('وام ثبت شد');
 });
 async function payLoanInstallment(id){
   const loan = data.loans.find(l => l.id === id);
   if(!loan) return;
   if(loan.paidCount >= loan.installmentCount){ alert('این وام قبلاً کامل تسویه شده.'); return; }
-  if(!confirm(`قسط ${fmt(loan.installmentAmount)} ${data.currency} برای «${loan.name}» پرداخت و ثبت بشه؟`)) return;
+  if(!(await confirmAsync(`قسط ${fmt(loan.installmentAmount)} ${data.currency} برای «${loan.name}» پرداخت و ثبت بشه؟`))) return;
   loan.paidCount += 1;
   data.transactions.push({
     id: newId('t'), type:'expense', desc:`قسط وام: ${loan.name}`, amount: loan.installmentAmount, date: todayIso(),
@@ -2798,11 +2850,12 @@ async function payLoanInstallment(id){
   await saveData();
   renderGoalsAndLoans();
   render();
+  showSuccessToast('قسط ثبت شد');
 }
 async function deleteLoan(id){
   const loan = data.loans.find(l => l.id === id);
   if(!loan) return;
-  if(!confirm(`وام «${loan.name}» حذف بشه؟`)) return;
+  if(!(await confirmAsync(`وام «${loan.name}» حذف بشه؟`))) return;
   data.loans = data.loans.filter(l => l.id !== id);
   await saveData();
   renderGoalsAndLoans();
@@ -3209,7 +3262,6 @@ function renderTxList(){
     const photoThumb = tx.photo ? `<img src="${tx.photo}" class="tx-thumb" data-full="${tx.photo}">` : '';
     html += `
     <div class="tx-row" data-id="${tx.id}">
-      <div class="tx-swipe-bg"><span class="right">حذف ✕</span><span class="left">✎ ویرایش</span></div>
       <div class="tx-row-inner">
         <div class="avatar-dot" style="background:${personColor(tx.personId)}; position:relative;">
           ${personEmoji(tx.personId)}
@@ -3228,8 +3280,6 @@ function renderTxList(){
   });
   list.innerHTML = html;
 
-  wireSwipeGestures();
-
   list.querySelectorAll('.tx-thumb').forEach(img => {
     img.addEventListener('click', () => openPhotoLightbox(img.dataset.full));
   });
@@ -3237,7 +3287,7 @@ function renderTxList(){
     btn.addEventListener('click', () => startEditTransaction(btn.dataset.id));
   });
   list.querySelectorAll('.del-btn').forEach(btn => {
-    btn.addEventListener('click', () => deleteTransactionWithUndo(btn.dataset.id));
+    btn.addEventListener('click', () => confirmThen('این تراکنش حذف بشه؟', () => deleteTransactionWithUndo(btn.dataset.id)));
   });
 }
 
@@ -3339,6 +3389,56 @@ function openPhotoLightbox(src){
 }
 
 /* ---------- undo delete ---------- */
+/* ---------- confirm modal (yes/no) ---------- */
+function confirmThen(message, onConfirm, onCancel){
+  let overlay = document.getElementById('confirmModalOverlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'confirmModalOverlay';
+    overlay.className = 'confirm-modal-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-modal-box">
+        <div class="confirm-modal-msg" id="confirmModalMsg"></div>
+        <div class="confirm-modal-actions">
+          <button type="button" class="confirm-modal-yes" id="confirmModalYes">بله</button>
+          <button type="button" class="confirm-modal-no" id="confirmModalNo">خیر</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => {
+      if(e.target === overlay) overlay.classList.remove('show');
+    });
+  }
+  document.getElementById('confirmModalMsg').textContent = message;
+  overlay.classList.add('show');
+  const yesBtn = document.getElementById('confirmModalYes');
+  const noBtn = document.getElementById('confirmModalNo');
+  yesBtn.onclick = () => { overlay.classList.remove('show'); onConfirm && onConfirm(); };
+  noBtn.onclick = () => { overlay.classList.remove('show'); onCancel && onCancel(); };
+}
+
+function confirmAsync(message){
+  return new Promise((resolve) => {
+    confirmThen(message, () => resolve(true), () => resolve(false));
+  });
+}
+
+/* ---------- success toast ---------- */
+let successToastTimer = null;
+function showSuccessToast(message){
+  let toast = document.getElementById('successToast');
+  if(!toast){
+    toast = document.createElement('div');
+    toast.id = 'successToast';
+    toast.className = 'success-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = '✅ ' + message;
+  clearTimeout(successToastTimer);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  successToastTimer = setTimeout(() => { toast.classList.remove('show'); }, 2500);
+}
+
 function showUndoToast(message, onUndo){
   let toast = document.getElementById('undoToast');
   if(!toast){
@@ -3522,6 +3622,7 @@ document.getElementById('chequeForm').addEventListener('submit', async (e) => {
   chDatePicker.resetToToday();
   renderChequeList();
   renderChequeAlerts();
+  showSuccessToast('چک ثبت شد');
 });
 
 function renderChequeAlerts(){
@@ -3597,14 +3698,19 @@ function renderChequeList(){
       const c = data.cheques.find(x => x.id === id);
       if(!c) return;
       if(act === 'delete'){
-        if(!confirm('این چک حذف بشه؟')) return;
+        if(!(await confirmAsync('این چک حذف بشه؟'))) return;
         data.cheques = data.cheques.filter(x => x.id !== id);
+        await saveData();
+        renderChequeList();
+        renderChequeAlerts();
+        showSuccessToast('چک حذف شد');
       } else {
         c.status = act;
+        await saveData();
+        renderChequeList();
+        renderChequeAlerts();
+        showSuccessToast('وضعیت چک بروزرسانی شد');
       }
-      await saveData();
-      renderChequeList();
-      renderChequeAlerts();
     });
   });
 }
@@ -3762,6 +3868,7 @@ async function init(){
       updatePhotoPreview();
       txDatePicker.resetToToday();
       render();
+      showSuccessToast('تراکنش با موفقیت ثبت شد');
       return;
     }
 
@@ -3770,6 +3877,7 @@ async function init(){
     if(!desc || !amount || amount <= 0 || !date) return;
 
     if(editingTxId){
+      if(!(await confirmAsync('تغییرات این تراکنش ذخیره بشه؟'))) return;
       const tx = data.transactions.find(t => String(t.id) === String(editingTxId));
       if(tx){
         tx.desc = desc; tx.amount = amount; tx.date = date; tx.personId = personId;
@@ -3782,7 +3890,7 @@ async function init(){
       document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
     } else {
       if(checkDuplicateTransaction(desc, amount, personId)){
-        if(!confirm('یه تراکنش مشابه (همین توضیح، مبلغ و شخص) چند دقیقه پیش ثبت شده. مطمئنید تکراری نیست؟')) return;
+        if(!(await confirmAsync('یه تراکنش مشابه (همین توضیح، مبلغ و شخص) چند دقیقه پیش ثبت شده. مطمئنید تکراری نیست؟'))) return;
       }
       data.transactions.push({
         id: newId('t'), type: currentType, desc, amount, date, personId, category,
@@ -3803,6 +3911,7 @@ async function init(){
     updatePhotoPreview();
     txDatePicker.resetToToday();
     render();
+    showSuccessToast('تراکنش با موفقیت ثبت شد');
   });
 
   const activeSession = (!wasHiddenTooLong()) ? loadValidSession() : null;

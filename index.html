@@ -68,6 +68,18 @@ h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
 .login-card{ background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:26px 20px; text-align:center; }
 .login-title{font-size:19px; font-weight:800; margin-bottom:6px; color:var(--ink);}
 .login-sub{font-size:13px; color:var(--ink-soft); margin-bottom:20px;}
+.fp-icon-btn{
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  margin:0 auto 20px; border:none; background:none; cursor:pointer; font-family:inherit;
+}
+.fp-icon-symbol{
+  width:60px; height:60px; border-radius:50%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  font-size:26px; box-shadow:0 6px 16px rgba(0,0,0,0.18); transition:.15s;
+}
+.fp-icon-btn:active .fp-icon-symbol{ transform:scale(0.94); }
+.fp-icon-caption{ font-size:11.5px; font-weight:700; color:var(--accent-deep); }
 .login-field{margin-bottom:12px; text-align:right;}
 .login-field label{font-size:12px; color:var(--ink-soft); display:block; margin-bottom:5px;}
 .login-field input, .login-field select{
@@ -270,6 +282,16 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .tx-main{flex:1; min-width:0;}
 .tx-desc{font-size:14px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .tx-meta{font-size:11px; color:var(--ink-soft); margin-top:2px;}
+.tx-date-header{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:14px 4px 7px; font-size:12px; font-weight:700; color:var(--ink-soft);
+  position:sticky; top:0; z-index:2; background:var(--card-bg);
+  border-bottom:1px solid var(--line);
+}
+.tx-date-header:first-child{ padding-top:2px; }
+.tx-date-net{ font-family:'IBM Plex Mono',monospace; font-size:12px; }
+.tx-date-net.income{ color:var(--credit); }
+.tx-date-net.expense{ color:var(--debit); }
 .tx-amount{font-family:'IBM Plex Mono',monospace; font-size:13.5px; font-weight:600; white-space:nowrap;}
 .tx-amount.income{ color:var(--credit); }
 .tx-amount.expense{ color:var(--debit); }
@@ -400,6 +422,11 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       <div class="login-title" id="loginTitle">ورود به گردش مالی خانواده</div>
       <div class="login-sub" id="loginSub">نام کاربری و رمز عبور خود را وارد کنید</div>
 
+      <button type="button" id="fpLoginBtn" class="fp-icon-btn" style="display:none;" title="ورود با اثر انگشت">
+        <span class="fp-icon-symbol">👆</span>
+        <span class="fp-icon-caption">ورود با اثر انگشت</span>
+      </button>
+
       <form id="loginForm" autocomplete="on">
       <div id="setupNote" class="setup-note" style="display:none;"></div>
 
@@ -430,7 +457,6 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 
       <div class="login-error" id="pwError"></div>
       <button class="login-submit" id="pwSubmitBtn" type="submit">ورود</button>
-      <button class="login-submit" id="fpLoginBtn" type="button" style="display:none; margin-top:8px; background:var(--accent2);">👆 ورود با اثر انگشت</button>
       </form>
     </div>
   </div>
@@ -1333,6 +1359,28 @@ async function loginWithFingerprint(username){
     return false;
   }
 }
+function accountsWithFingerprint(){
+  return Object.keys(data.auth || {}).filter(u => data.auth[u] && data.auth[u].webauthnId);
+}
+async function loginWithFingerprintAny(){
+  if(!webauthnSupported()) return null;
+  const usernames = accountsWithFingerprint();
+  if(!usernames.length) return null;
+  try{
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const allowCredentials = usernames.map(u => ({ id: b64ToBuf(data.auth[u].webauthnId), type:'public-key' }));
+    const assertion = await navigator.credentials.get({
+      publicKey: { challenge, allowCredentials, userVerification: 'required', timeout: 60000 }
+    });
+    if(!assertion) return null;
+    const matchedId = bufToB64(assertion.rawId);
+    const matchedUsername = usernames.find(u => data.auth[u].webauthnId === matchedId);
+    return matchedUsername || null;
+  }catch(err){
+    console.error('WebAuthn login failed', err);
+    return null;
+  }
+}
 function removeFingerprint(username){
   if(data.auth[username]) delete data.auth[username].webauthnId;
 }
@@ -1550,6 +1598,14 @@ function hasAnyAccounts(){
 function normalizeUsername(s){
   return (s || '').trim().toLowerCase();
 }
+function updateFpButtonVisibility(){
+  const fpBtn = document.getElementById('fpLoginBtn');
+  if(!hasAnyAccounts() || !webauthnSupported() || accountsWithFingerprint().length === 0){
+    fpBtn.style.display = 'none';
+    return;
+  }
+  fpBtn.style.display = 'flex';
+}
 function renderLoginScreen(){
   const bootstrap = !hasAnyAccounts();
   const userInput = document.getElementById('loginUsernameInput');
@@ -1580,30 +1636,24 @@ function renderLoginScreen(){
   document.getElementById('pwInput1').value = '';
   document.getElementById('pwInput2').value = '';
   document.getElementById('pwError').textContent = '';
-  document.getElementById('fpLoginBtn').style.display = 'none';
   if(!bootstrap) checkLockout(document.getElementById('pwError'));
+  updateFpButtonVisibility();
   showScreen('login');
   setTimeout(() => { if(!bootstrap) userInput.focus(); }, 50);
 }
-document.getElementById('loginUsernameInput').addEventListener('input', () => {
-  if(hasAnyAccounts()){
-    const uname = normalizeUsername(document.getElementById('loginUsernameInput').value);
-    const acc = data.auth[uname];
-    const fpBtn = document.getElementById('fpLoginBtn');
-    fpBtn.style.display = (webauthnSupported() && acc && acc.webauthnId) ? 'block' : 'none';
-  }
-});
+document.getElementById('loginUsernameInput').addEventListener('input', updateFpButtonVisibility);
 document.getElementById('captchaRefresh').addEventListener('click', () => {
   drawCaptcha(); document.getElementById('captchaInput').value = '';
 });
 document.getElementById('fpLoginBtn').addEventListener('click', async () => {
-  const uname = normalizeUsername(document.getElementById('loginUsernameInput').value);
   const errBox = document.getElementById('pwError');
   errBox.textContent = '';
-  const ok = await loginWithFingerprint(uname);
-  if(ok){
+  const uname = await loginWithFingerprintAny();
+  if(uname){
     const acc = data.auth[uname];
-    currentUserId = acc.personId; currentUsername = uname; try{ localStorage.setItem('sandoogh-last-user', uname); }catch(e){} enterApp();
+    currentUserId = acc.personId; currentUsername = uname;
+    try{ localStorage.setItem('sandoogh-last-user', uname); }catch(e){}
+    enterApp();
   } else {
     errBox.textContent = 'ورود با اثر انگشت ناموفق بود. با رمز عبور وارد شو.';
   }
@@ -1698,29 +1748,55 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 });
 
 const SESSION_KEY = 'sandoogh-session';
-const SESSION_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90 days rolling
 function saveSession(){
   try{
-    localStorage.setItem(SESSION_KEY, JSON.stringify({
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({
       personId: currentUserId, username: currentUsername, ts: Date.now()
     }));
   }catch(e){}
 }
 function clearSession(){
-  try{ localStorage.removeItem(SESSION_KEY); }catch(e){}
+  try{ sessionStorage.removeItem(SESSION_KEY); }catch(e){}
 }
 function loadValidSession(){
   try{
-    const raw = localStorage.getItem(SESSION_KEY);
+    const raw = sessionStorage.getItem(SESSION_KEY);
     if(!raw) return null;
     const s = JSON.parse(raw);
     if(!s || !s.personId || !s.username) return null;
-    if(Date.now() - (s.ts || 0) > SESSION_MAX_AGE_MS) return null;
     if(!data.auth[s.username] || data.auth[s.username].personId !== s.personId) return null;
     if(!getPerson(s.personId)) return null;
     return s;
   }catch(e){ return null; }
 }
+// Some platforms (mostly Android PWAs) keep the page process warm in the
+// background even after the app is swiped away, so sessionStorage alone can
+// survive a "close and reopen". To make closing the app actually require
+// login again, we stamp the time the app goes into the background, and if
+// it's been away longer than this, we force sign-out when it's foregrounded
+// or reloaded again.
+const HIDDEN_TIMEOUT_MS = 60 * 1000; // 1 minute in background counts as "closed"
+function markHiddenNow(){
+  try{ sessionStorage.setItem('sandoogh-hidden-at', String(Date.now())); }catch(e){}
+}
+function wasHiddenTooLong(){
+  try{
+    const t = Number(sessionStorage.getItem('sandoogh-hidden-at'));
+    return !!t && (Date.now() - t > HIDDEN_TIMEOUT_MS);
+  }catch(e){ return false; }
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'hidden'){
+    markHiddenNow();
+  } else if(document.visibilityState === 'visible'){
+    if(wasHiddenTooLong() && document.getElementById('app').style.display !== 'none'){
+      clearSession();
+      currentUserId = null; currentUsername = null;
+      renderLoginScreen();
+    }
+    try{ sessionStorage.removeItem('sandoogh-hidden-at'); }catch(e){}
+  }
+});
 function enterApp(){
   document.getElementById('changePwCard').style.display = 'none';
   document.getElementById('personSelect').value = '';
@@ -3087,6 +3163,14 @@ function render(){
   renderChequeAlerts();
 }
 
+function relativeDayLabel(dateStr){
+  const todayI = todayIso();
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const yestI = `${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
+  if(dateStr === todayI) return 'امروز';
+  if(dateStr === yestI) return 'دیروز';
+  return formatDate(dateStr);
+}
 function renderTxList(){
   const list = document.getElementById('txList');
   let txs = [...data.transactions];
@@ -3101,18 +3185,29 @@ function renderTxList(){
   const personFilterVal = document.getElementById('txPersonFilterSelect')?.value || 'all';
   if(personFilterVal !== 'all') txs = txs.filter(t => t.personId === personFilterVal);
 
-  txs.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  txs.sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.createdAt||0) - (a.createdAt||0));
 
   if(txs.length === 0){
     list.innerHTML = '<div class="empty-state">تراکنشی برای نمایش نیست.</div>';
     return;
   }
-  list.innerHTML = txs.map(tx => {
+
+  let html = '';
+  let lastDate = null;
+  txs.forEach(tx => {
+    if(tx.date !== lastDate){
+      lastDate = tx.date;
+      const dayTxs = txs.filter(t => t.date === lastDate);
+      const dayNet = dayTxs.reduce((s,t) => s + (t.type === 'income' ? t.amount : -t.amount), 0);
+      const netClass = dayNet >= 0 ? 'income' : 'expense';
+      const netSign = dayNet >= 0 ? '+' : '−';
+      html += `<div class="tx-date-header"><span>${escapeHtml(relativeDayLabel(lastDate))}</span><span class="tx-date-net ${netClass}">${netSign}${fmt(Math.abs(dayNet))}</span></div>`;
+    }
     const arrow = tx.type === 'income' ? '↓' : '↑';
     const sign = tx.type === 'income' ? '+' : '−';
     const editedTag = tx.editedAt ? ' <span title="ویرایش شده">✎</span>' : '';
     const photoThumb = tx.photo ? `<img src="${tx.photo}" class="tx-thumb" data-full="${tx.photo}">` : '';
-    return `
+    html += `
     <div class="tx-row" data-id="${tx.id}">
       <div class="tx-swipe-bg"><span class="right">حذف ✕</span><span class="left">✎ ویرایش</span></div>
       <div class="tx-row-inner">
@@ -3122,7 +3217,7 @@ function renderTxList(){
         </div>
         <div class="tx-main">
           <div class="tx-desc">${escapeHtml(tx.desc)}${editedTag}</div>
-          <div class="tx-meta">${escapeHtml(tx.category||'')} · ${escapeHtml(personName(tx.personId))} · ${formatDate(tx.date)}</div>
+          <div class="tx-meta">${escapeHtml(tx.category||'')} · ${escapeHtml(personName(tx.personId))}</div>
         </div>
         ${photoThumb}
         <div class="tx-amount ${tx.type}">${sign}${fmt(tx.amount)}</div>
@@ -3130,7 +3225,8 @@ function renderTxList(){
         <button class="del-btn" data-id="${tx.id}" title="حذف">✕</button>
       </div>
     </div>`;
-  }).join('');
+  });
+  list.innerHTML = html;
 
   wireSwipeGestures();
 
@@ -3709,7 +3805,8 @@ async function init(){
     render();
   });
 
-  const activeSession = loadValidSession();
+  const activeSession = (!wasHiddenTooLong()) ? loadValidSession() : null;
+  if(wasHiddenTooLong()) clearSession();
   if(activeSession){
     currentUserId = activeSession.personId; currentUsername = activeSession.username;
     enterApp();

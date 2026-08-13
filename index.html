@@ -436,6 +436,11 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 }
 .confirm-modal-yes{ background:var(--debit); color:#fff; }
 .confirm-modal-no{ background:var(--bg); color:var(--ink); }
+
+.amount-words-hint{
+  font-size:11.5px; color:var(--accent-deep); margin-top:5px; min-height:14px;
+  display:none;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
@@ -615,6 +620,30 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
           <input type="checkbox" id="fpToggleInput">
           <span class="switch-track"></span>
         </label>
+      </div>
+
+      <div class="settings-item" id="pinToggleRow">
+        <div class="settings-icon">🔒</div>
+        <div class="settings-text">
+          <div class="settings-title">قفل سریع (PIN چهاررقمی)</div>
+          <div class="settings-sub" id="pinStatusText">به‌جای رمز کامل، با یه PIN کوتاه وارد شو</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="pinToggleInput">
+          <span class="switch-track"></span>
+        </label>
+      </div>
+      <div id="pinSetupBox" style="display:none; padding:0 4px 12px;">
+        <div class="login-field">
+          <label>یه PIN چهاررقمی انتخاب کن</label>
+          <input type="password" id="pinSetupInput1" inputmode="numeric" maxlength="4" placeholder="مثلاً ۱۲۳۴">
+        </div>
+        <div class="login-field">
+          <label>تکرار PIN</label>
+          <input type="password" id="pinSetupInput2" inputmode="numeric" maxlength="4" placeholder="تکرار">
+        </div>
+        <div class="pw-msg" id="pinSetupMsg"></div>
+        <button type="button" id="pinSetupSaveBtn" class="submit-btn">ذخیره PIN</button>
       </div>
 
       <div class="settings-item" id="backupBtn">
@@ -1283,6 +1312,101 @@ function logActivity(action, details){
 
 /* ---------- helpers ---------- */
 function fmt(n){ n = Math.round(n); return n.toLocaleString('en-US'); }
+
+/* ---------- live amount formatting (comma grouping + Persian words) ---------- */
+function stripCommaDigits(str){ return (str || '').replace(/[^\d]/g, ''); }
+function formatThousandsRaw(digitsStr){
+  if(!digitsStr) return '';
+  return Number(digitsStr).toLocaleString('en-US');
+}
+function parseAmountValue(str){ return Number(stripCommaDigits(str)) || 0; }
+
+const PW_ONES = ['', 'یک','دو','سه','چهار','پنج','شش','هفت','هشت','نه'];
+const PW_TEENS = ['ده','یازده','دوازده','سیزده','چهارده','پانزده','شانزده','هفده','هجده','نوزده'];
+const PW_TENS = ['', '', 'بیست','سی','چهل','پنجاه','شصت','هفتاد','هشتاد','نود'];
+const PW_HUNDREDS = ['', 'صد','دویست','سیصد','چهارصد','پانصد','ششصد','هفتصد','هشتصد','نهصد'];
+const PW_SCALES = ['', 'هزار', 'میلیون', 'میلیارد', 'تریلیون'];
+function threeDigitToWords(n){
+  const parts = [];
+  const h = Math.floor(n/100);
+  const rem = n % 100;
+  if(h > 0) parts.push(PW_HUNDREDS[h]);
+  if(rem >= 10 && rem <= 19){
+    parts.push(PW_TEENS[rem-10]);
+  } else {
+    const t = Math.floor(rem/10);
+    const o = rem % 10;
+    if(t > 0) parts.push(PW_TENS[t]);
+    if(o > 0) parts.push(PW_ONES[o]);
+  }
+  return parts.join(' و ');
+}
+function numberToPersianWords(num){
+  num = Math.floor(Math.abs(num));
+  if(num === 0) return '';
+  if(num > 999999999999) return '';
+  const groups = [];
+  let n = num;
+  while(n > 0){ groups.push(n % 1000); n = Math.floor(n/1000); }
+  const parts = [];
+  for(let i = groups.length-1; i >= 0; i--){
+    if(groups[i] === 0) continue;
+    const groupWords = threeDigitToWords(groups[i]);
+    const scale = PW_SCALES[i];
+    parts.push(scale ? `${groupWords} ${scale}` : groupWords);
+  }
+  return parts.join(' و ');
+}
+function clearAmountField(inputId){
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  input.value = '';
+  const hint = document.getElementById(inputId + '_wordsHint');
+  if(hint){ hint.textContent = ''; hint.style.display = 'none'; }
+}
+function setAmountFieldValue(inputId, num){
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  input.value = formatThousandsRaw(String(Math.round(num || 0)));
+  input.dispatchEvent(new Event('input'));
+}
+function wireAmountField(inputEl){
+  if(!inputEl || inputEl.dataset.amountWired) return;
+  inputEl.dataset.amountWired = '1';
+  inputEl.setAttribute('type','text');
+  inputEl.setAttribute('inputmode','numeric');
+  inputEl.setAttribute('autocomplete','off');
+  let hint = document.getElementById(inputEl.id + '_wordsHint');
+  if(!hint && inputEl.id){
+    hint = document.createElement('div');
+    hint.className = 'amount-words-hint';
+    hint.id = inputEl.id + '_wordsHint';
+    inputEl.insertAdjacentElement('afterend', hint);
+  }
+  inputEl.addEventListener('input', () => {
+    const digits = stripCommaDigits(inputEl.value);
+    const cursorFromEnd = inputEl.value.length - (inputEl.selectionEnd ?? inputEl.value.length);
+    const formatted = formatThousandsRaw(digits);
+    inputEl.value = formatted;
+    const newPos = Math.max(0, inputEl.value.length - cursorFromEnd);
+    try{ inputEl.setSelectionRange(newPos, newPos); }catch(e){}
+    if(hint){
+      const num = Number(digits) || 0;
+      if(num > 0){
+        const words = numberToPersianWords(num);
+        hint.textContent = words ? `${words} ${data.currency || 'ریال'}` : '';
+        hint.style.display = words ? 'block' : 'none';
+      } else {
+        hint.textContent = ''; hint.style.display = 'none';
+      }
+    }
+  });
+}
+function wireAllAmountFields(){
+  ['amountInput','chAmount','newGoalTarget','newLoanTotal','newLoanInstallment','newRecAmount']
+    .forEach(id => wireAmountField(document.getElementById(id)));
+  document.querySelectorAll('.budget-input, .split-amt').forEach(wireAmountField);
+}
 function escapeHtml(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 function animateNumber(el, target, currency){
@@ -2506,18 +2630,21 @@ function renderStreak(){
 /* ---------- budgets ---------- */
 function renderBudgetsList(){
   const box = document.getElementById('budgetsList');
-  box.innerHTML = data.categories.expense.map(cat => `
-    <div class="tag-row">
-      <span style="flex:1; font-size:13px;">${escapeHtml(cat)}</span>
-      <input type="number" min="0" class="budget-input" data-cat="${escapeHtml(cat)}"
-        value="${data.budgets[cat] || ''}" placeholder="بدون سقف"
-        style="width:120px; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:6px 8px; font-size:12px;">
+  box.innerHTML = data.categories.expense.map((cat, i) => `
+    <div class="tag-row" style="align-items:flex-start;">
+      <span style="flex:1; font-size:13px; padding-top:6px;">${escapeHtml(cat)}</span>
+      <div style="width:140px;">
+        <input type="text" inputmode="numeric" id="budgetInput_${i}" class="budget-input" data-cat="${escapeHtml(cat)}"
+          value="${data.budgets[cat] ? fmt(data.budgets[cat]) : ''}" placeholder="بدون سقف"
+          style="width:100%; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:6px 8px; font-size:12px;">
+      </div>
     </div>
   `).join('');
   box.querySelectorAll('.budget-input').forEach(inp => {
+    wireAmountField(inp);
     inp.addEventListener('change', async (e) => {
       const cat = e.target.dataset.cat;
-      const val = Number(e.target.value);
+      const val = parseAmountValue(e.target.value);
       if(val > 0) data.budgets[cat] = val; else delete data.budgets[cat];
       await saveData();
       render();
@@ -2612,7 +2739,7 @@ document.getElementById('addRecurringBtn').addEventListener('click', async () =>
   const personId = document.getElementById('newRecPerson').value;
   const category = document.getElementById('newRecCategory').value;
   const desc = document.getElementById('newRecDesc').value.trim();
-  const amount = Number(document.getElementById('newRecAmount').value);
+  const amount = parseAmountValue(document.getElementById('newRecAmount').value);
   const dayOfMonth = Number(document.getElementById('newRecDay').value);
   if(!desc || !amount || amount <= 0 || !dayOfMonth || dayOfMonth < 1 || dayOfMonth > 30){
     alert('لطفاً همه فیلدها رو درست پر کن (روز باید بین ۱ تا ۳۰ باشه).');
@@ -2621,7 +2748,7 @@ document.getElementById('addRecurringBtn').addEventListener('click', async () =>
   data.recurring.push({ id: newId('r'), type: recurringType, personId, category, desc, amount, dayOfMonth, active: true });
   await saveData();
   document.getElementById('newRecDesc').value = '';
-  document.getElementById('newRecAmount').value = '';
+  clearAmountField('newRecAmount');
   document.getElementById('newRecDay').value = '';
   renderRecurringList();
   showSuccessToast('تراکنش تکرارشونده ثبت شد');
@@ -2745,14 +2872,14 @@ document.getElementById('openNewGoalBtn').addEventListener('click', () => {
 });
 document.getElementById('createGoalBtn').addEventListener('click', async () => {
   const name = document.getElementById('newGoalName').value.trim();
-  const target = Number(document.getElementById('newGoalTarget').value);
+  const target = parseAmountValue(document.getElementById('newGoalTarget').value);
   const emoji = document.getElementById('newGoalEmoji').value.trim() || '🎯';
   if(!name || !target || target <= 0){ alert('اسم و مبلغ هدف رو درست پر کن.'); return; }
   data.goals.push({ id: newId('g'), name, emoji, target, saved: 0, createdAt: Date.now() });
   logActivity('add_goal', `جیب پس‌انداز «${name}» ساخته شد`);
   await saveData();
   document.getElementById('newGoalName').value = '';
-  document.getElementById('newGoalTarget').value = '';
+  clearAmountField('newGoalTarget');
   document.getElementById('newGoalEmoji').value = '';
   document.getElementById('newGoalForm').style.display = 'none';
   renderGoalsAndLoans();
@@ -2819,8 +2946,8 @@ document.getElementById('openNewLoanBtn').addEventListener('click', () => {
 });
 document.getElementById('createLoanBtn').addEventListener('click', async () => {
   const name = document.getElementById('newLoanName').value.trim();
-  const totalAmount = Number(document.getElementById('newLoanTotal').value);
-  const installmentAmount = Number(document.getElementById('newLoanInstallment').value);
+  const totalAmount = parseAmountValue(document.getElementById('newLoanTotal').value);
+  const installmentAmount = parseAmountValue(document.getElementById('newLoanInstallment').value);
   const installmentCount = Number(document.getElementById('newLoanCount').value);
   const paidCount = Number(document.getElementById('newLoanPaidCount').value) || 0;
   if(!name || !totalAmount || !installmentAmount || !installmentCount){
@@ -2829,7 +2956,9 @@ document.getElementById('createLoanBtn').addEventListener('click', async () => {
   data.loans.push({ id: newId('l'), name, totalAmount, installmentAmount, installmentCount, paidCount, createdAt: Date.now() });
   logActivity('add_loan', `وام «${name}» ثبت شد`);
   await saveData();
-  ['newLoanName','newLoanTotal','newLoanInstallment','newLoanCount'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('newLoanName').value = '';
+  clearAmountField('newLoanTotal'); clearAmountField('newLoanInstallment');
+  document.getElementById('newLoanCount').value = '';
   document.getElementById('newLoanPaidCount').value = '0';
   document.getElementById('newLoanForm').style.display = 'none';
   renderGoalsAndLoans();
@@ -2925,7 +3054,7 @@ function startVoiceInput(){
     const parsed = parseVoiceText(text);
     setType(parsed.type);
     document.getElementById('descInput').value = parsed.desc;
-    if(parsed.amount > 0) document.getElementById('amountInput').value = parsed.amount;
+    if(parsed.amount > 0) setAmountFieldValue('amountInput', parsed.amount);
     hint.textContent = `تشخیص داده شد: «${text}» — قبل از ثبت بررسی کن.`;
   };
   recog.onerror = () => {
@@ -2987,15 +3116,18 @@ function addSplitRow(){
   const row = document.createElement('div');
   row.className = 'row2 split-row';
   row.style.marginBottom = '8px';
+  const rowId = 'splitAmt_' + newId('s');
   const catOptions = data.categories.expense.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
   row.innerHTML = `
     <div class="field" style="flex:1.3;"><select class="split-cat">${catOptions}</select></div>
-    <div class="field" style="flex:1;"><input type="number" class="split-amt" placeholder="مبلغ" min="0"></div>
+    <div class="field" style="flex:1;"><input type="text" inputmode="numeric" id="${rowId}" class="split-amt" placeholder="مبلغ" min="0"></div>
     <button type="button" class="mini-del split-remove" style="align-self:center;">✕</button>
   `;
   box.appendChild(row);
   row.querySelector('.split-remove').addEventListener('click', () => { row.remove(); updateSplitTotalHint(); });
-  row.querySelector('.split-amt').addEventListener('input', updateSplitTotalHint);
+  const amtInput = row.querySelector('.split-amt');
+  wireAmountField(amtInput);
+  amtInput.addEventListener('input', updateSplitTotalHint);
 }
 document.getElementById('addSplitRowBtn').addEventListener('click', addSplitRow);
 function refreshSplitCategoryOptions(){
@@ -3008,7 +3140,7 @@ function refreshSplitCategoryOptions(){
 function getSplitRowsData(){
   return [...document.querySelectorAll('#splitRowsBox .split-row')].map(row => ({
     category: row.querySelector('.split-cat').value,
-    amount: Number(row.querySelector('.split-amt').value) || 0
+    amount: parseAmountValue(row.querySelector('.split-amt').value)
   })).filter(r => r.amount > 0);
 }
 function updateSplitTotalHint(){
@@ -3306,7 +3438,7 @@ function startEditTransaction(id){
   populateCategorySelect();
   document.getElementById('categorySelect').value = tx.category || '';
   document.getElementById('descInput').value = tx.desc;
-  document.getElementById('amountInput').value = tx.amount;
+  setAmountFieldValue('amountInput', tx.amount);
   txDatePicker.setSelected(tx.date);
   pendingPhotoDataUrl = tx.photo || null;
   updatePhotoPreview();
@@ -3319,7 +3451,7 @@ function cancelEditTransaction(){
   document.getElementById('editModeBar').style.display = 'none';
   document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
   document.getElementById('descInput').value = '';
-  document.getElementById('amountInput').value = '';
+  clearAmountField('amountInput');
   updatePhotoPreview();
   txDatePicker.resetToToday();
 }
@@ -3593,7 +3725,7 @@ document.querySelectorAll('.ch-filter-btn').forEach(btn => {
 });
 document.getElementById('chequeForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const amount = Number(document.getElementById('chAmount').value);
+  const amount = parseAmountValue(document.getElementById('chAmount').value);
   const dueDate = document.getElementById('chDateInput').value;
   const personName_ = document.getElementById('chPersonName').value.trim();
   const nationalId = document.getElementById('chNationalId').value.trim();
@@ -3613,7 +3745,7 @@ document.getElementById('chequeForm').addEventListener('submit', async (e) => {
     createdAt: Date.now()
   });
   await saveData();
-  document.getElementById('chAmount').value = '';
+  clearAmountField('chAmount');
   document.getElementById('chNumber').value = '';
   document.getElementById('chBank').value = '';
   document.getElementById('chDesc').value = '';
@@ -3820,6 +3952,7 @@ async function init(){
   txDatePicker.resetToToday();
   chDatePicker.resetToToday();
   setType('income');
+  wireAllAmountFields();
   setInterval(() => { if(document.getElementById('app').style.display !== 'none') renderChequeAlerts(); }, 60*60*1000);
 
   document.getElementById('dateDisplay').addEventListener('click', () => {
@@ -3872,7 +4005,7 @@ async function init(){
       return;
     }
 
-    const amount = Number(document.getElementById('amountInput').value);
+    const amount = parseAmountValue(document.getElementById('amountInput').value);
     const category = document.getElementById('categorySelect').value;
     if(!desc || !amount || amount <= 0 || !date) return;
 
@@ -3906,7 +4039,7 @@ async function init(){
     }
 
     document.getElementById('descInput').value = '';
-    document.getElementById('amountInput').value = '';
+    clearAmountField('amountInput');
     pendingPhotoDataUrl = null;
     updatePhotoPreview();
     txDatePicker.resetToToday();

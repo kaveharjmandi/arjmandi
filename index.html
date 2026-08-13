@@ -182,10 +182,10 @@ h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
   display:inline-flex; align-items:center; gap:5px; background:var(--bg-deep); border-radius:20px;
   padding:5px 11px; font-size:11px; margin:3px; font-weight:600; color:var(--ink);
 }
-.tx-row{ position:relative; overflow:hidden; touch-action:pan-y; }
+.tx-row{ position:relative; touch-action:pan-y; }
 .tx-row-inner{
   display:flex; align-items:center; gap:10px; background:var(--card-bg);
-  transition: transform .15s ease; position:relative; z-index:1;
+  transition: transform .15s ease; position:relative; z-index:1; width:100%; min-width:0;
 }
 .tx-swipe-bg{
   position:absolute; inset:0; display:flex; align-items:center; justify-content:space-between;
@@ -292,11 +292,14 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .tx-date-net{ font-family:'IBM Plex Mono',monospace; font-size:12px; }
 .tx-date-net.income{ color:var(--credit); }
 .tx-date-net.expense{ color:var(--debit); }
-.tx-amount{font-family:'IBM Plex Mono',monospace; font-size:13.5px; font-weight:600; white-space:nowrap;}
+.tx-amount{font-family:'IBM Plex Mono',monospace; font-size:13.5px; font-weight:600; white-space:nowrap; flex-shrink:0;}
 .tx-amount.income{ color:var(--credit); }
 .tx-amount.expense{ color:var(--debit); }
-.del-btn{background:none; border:none; color:var(--ink-soft); font-size:16px; cursor:pointer; padding:4px 6px; line-height:1;}
+.del-btn{background:none; border:none; color:var(--ink-soft); font-size:16px; cursor:pointer; padding:4px 6px; line-height:1; flex-shrink:0;}
 .del-btn:hover{color:var(--debit);}
+.edit-btn{background:none; border:none; color:var(--ink-soft); font-size:15px; cursor:pointer; padding:4px 6px; line-height:1; flex-shrink:0;}
+.edit-btn:hover{color:var(--accent-deep);}
+.tx-thumb{ width:34px; height:34px; border-radius:6px; object-fit:cover; flex-shrink:0; cursor:pointer; }
 .empty-state{text-align:center; color:var(--ink-soft); font-size:13px; padding:20px 10px;}
 .loading{text-align:center; padding:60px 0; color:var(--ink-soft); font-size:13px;}
 .live-clock{

@@ -268,6 +268,11 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
   padding:12px; font-family:'Vazirmatn',sans-serif; font-size:14px; font-weight:700; cursor:pointer;
 }
 .submit-btn:active{background:var(--accent-deep);}
+.ghost-btn{
+  margin-top:4px; background:none; color:var(--accent-deep); border:1.5px solid var(--line); border-radius:6px;
+  padding:12px; font-family:'Vazirmatn',sans-serif; font-size:14px; font-weight:700; cursor:pointer;
+}
+.ghost-btn:active{ background:var(--bg); }
 
 /* transaction list */
 .filter-row{ display:flex; gap:8px; margin-bottom:12px; }
@@ -842,11 +847,13 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
             <button type="button" id="photoRemoveBtn" class="mini-del" style="display:block; margin-top:4px;">حذف عکس</button>
           </div>
         </div>
-        <div id="editModeBar" style="display:none; align-items:center; justify-content:space-between; background:var(--bg-deep); border-radius:8px; padding:8px 10px; font-size:12px;">
-          <span>در حال ویرایش تراکنش</span>
-          <span id="cancelEditBtn" style="text-decoration:underline; cursor:pointer; color:var(--accent-deep);">لغو ویرایش</span>
+        <div id="editModeBar" style="display:none; align-items:center; background:var(--bg-deep); border-radius:8px; padding:8px 10px; font-size:12px;">
+          <span>✎ در حال ویرایش تراکنش</span>
         </div>
-        <button type="submit" class="submit-btn" id="submitBtnLbl">ثبت تراکنش</button>
+        <div style="display:flex; gap:8px;">
+          <button type="submit" class="submit-btn" id="submitBtnLbl" style="flex:1;">ثبت تراکنش</button>
+          <button type="button" id="cancelEditBtn" class="ghost-btn" style="display:none; flex:1;">انصراف</button>
+        </div>
       </form>
     </div>
     </div>
@@ -2064,7 +2071,7 @@ function enterApp(){
   checkNoEntryReminder();
   saveSession();
 }
-document.getElementById('logoutBtn').addEventListener('click', () => { currentUserId = null; currentUsername = null; clearSession(); renderLoginScreen(); });
+document.getElementById('logoutBtn').addEventListener('click', () => { currentUserId = null; currentUsername = null; clearSession(); renderLoginScreen(); showSuccessToast('با موفقیت خارج شدید'); });
 
 /* ---------- backup / restore ---------- */
 function exportBackup(){
@@ -3570,12 +3577,14 @@ function startEditTransaction(id){
   pendingPhotoDataUrl = tx.photo || null;
   updatePhotoPreview();
   document.getElementById('editModeBar').style.display = 'flex';
+  document.getElementById('cancelEditBtn').style.display = 'block';
   document.getElementById('submitBtnLbl').textContent = 'ذخیره تغییرات';
 }
 function cancelEditTransaction(){
   editingTxId = null;
   pendingPhotoDataUrl = null;
   document.getElementById('editModeBar').style.display = 'none';
+  document.getElementById('cancelEditBtn').style.display = 'none';
   document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
   document.getElementById('descInput').value = '';
   clearAmountField('amountInput');
@@ -4147,6 +4156,7 @@ async function init(){
       }
       editingTxId = null;
       document.getElementById('editModeBar').style.display = 'none';
+      document.getElementById('cancelEditBtn').style.display = 'none';
       document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
     } else {
       if(checkDuplicateTransaction(desc, amount, personId)){

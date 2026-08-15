@@ -481,7 +481,17 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       <div class="login-sub" id="loginSub">نام کاربری و رمز عبور خود را وارد کنید</div>
 
       <button type="button" id="fpLoginBtn" class="fp-icon-btn" style="display:none;" title="ورود با اثر انگشت">
-        <span class="fp-icon-symbol">👆</span>
+        <span class="fp-icon-symbol">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a7 7 0 0 1 7 7v2c0 1.7-.2 3.4-.6 5"/>
+            <path d="M8 21a13 13 0 0 0 1.6-3.5"/>
+            <path d="M5 15.5A11 11 0 0 0 5.5 10a6.5 6.5 0 0 1 3-5.5"/>
+            <path d="M12 7a5 5 0 0 1 5 5v2a17 17 0 0 1-.4 3.6"/>
+            <path d="M9.5 20a15 15 0 0 0 1.1-2.5"/>
+            <path d="M8.2 17.5A12.5 12.5 0 0 0 9 10a3 3 0 0 1 6 0v2c0 1 0 2-.2 3"/>
+            <path d="M12 10v2c0 2.5-.4 4.9-1.2 7"/>
+          </svg>
+        </span>
         <span class="fp-icon-caption">ورود با اثر انگشت</span>
       </button>
 
@@ -814,7 +824,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         </div>
         <div class="row2">
           <div class="field" id="amountFieldWrap">
-            <label id="amountLbl">مبلغ (ریال)</label>
+            <label id="amountLbl">مبلغ (تومان)</label>
             <input type="number" id="amountInput" placeholder="0" min="0" step="1" required inputmode="decimal">
           </div>
           <div class="field date-field">
@@ -920,7 +930,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         </div>
         <div class="row2">
           <div class="field">
-            <label>مبلغ (ریال)</label>
+            <label id="chAmountLbl">مبلغ (تومان)</label>
             <input type="number" id="chAmount" min="0" step="1" required inputmode="decimal">
           </div>
           <div class="field ch-date-field">
@@ -1044,7 +1054,7 @@ function defaultData(){
     schema: 1,
     title: 'گردش مالی خانواده',
     theme: 'grape',
-    currency: 'ریال',
+    currency: 'تومان',
     people: [
       { id:'kaveh', name:'کاوه', isAdmin:true, canLogin:true, avatar:'👨', color:'#6B2D5C' },
       { id:'hadiseh', name:'حدیثه', isAdmin:false, canLogin:true, avatar:'👩', color:'#A9822C' },
@@ -1070,6 +1080,35 @@ function defaultData(){
   };
 }
 
+// One-time migration: this app used to store amounts in Rial; since 1 Toman
+// = 10 Rial, we divide every stored monetary value by 10 and switch the
+// currency label to Toman. Guarded by data.migratedRialToToman so it only
+// ever runs once per family's data, even though mergeDefaults() runs on
+// every load.
+function migrateRialToTomanIfNeeded(){
+  if(data.migratedRialToToman) return;
+  const wasRial = data.currency === 'ریال' || !data.currency;
+  if(wasRial){
+    (data.transactions || []).forEach(t => {
+      t.amount = Math.round((t.amount || 0) / 10);
+      if(Array.isArray(t.splits)) t.splits.forEach(s => { s.amount = Math.round((s.amount || 0) / 10); });
+    });
+    (data.cheques || []).forEach(c => { c.amount = Math.round((c.amount || 0) / 10); });
+    (data.goals || []).forEach(g => {
+      g.target = Math.round((g.target || 0) / 10);
+      g.saved = Math.round((g.saved || 0) / 10);
+    });
+    (data.loans || []).forEach(l => {
+      l.totalAmount = Math.round((l.totalAmount || 0) / 10);
+      l.installmentAmount = Math.round((l.installmentAmount || 0) / 10);
+    });
+    if(data.budgets){
+      Object.keys(data.budgets).forEach(cat => { data.budgets[cat] = Math.round((data.budgets[cat] || 0) / 10); });
+    }
+    data.currency = 'تومان';
+  }
+  data.migratedRialToToman = true;
+}
 function mergeDefaults(){
   const d = defaultData();
   d.people.forEach(defP => {
@@ -1091,6 +1130,7 @@ function mergeDefaults(){
   if(!data.streak) data.streak = { count: 0, lastDateIso: null, longest: 0 };
   if(!Array.isArray(data.badges)) data.badges = [];
   if(!data.auth) data.auth = {};
+  migrateRialToTomanIfNeeded();
   // migrate old scheme where the auth key WAS the personId (no explicit personId field yet)
   Object.keys(data.auth).forEach(key => {
     if(data.auth[key] && !data.auth[key].personId){
@@ -1404,7 +1444,7 @@ function wireAmountField(inputEl){
       const num = Number(digits) || 0;
       if(num > 0){
         const words = numberToPersianWords(num);
-        hint.textContent = words ? `${words} ${data.currency || 'ریال'}` : '';
+        hint.textContent = words ? `${words} ${data.currency || 'تومان'}` : '';
         hint.style.display = words ? 'block' : 'none';
       } else {
         hint.textContent = ''; hint.style.display = 'none';
@@ -2639,7 +2679,7 @@ function renderAdminPanel(){
   document.getElementById('txt_title').value = data.title;
   document.getElementById('txt_currency').value = data.currency;
   document.getElementById('txt_title').onchange = async (e) => { data.title = e.target.value.trim() || 'گردش مالی خانواده'; await saveData(); render(); };
-  document.getElementById('txt_currency').onchange = async (e) => { data.currency = e.target.value.trim() || 'ریال'; await saveData(); render(); };
+  document.getElementById('txt_currency').onchange = async (e) => { data.currency = e.target.value.trim() || 'تومان'; await saveData(); render(); };
 }
 function applyTheme(){
   let theme = data.theme || 'grape';
@@ -3406,6 +3446,8 @@ function render(){
   document.getElementById('whoName').textContent = personName(currentUserId);
   document.getElementById('adminTag').style.display = isCurrentAdmin() ? 'inline-block' : 'none';
   document.getElementById('amountLbl').textContent = `مبلغ (${data.currency})`;
+  const chAmountLblEl = document.getElementById('chAmountLbl');
+  if(chAmountLblEl) chAmountLblEl.textContent = `مبلغ (${data.currency})`;
   document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
 
   populatePersonSelect();

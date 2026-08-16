@@ -1566,7 +1566,7 @@ function renderAccountBalances(){
   const balances = computeAccountBalances();
   const owners = data.people.filter(p => p.canLogin);
   const hidden = isBalanceHidden();
-  const dots = '••••••';
+  const dots = '******';
   box.innerHTML = owners.map(p => {
     const b = balances[p.id] || { income:0, expense:0, balance:0 };
     return `<div class="person-card">
@@ -1585,7 +1585,7 @@ function applyBalanceVisibility(){
   const eyeBtn = document.getElementById('balanceEyeBtn');
   if(!balEl) return;
   if(hidden){
-    const dots = '••••••';
+    const dots = '******';
     balEl.textContent = dots;
     incEl.textContent = dots;
     expEl.textContent = dots;
@@ -3907,6 +3907,7 @@ function renderTxList(){
 
 /* ---------- edit transaction ---------- */
 let editingTxId = null;
+let wasEditSave = false;
 let pendingPhotoDataUrl = null;
 
 function startEditTransaction(id){
@@ -4506,6 +4507,7 @@ async function init(){
         logActivity('edit_tx', `${currentType==='income'?'واریز':'برداشت'} ${fmt(amount)} - ${desc} (${personName(personId)})`);
       }
       editingTxId = null;
+      wasEditSave = true;
       document.getElementById('editModeBar').style.display = 'none';
       document.getElementById('cancelEditBtn').style.display = 'none';
       document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
@@ -4532,7 +4534,13 @@ async function init(){
     updatePhotoPreview();
     txDatePicker.resetToToday();
     render();
-    showSuccessToast('تراکنش با موفقیت ثبت شد');
+    if(wasEditSave){
+      wasEditSave = false;
+      showSuccessToast('تغییرات با موفقیت ذخیره شد');
+      showTxSubTab('list');
+    } else {
+      showSuccessToast('تراکنش با موفقیت ثبت شد');
+    }
   });
 
   const activeSession = (!wasHiddenTooLong()) ? loadValidSession() : null;

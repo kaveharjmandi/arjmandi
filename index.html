@@ -319,7 +319,21 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .edit-btn{background:none; border:none; color:var(--ink-soft); font-size:15px; cursor:pointer; padding:4px 6px; line-height:1; flex-shrink:0;}
 .edit-btn:hover{color:var(--accent-deep);}
 .tx-thumb{ width:34px; height:34px; border-radius:6px; object-fit:cover; flex-shrink:0; cursor:pointer; }
-.empty-state{text-align:center; color:var(--ink-soft); font-size:13px; padding:20px 10px;}
+.empty-state{text-align:center; color:var(--ink-soft); font-size:13px; padding:26px 10px; line-height:1.9;}
+.empty-state-icon{ font-size:36px; display:block; margin-bottom:8px; opacity:.55; }
+.cat-chip{ display:inline-flex; align-items:center; gap:5px; }
+.cat-dot{ width:7px; height:7px; border-radius:50%; display:inline-block; flex-shrink:0; }
+.goal-card{ display:flex; gap:12px; align-items:flex-start; background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px; }
+.goal-ring-wrap{ position:relative; width:64px; height:64px; flex-shrink:0; }
+.goal-ring{ width:64px; height:64px; transform:rotate(-90deg); }
+.goal-ring-track{ fill:none; stroke:var(--line); stroke-width:6; }
+.goal-ring-fill{ fill:none; stroke-width:6; stroke-linecap:round; transition:stroke-dashoffset .5s ease; }
+.goal-ring-emoji{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:22px; }
+.goal-body{ flex:1; min-width:0; }
+.goal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:6px; }
+.goal-name{ font-weight:700; font-size:13px; }
+.goal-amounts{ font-size:12px; color:var(--ink-soft); }
+.goal-pct{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
 .loading{text-align:center; padding:60px 0; color:var(--ink-soft); font-size:13px;}
 .live-clock{
   text-align:center; font-size:12px; color:var(--ink-soft); padding:16px 0 4px;
@@ -354,8 +368,8 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .tab-nav-btn{ flex:1; border:none; background:transparent; border-radius:10px; padding:8px 4px; font-family:inherit; font-size:11px; color:var(--ink-soft); display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; transition:.15s; }
 .tab-nav-btn span{ font-size:10.5px; font-weight:600; }
 .tab-nav-btn.active{ background:var(--accent); color:#fff; }
-.tab-panel{ animation: tabFade .15s ease; }
-@keyframes tabFade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+.tab-panel{ animation: tabFade .22s ease; }
+@keyframes tabFade{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
 
 /* ================= CHEQUES ================= */
 .cheque-alert-banner{ background:#FFF4E5; border:1px solid #F0B860; color:#8A5A00; border-radius:12px; padding:10px 12px; font-size:12.5px; line-height:1.9; margin-bottom:12px; }
@@ -385,7 +399,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .sub-tab-nav{ display:flex; gap:6px; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:4px; margin-bottom:14px; }
 .sub-tab-btn{ flex:1; border:none; background:transparent; border-radius:9px; padding:9px 6px; font-family:inherit; font-size:12.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; transition:.15s; }
 .sub-tab-btn.active{ background:var(--card); color:var(--accent); box-shadow:0 1px 4px rgba(0,0,0,0.08); }
-.sub-tab-panel{ animation: tabFade .15s ease; }
+.sub-tab-panel{ animation: tabFade .2s ease; }
 
 /* ================= ADMIN ================= */
 .admin-section{ border-top:1px dashed var(--line); padding-top:14px; margin-top:14px; }
@@ -1651,6 +1665,45 @@ document.getElementById('shareMonthSummaryBtn').addEventListener('click', async 
 
 const PERSON_EMOJIS = ['👨','👩','🧒','👦','👧','🧑','👴','👵','🧔','👶'];
 const PERSON_COLORS = ['#6B2D5C','#5C7A3D','#A9822C','#2FA6A0','#8B3A56','#5B84DA','#C9822C','#9A5FB0'];
+
+/* ---------- category icons & colors (visual identity per category) ---------- */
+const CATEGORY_META = {
+  'حقوق': { emoji:'💼', color:'#3B6B4A' },
+  'کارانه': { emoji:'💰', color:'#A9822C' },
+  'پاداش / عیدی': { emoji:'🎁', color:'#C9822C' },
+  'سایر درآمد': { emoji:'➕', color:'#5B84DA' },
+  'خانه و اجاره': { emoji:'🏠', color:'#6B2D5C' },
+  'خرید و خواربار': { emoji:'🛒', color:'#2FA6A0' },
+  'قبض و اشتراک': { emoji:'🧾', color:'#8B5FBF' },
+  'بچه‌ها': { emoji:'🧒', color:'#E0995E' },
+  'تحصیل': { emoji:'🎓', color:'#4472C4' },
+  'ورزش': { emoji:'🏃', color:'#3FA34D' },
+  'پوشاک و اکسسوری': { emoji:'👕', color:'#D45D79' },
+  'درمان': { emoji:'💊', color:'#C0392B' },
+  'برداشت چک': { emoji:'📝', color:'#6E6E6E' },
+  'پس‌انداز': { emoji:'🐷', color:'#B26A96' },
+  'قسط وام': { emoji:'🏦', color:'#7A5C3E' },
+  'سایر هزینه': { emoji:'📦', color:'#8B98AD' }
+};
+const CATEGORY_FALLBACK_COLORS = ['#6B2D5C','#5C7A3D','#A9822C','#2FA6A0','#8B3A56','#5B84DA','#C9822C','#9A5FB0'];
+const CATEGORY_FALLBACK_EMOJIS = ['📁','🏷️','📌','🔖','💠'];
+function categoryHash(name){
+  let h = 0;
+  const s = name || '';
+  for(let i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+function categoryEmoji(name){
+  if(CATEGORY_META[name]) return CATEGORY_META[name].emoji;
+  return CATEGORY_FALLBACK_EMOJIS[categoryHash(name) % CATEGORY_FALLBACK_EMOJIS.length];
+}
+function categoryColor(name){
+  if(CATEGORY_META[name]) return CATEGORY_META[name].color;
+  return CATEGORY_FALLBACK_COLORS[categoryHash(name) % CATEGORY_FALLBACK_COLORS.length];
+}
+function categoryChipHtml(name){
+  return `<span class="cat-chip"><span class="cat-dot" style="background:${categoryColor(name)};"></span>${categoryEmoji(name)} ${escapeHtml(name)}</span>`;
+}
 function personEmoji(id){
   const p = getPerson(id);
   if(p && p.emoji) return p.emoji;
@@ -2318,7 +2371,7 @@ function renderActivityLog(){
   const box = document.getElementById('activityLogList');
   const log = data.activityLog || [];
   if(log.length === 0){
-    box.innerHTML = '<div class="empty-state">هنوز فعالیتی ثبت نشده.</div>';
+    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🧾</span>هنوز فعالیتی ثبت نشده.</div>';
     return;
   }
   const ACTION_LABELS = {
@@ -2728,7 +2781,7 @@ function renderAccountsList(){
   const list = document.getElementById('accountsList');
   const usernames = Object.keys(data.auth);
   if(usernames.length === 0){
-    list.innerHTML = '<div class="empty-state">هنوز حسابی ساخته نشده.</div>';
+    list.innerHTML = '<div class="empty-state"><span class="empty-state-icon">👥</span>هنوز حسابی ساخته نشده.</div>';
   } else {
     list.innerHTML = usernames.map(u => {
       const acc = data.auth[u];
@@ -2978,7 +3031,7 @@ function renderBudgetProgress(){
     const barColor = pct >= 100 ? 'var(--debit)' : (pct >= 80 ? '#C9822C' : 'var(--credit)');
     return `<div style="margin-bottom:10px;">
       <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
-        <span>${escapeHtml(cat)}</span><span>${fmt(spent)} / ${fmt(budget)}</span>
+        <span>${categoryChipHtml(cat)}</span><span>${fmt(spent)} / ${fmt(budget)}</span>
       </div>
       <div style="background:var(--bg); border-radius:6px; height:8px; overflow:hidden;">
         <div style="width:${pct}%; height:100%; background:${barColor};"></div>
@@ -3003,7 +3056,7 @@ document.getElementById('recTypeExpenseBtn').addEventListener('click', () => {
 });
 function populateRecurringCategorySelect(){
   const sel = document.getElementById('newRecCategory');
-  sel.innerHTML = data.categories[recurringType].map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  sel.innerHTML = data.categories[recurringType].map(c => `<option value="${escapeHtml(c)}">${categoryEmoji(c)} ${escapeHtml(c)}</option>`).join('');
 }
 function renderRecurringList(){
   const personSel = document.getElementById('newRecPerson');
@@ -3012,7 +3065,7 @@ function renderRecurringList(){
 
   const box = document.getElementById('recurringList');
   if(!data.recurring || data.recurring.length === 0){
-    box.innerHTML = '<div class="empty-state">هنوز تراکنش تکرارشونده‌ای تعریف نشده.</div>';
+    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🔁</span>هنوز تراکنش تکرارشونده‌ای تعریف نشده.</div>';
     return;
   }
   box.innerHTML = data.recurring.map(r => `
@@ -3098,7 +3151,7 @@ function renderPieChart(){
   const legend = document.getElementById('pieChartLegend');
 
   if(entries.length === 0){
-    box.innerHTML = '<div class="empty-state">این ماه هزینه‌ای ثبت نشده.</div>';
+    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🎉</span>این ماه هنوز هزینه‌ای ثبت نشده — عالیه!</div>';
     legend.innerHTML = '';
     return;
   }
@@ -3115,7 +3168,7 @@ function renderPieChart(){
     const y1 = cy + r * Math.sin(angleStart * Math.PI/180);
     const x2 = cx + r * Math.cos(angleEnd * Math.PI/180);
     const y2 = cy + r * Math.sin(angleEnd * Math.PI/180);
-    const color = CHART_COLORS[i % CHART_COLORS.length];
+    const color = categoryColor(cat);
     if(entries.length === 1){
       paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/>`;
     } else {
@@ -3127,10 +3180,10 @@ function renderPieChart(){
 
   legend.innerHTML = entries.map(([cat,val], i) => {
     const pct = Math.round((val/total)*100);
-    const color = CHART_COLORS[i % CHART_COLORS.length];
+    const color = categoryColor(cat);
     return `<div style="display:flex; align-items:center; gap:8px; font-size:12px; padding:4px 0;">
       <span style="width:10px; height:10px; border-radius:50%; background:${color}; flex-shrink:0;"></span>
-      <span style="flex:1;">${escapeHtml(cat)}</span>
+      <span style="flex:1;">${categoryEmoji(cat)} ${escapeHtml(cat)}</span>
       <span style="color:var(--ink-soft);">${fmt(val)} (${faDigits(pct)}٪)</span>
     </div>`;
   }).join('');
@@ -3213,25 +3266,32 @@ async function deleteGoal(id){
 function renderGoalsList(){
   const box = document.getElementById('goalsList');
   if(!data.goals || data.goals.length === 0){
-    box.innerHTML = '<div class="empty-state">هنوز جیب پس‌اندازی نساختید.</div>';
+    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🐷</span>هنوز جیب پس‌اندازی نساختید.</div>';
     return;
   }
+  const R = 28, C = 2 * Math.PI * R;
   box.innerHTML = data.goals.map(g => {
     const pct = Math.min(100, Math.round((g.saved / g.target) * 100));
     const done = pct >= 100;
-    return `<div style="background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-        <span style="font-weight:700; font-size:13px;">${g.emoji} ${escapeHtml(g.name)}</span>
-        <button type="button" class="mini-del" data-del-goal="${g.id}">✕</button>
+    const offset = C * (1 - pct / 100);
+    const ringColor = done ? 'var(--credit)' : 'var(--accent)';
+    return `<div class="goal-card">
+      <div class="goal-ring-wrap">
+        <svg viewBox="0 0 64 64" class="goal-ring">
+          <circle cx="32" cy="32" r="${R}" class="goal-ring-track"/>
+          <circle cx="32" cy="32" r="${R}" class="goal-ring-fill" style="stroke:${ringColor}; stroke-dasharray:${C.toFixed(2)}; stroke-dashoffset:${offset.toFixed(2)};"/>
+        </svg>
+        <span class="goal-ring-emoji">${g.emoji}</span>
       </div>
-      <div style="background:var(--card-bg); border-radius:6px; height:10px; overflow:hidden; margin-bottom:6px;">
-        <div style="width:${pct}%; height:100%; background:${done?'var(--credit)':'var(--accent)'};"></div>
+      <div class="goal-body">
+        <div class="goal-head">
+          <span class="goal-name">${escapeHtml(g.name)}</span>
+          <button type="button" class="mini-del" data-del-goal="${g.id}">✕</button>
+        </div>
+        <div class="goal-amounts">${fmt(g.saved)} از ${fmt(g.target)} ${data.currency}</div>
+        <div class="goal-pct">${faDigits(pct)}٪ ${done ? '🎉 تکمیل شد' : ''}</div>
+        <button type="button" class="ghost-btn" style="width:100%; margin-top:8px;" data-contribute-goal="${g.id}">+ افزودن پول</button>
       </div>
-      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); margin-bottom:8px;">
-        <span>${fmt(g.saved)} از ${fmt(g.target)} ${data.currency}</span>
-        <span>${faDigits(pct)}٪ ${done ? '🎉 تکمیل شد' : ''}</span>
-      </div>
-      <button type="button" class="ghost-btn" style="width:100%;" data-contribute-goal="${g.id}">+ افزودن پول</button>
     </div>`;
   }).join('');
   box.querySelectorAll('[data-del-goal]').forEach(btn => btn.addEventListener('click', (e) => deleteGoal(e.target.dataset.delGoal)));
@@ -3291,7 +3351,7 @@ async function deleteLoan(id){
 function renderLoansList(){
   const box = document.getElementById('loansList');
   if(!data.loans || data.loans.length === 0){
-    box.innerHTML = '<div class="empty-state">هنوز وامی ثبت نشده.</div>';
+    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🏦</span>هنوز وامی ثبت نشده.</div>';
     return;
   }
   box.innerHTML = data.loans.map(l => {
@@ -3394,7 +3454,7 @@ function populatePersonSelect(){
 }
 function populateCategorySelect(){
   const sel = document.getElementById('categorySelect');
-  sel.innerHTML = data.categories[currentType].map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  sel.innerHTML = data.categories[currentType].map(c => `<option value="${escapeHtml(c)}">${categoryEmoji(c)} ${escapeHtml(c)}</option>`).join('');
   refreshSplitCategoryOptions();
 }
 
@@ -3469,7 +3529,7 @@ document.getElementById('addSplitRowBtn').addEventListener('click', addSplitRow)
 function refreshSplitCategoryOptions(){
   document.querySelectorAll('#splitRowsBox .split-cat').forEach(sel => {
     const prev = sel.value;
-    sel.innerHTML = data.categories.expense.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    sel.innerHTML = data.categories.expense.map(c => `<option value="${escapeHtml(c)}">${categoryEmoji(c)} ${escapeHtml(c)}</option>`).join('');
     if(data.categories.expense.includes(prev)) sel.value = prev;
   });
 }
@@ -3607,7 +3667,7 @@ function renderBreakdown(){
 
   const list = document.getElementById('bdTxList');
   if(stats.txs.length === 0){
-    list.innerHTML = '<div class="empty-state">تراکنشی توی این بازه برای این شخص نیست.</div>';
+    list.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📭</span>تراکنشی توی این بازه برای این شخص نیست.</div>';
   } else {
     list.innerHTML = stats.txs.map(tx => {
       const icon = tx.type === 'income' ? '↓' : '↑';
@@ -3616,7 +3676,7 @@ function renderBreakdown(){
         <div class="tx-icon ${tx.type}">${icon}</div>
         <div class="tx-main">
           <div class="tx-desc">${escapeHtml(tx.desc)}</div>
-          <div class="tx-meta">${escapeHtml(tx.category||'')} · ${formatDate(tx.date)}</div>
+          <div class="tx-meta">${tx.category ? categoryChipHtml(tx.category) : ''} · ${formatDate(tx.date)}</div>
         </div>
         <div class="tx-amount ${tx.type}">${sign}${fmt(tx.amount)}</div>
       </div>`;
@@ -3713,7 +3773,7 @@ function renderTxList(){
   txs.sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.createdAt||0) - (a.createdAt||0));
 
   if(txs.length === 0){
-    list.innerHTML = '<div class="empty-state">تراکنشی برای نمایش نیست.</div>';
+    list.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📭</span>تراکنشی برای نمایش نیست.</div>';
     return;
   }
 
@@ -3741,7 +3801,7 @@ function renderTxList(){
         </div>
         <div class="tx-main">
           <div class="tx-desc">${escapeHtml(tx.desc)}${editedTag}</div>
-          <div class="tx-meta">${escapeHtml(tx.category||'')} · ${escapeHtml(personName(tx.personId))}</div>
+          <div class="tx-meta">${tx.category ? categoryChipHtml(tx.category) : ''} · ${escapeHtml(personName(tx.personId))}</div>
         </div>
         ${photoThumb}
         <div class="tx-amount ${tx.type}">${sign}${fmt(tx.amount)}</div>
@@ -4132,7 +4192,7 @@ function renderChequeList(){
   items.sort((a,b) => a.dueDate.localeCompare(b.dueDate));
 
   if(!items.length){
-    list.innerHTML = '<div class="empty-state">چکی برای نمایش نیست.</div>';
+    list.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🧾</span>چکی برای نمایش نیست.</div>';
     return;
   }
   list.innerHTML = items.map(c => {

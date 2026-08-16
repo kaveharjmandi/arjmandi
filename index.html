@@ -794,6 +794,10 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       </div>
     </div>
     <div class="card">
+      <div class="section-title">موجودی حساب هرکدوم</div>
+      <div id="accountBalancesBox" class="person-breakdown"></div>
+    </div>
+    <div class="card">
       <div class="stat-row">
         <div class="stat-tile income"><div class="val" id="totalIncomeVal">۰</div><div class="lbl">مجموع واریز</div></div>
         <div class="stat-tile expense"><div class="val" id="totalExpenseVal">۰</div><div class="lbl">مجموع برداشت</div></div>
@@ -828,6 +832,10 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         <div class="field">
           <label>ثبت به نام</label>
           <select id="personSelect"></select>
+        </div>
+        <div class="field">
+          <label id="accountFieldLbl">از حساب کدام‌یک</label>
+          <select id="accountSelect"></select>
         </div>
         <div class="field" id="categoryFieldWrap">
           <label>دسته‌بندی</label>
@@ -1183,6 +1191,42 @@ function mergeDefaults(){
       if(!data.categories[cat].includes(c)) data.categories[cat].push(c);
     });
   });
+
+  // migrate: backfill accountId on transactions created before per-account tracking existed
+  const owners = data.people.filter(p => p.canLogin);
+  data.transactions.forEach(tx => {
+    if(tx.accountId) return;
+    if(tx.enteredById && owners.some(p => p.id === tx.enteredById)) tx.accountId = tx.enteredById;
+    else if(tx.personId && owners.some(p => p.id === tx.personId)) tx.accountId = tx.personId;
+    else tx.accountId = owners[0] ? owners[0].id : null;
+  });
+}
+
+function accountMetaSuffix(tx){
+  const accId = tx.accountId || accountOwnerFallback(tx);
+  if(!accId || accId === tx.personId) return '';
+  const owner = getPerson(accId);
+  if(!owner) return '';
+  return ` · از حساب ${escapeHtml(owner.name)}`;
+}
+function accountOwnerFallback(tx){
+  const owners = data.people.filter(p => p.canLogin);
+  if(tx.enteredById && owners.some(p => p.id === tx.enteredById)) return tx.enteredById;
+  if(tx.personId && owners.some(p => p.id === tx.personId)) return tx.personId;
+  return owners[0] ? owners[0].id : '';
+}
+function computeAccountBalances(){
+  const owners = data.people.filter(p => p.canLogin);
+  const result = {};
+  owners.forEach(p => { result[p.id] = { income:0, expense:0, balance:0 }; });
+  data.transactions.forEach(tx => {
+    const accId = tx.accountId || accountOwnerFallback(tx);
+    if(!result[accId]) return;
+    if(tx.type === 'income') result[accId].income += Number(tx.amount)||0;
+    else result[accId].expense += Number(tx.amount)||0;
+  });
+  owners.forEach(p => { result[p.id].balance = result[p.id].income - result[p.id].expense; });
+  return result;
 }
 
 let storageMode = 'sync'; // 'sync' (Supabase, cross-device) | 'cloud' | 'local' | 'none'
@@ -1516,6 +1560,23 @@ function isBalanceHidden(){
 function setBalanceHidden(v){
   try{ localStorage.setItem('sandoogh-balance-hidden', v ? '1' : '0'); }catch(e){}
 }
+function renderAccountBalances(){
+  const box = document.getElementById('accountBalancesBox');
+  if(!box) return;
+  const balances = computeAccountBalances();
+  const owners = data.people.filter(p => p.canLogin);
+  const hidden = isBalanceHidden();
+  const dots = '••••••';
+  box.innerHTML = owners.map(p => {
+    const b = balances[p.id] || { income:0, expense:0, balance:0 };
+    return `<div class="person-card">
+      <div class="pname">${p.avatar||'👤'} ${escapeHtml(p.name)}</div>
+      <div class="person-line inc"><span>واریز</span><span class="v">${hidden?dots:fmt(b.income)}</span></div>
+      <div class="person-line exp"><span>برداشت</span><span class="v">${hidden?dots:fmt(b.expense)}</span></div>
+      <div class="person-line net"><span>موجودی</span><span class="v">${hidden?dots:((b.balance<0?'−':'')+fmt(Math.abs(b.balance)))}</span></div>
+    </div>`;
+  }).join('');
+}
 function applyBalanceVisibility(){
   const hidden = isBalanceHidden();
   const balEl = document.getElementById('balanceAmount');
@@ -1541,6 +1602,7 @@ function applyBalanceVisibility(){
 document.getElementById('balanceEyeBtn').addEventListener('click', () => {
   setBalanceHidden(!isBalanceHidden());
   applyBalanceVisibility();
+  renderAccountBalances();
 });
 
 /* ---------- shareable monthly summary image ---------- */
@@ -2494,14 +2556,16 @@ function renderFingerprintSection(){
 /* ---------- excel export ---------- */
 function exportExcel(){
   const rows = [...data.transactions].sort((a,b) => (a.date||'').localeCompare(b.date||''));
-  const head = ['تاریخ', 'نوع', 'شخص', 'دسته‌بندی', 'توضیح', `مبلغ (${data.currency})`];
+  const head = ['تاریخ', 'نوع', 'شخص', 'حساب', 'دسته‌بندی', 'توضیح', `مبلغ (${data.currency})`];
   let html = '<table dir="rtl"><thead><tr>' + head.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '</tr></thead><tbody>';
   rows.forEach(tx => {
     const typeLabel = tx.type === 'income' ? 'واریز' : 'برداشت';
+    const accId = tx.accountId || accountOwnerFallback(tx);
     html += '<tr>' +
       `<td>${escapeHtml(formatDate(tx.date))}</td>` +
       `<td>${escapeHtml(typeLabel)}</td>` +
       `<td>${escapeHtml(personName(tx.personId))}</td>` +
+      `<td>${escapeHtml(personName(accId))}</td>` +
       `<td>${escapeHtml(tx.category||'')}</td>` +
       `<td>${escapeHtml(tx.desc||'')}</td>` +
       `<td>${tx.type==='expense'?'-':''}${fmt(tx.amount)}</td>` +
@@ -2540,6 +2604,7 @@ function generatePdfReport(){
       <td>${escapeHtml(formatDate(t.date))}</td>
       <td>${t.type==='income'?'واریز':'برداشت'}</td>
       <td>${escapeHtml(personName(t.personId))}</td>
+      <td>${escapeHtml(personName(t.accountId || accountOwnerFallback(t)))}</td>
       <td>${escapeHtml(t.category||'')}</td>
       <td>${escapeHtml(t.desc)}</td>
       <td style="text-align:left;">${t.type==='expense'?'-':''}${fmt(t.amount)}</td>
@@ -2578,8 +2643,8 @@ function generatePdfReport(){
       <table><thead><tr><th>شخص</th><th>واریز</th><th>برداشت</th><th>خالص</th></tr></thead>
       <tbody>${personRowsHtml || '<tr><td colspan="4">داده‌ای نیست</td></tr>'}</tbody></table>
       <h3>فهرست تراکنش‌ها</h3>
-      <table><thead><tr><th>تاریخ</th><th>نوع</th><th>شخص</th><th>دسته</th><th>توضیح</th><th>مبلغ</th></tr></thead>
-      <tbody>${txRowsHtml || '<tr><td colspan="6">تراکنشی نیست</td></tr>'}</tbody></table>
+      <table><thead><tr><th>تاریخ</th><th>نوع</th><th>شخص</th><th>حساب</th><th>دسته</th><th>توضیح</th><th>مبلغ</th></tr></thead>
+      <tbody>${txRowsHtml || '<tr><td colspan="7">تراکنشی نیست</td></tr>'}</tbody></table>
     </body></html>
   `);
   win.document.close();
@@ -3442,6 +3507,7 @@ function setType(t){
   }
   populateCategorySelect();
   populatePersonSelect();
+  populateAccountSelect();
 }
 function populatePersonSelect(){
   const sel = document.getElementById('personSelect');
@@ -3451,6 +3517,20 @@ function populatePersonSelect(){
   const stillValid = list.some(p => p.id === prevVal);
   if(stillValid) sel.value = prevVal;
   else sel.value = list.some(p => p.id === currentUserId) ? currentUserId : (list[0] ? list[0].id : '');
+}
+function accountOwners(){
+  return data.people.filter(p => p.canLogin);
+}
+function populateAccountSelect(){
+  const sel = document.getElementById('accountSelect');
+  if(!sel) return;
+  const owners = accountOwners();
+  document.getElementById('accountFieldLbl').textContent = currentType === 'income' ? 'واریز به حساب کدام‌یک' : 'از حساب کدام‌یک کسر بشه';
+  const prevVal = sel.value;
+  sel.innerHTML = owners.map(p => `<option value="${p.id}">${p.avatar||'👤'} ${escapeHtml(p.name)}</option>`).join('');
+  const stillValid = owners.some(p => p.id === prevVal);
+  if(stillValid) sel.value = prevVal;
+  else sel.value = owners.some(p => p.id === currentUserId) ? currentUserId : (owners[0] ? owners[0].id : '');
 }
 function populateCategorySelect(){
   const sel = document.getElementById('categorySelect');
@@ -3722,6 +3802,7 @@ function render(){
   document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
 
   populatePersonSelect();
+  populateAccountSelect();
 
   populateCategorySelect();
 
@@ -3736,6 +3817,7 @@ function render(){
   document.getElementById('bankCardHolder').textContent = (personEmoji(currentUserId) || '👤') + ' ' + personName(currentUserId);
   document.getElementById('bankCardDate').textContent = formatJalaliShort(todayIso());
   applyBalanceVisibility();
+  renderAccountBalances();
   renderBudgetProgress();
   renderInsights(totalIncome, totalExpense, balance);
   renderStreak();
@@ -3801,7 +3883,7 @@ function renderTxList(){
         </div>
         <div class="tx-main">
           <div class="tx-desc">${escapeHtml(tx.desc)}${editedTag}</div>
-          <div class="tx-meta">${tx.category ? categoryChipHtml(tx.category) : ''} · ${escapeHtml(personName(tx.personId))}</div>
+          <div class="tx-meta">${tx.category ? categoryChipHtml(tx.category) : ''} · ${escapeHtml(personName(tx.personId))}${accountMetaSuffix(tx)}</div>
         </div>
         ${photoThumb}
         <div class="tx-amount ${tx.type}">${sign}${fmt(tx.amount)}</div>
@@ -3835,6 +3917,8 @@ function startEditTransaction(id){
   showTxSubTab('add');
   setType(tx.type);
   document.getElementById('personSelect').value = tx.personId;
+  populateAccountSelect();
+  document.getElementById('accountSelect').value = tx.accountId || accountOwnerFallback(tx);
   populateCategorySelect();
   document.getElementById('categorySelect').value = tx.category || '';
   document.getElementById('descInput').value = tx.desc;
@@ -4378,6 +4462,7 @@ async function init(){
     const desc = document.getElementById('descInput').value.trim();
     const date = document.getElementById('dateInput').value;
     const personId = document.getElementById('personSelect').value;
+    const accountId = document.getElementById('accountSelect').value;
     const splitOn = currentType === 'expense' && !editingTxId && document.getElementById('splitModeCheckbox').checked;
 
     if(splitOn){
@@ -4387,7 +4472,7 @@ async function init(){
       const total = rows.reduce((s,r) => s + r.amount, 0);
       rows.forEach(r => {
         data.transactions.push({
-          id: newId('t'), type: 'expense', desc, amount: r.amount, date, personId, category: r.category,
+          id: newId('t'), type: 'expense', desc, amount: r.amount, date, personId, accountId, category: r.category,
           splitGroupId, photo: pendingPhotoDataUrl || null,
           enteredById: currentUserId, createdAt: Date.now()
         });
@@ -4415,7 +4500,7 @@ async function init(){
       if(!(await confirmAsync('تغییرات این تراکنش ذخیره بشه؟'))) return;
       const tx = data.transactions.find(t => String(t.id) === String(editingTxId));
       if(tx){
-        tx.desc = desc; tx.amount = amount; tx.date = date; tx.personId = personId;
+        tx.desc = desc; tx.amount = amount; tx.date = date; tx.personId = personId; tx.accountId = accountId;
         tx.category = category; tx.type = currentType; tx.photo = pendingPhotoDataUrl || null;
         tx.editedAt = Date.now(); tx.editedBy = currentUserId;
         logActivity('edit_tx', `${currentType==='income'?'واریز':'برداشت'} ${fmt(amount)} - ${desc} (${personName(personId)})`);
@@ -4429,7 +4514,7 @@ async function init(){
         if(!(await confirmAsync('یه تراکنش مشابه (همین توضیح، مبلغ و شخص) چند دقیقه پیش ثبت شده. مطمئنید تکراری نیست؟'))) return;
       }
       data.transactions.push({
-        id: newId('t'), type: currentType, desc, amount, date, personId, category,
+        id: newId('t'), type: currentType, desc, amount, date, personId, accountId, category,
         photo: pendingPhotoDataUrl || null,
         enteredById: currentUserId, createdAt: Date.now()
       });

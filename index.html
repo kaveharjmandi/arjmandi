@@ -153,6 +153,13 @@ h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
 .bank-card-top{ display:flex; justify-content:space-between; align-items:center; font-size:13px; font-weight:700; opacity:0.9; position:relative; z-index:1;}
 .bank-card-chip{ font-size:20px; }
 .bank-card-label{ font-size:11.5px; opacity:0.85; margin-top:14px; position:relative; z-index:1;}
+.bank-card-label-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.bank-card-eye-btn{
+  background:rgba(255,255,255,0.18); border:none; border-radius:50%; width:26px; height:26px;
+  color:#fff; font-size:13px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; position:relative; z-index:1; flex-shrink:0;
+}
+.bank-card-eye-btn:active{ background:rgba(255,255,255,0.3); }
 .bank-card-amount{
   font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:700; letter-spacing:0.5px;
   margin-top:4px; position:relative; z-index:1;
@@ -762,7 +769,10 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         <span class="bank-card-brand" id="bankCardBrand">صندوق خانواده</span>
         <span class="bank-card-chip">💳</span>
       </div>
-      <div class="bank-card-label">مانده فعلی حساب</div>
+      <div class="bank-card-label-row">
+        <span class="bank-card-label">مانده فعلی حساب</span>
+        <button type="button" id="balanceEyeBtn" class="bank-card-eye-btn" title="نمایش/پنهان‌کردن مانده">👁</button>
+      </div>
       <div class="bank-card-amount" id="balanceAmount">۰</div>
       <div class="bank-card-bottom">
         <span id="bankCardHolder">👤 —</span>
@@ -777,6 +787,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       <div id="insightsBox"></div>
       <div id="streakBox"></div>
       <div id="budgetProgressBox"></div>
+      <button type="button" id="shareMonthSummaryBtn" class="ghost-btn" style="width:100%; margin-top:10px;">📤 اشتراک‌گذاری خلاصه‌ی این ماه</button>
     </div>
 
     <div class="tab-nav" id="tabNav">
@@ -1476,11 +1487,167 @@ function animateNumber(el, target, currency){
     const t = Math.min(1, (now - startTime) / duration);
     const eased = 1 - Math.pow(1 - t, 3);
     const val = Math.round(from + (to - from) * eased);
+    if(isBalanceHidden()) return; // don't animate real digits while masked
     el.textContent = (val < 0 ? '−' : '') + fmt(Math.abs(val)) + (currency ? ' ' + currency : '');
     if(t < 1) requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
 }
+
+/* ---------- privacy toggle: hide balance ---------- */
+let lastComputedTotals = { totalIncome:0, totalExpense:0, balance:0 };
+function isBalanceHidden(){
+  try{ return localStorage.getItem('sandoogh-balance-hidden') === '1'; }catch(e){ return false; }
+}
+function setBalanceHidden(v){
+  try{ localStorage.setItem('sandoogh-balance-hidden', v ? '1' : '0'); }catch(e){}
+}
+function applyBalanceVisibility(){
+  const hidden = isBalanceHidden();
+  const balEl = document.getElementById('balanceAmount');
+  const incEl = document.getElementById('totalIncomeVal');
+  const expEl = document.getElementById('totalExpenseVal');
+  const eyeBtn = document.getElementById('balanceEyeBtn');
+  if(!balEl) return;
+  if(hidden){
+    const dots = '••••••';
+    balEl.textContent = dots;
+    incEl.textContent = dots;
+    expEl.textContent = dots;
+    if(eyeBtn) eyeBtn.textContent = '🙈';
+  } else {
+    const { totalIncome, totalExpense, balance } = lastComputedTotals;
+    balEl.textContent = (balance < 0 ? '−' : '') + fmt(Math.abs(balance)) + ' ' + data.currency;
+    balEl.dataset.rawVal = Math.round(balance);
+    incEl.textContent = fmt(totalIncome) + ' ' + data.currency;
+    expEl.textContent = fmt(totalExpense) + ' ' + data.currency;
+    if(eyeBtn) eyeBtn.textContent = '👁';
+  }
+}
+document.getElementById('balanceEyeBtn').addEventListener('click', () => {
+  setBalanceHidden(!isBalanceHidden());
+  applyBalanceVisibility();
+});
+
+/* ---------- shareable monthly summary image ---------- */
+async function generateMonthSummaryImage(){
+  const range = getPeriodRange('monthly', todayIso());
+  let income = 0, expense = 0;
+  const catTotals = {};
+  data.transactions.forEach(t => {
+    if(t.date < range.start || t.date > range.end) return;
+    if(t.type === 'income') income += Number(t.amount) || 0;
+    else {
+      expense += Number(t.amount) || 0;
+      const cat = t.category || 'سایر';
+      catTotals[cat] = (catTotals[cat] || 0) + (Number(t.amount) || 0);
+    }
+  });
+  const net = income - expense;
+  const topCat = Object.entries(catTotals).sort((a,b) => b[1]-a[1])[0];
+
+  const W = 1080, H = 1350;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.direction = 'rtl';
+
+  const rootStyle = getComputedStyle(document.body);
+  const accent = rootStyle.getPropertyValue('--accent').trim() || '#6B2D5C';
+  const accentDeep = rootStyle.getPropertyValue('--accent-deep').trim() || '#4A1F3F';
+  const credit = rootStyle.getPropertyValue('--credit').trim() || '#4C7A3D';
+  const debit = rootStyle.getPropertyValue('--debit').trim() || '#8B3A56';
+
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, accent);
+  grad.addColorStop(1, accentDeep);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = '600 34px Vazirmatn, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('ARIANA APP', W - 70, 100);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = '800 56px Vazirmatn, sans-serif';
+  ctx.fillText(data.title || 'گردش مالی خانواده', W - 70, 175);
+
+  ctx.font = '700 42px Vazirmatn, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillText(`خلاصه‌ی ${range.label}`, W - 70, 240);
+
+  // white content card
+  const cardX = 60, cardY = 320, cardW = W - 120, cardH = 820, radius = 36;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.moveTo(cardX + radius, cardY);
+  ctx.arcTo(cardX + cardW, cardY, cardX + cardW, cardY + cardH, radius);
+  ctx.arcTo(cardX + cardW, cardY + cardH, cardX, cardY + cardH, radius);
+  ctx.arcTo(cardX, cardY + cardH, cardX, cardY, radius);
+  ctx.arcTo(cardX, cardY, cardX + cardW, cardY, radius);
+  ctx.closePath();
+  ctx.fill();
+
+  function row(label, value, color, y){
+    ctx.textAlign = 'right';
+    ctx.font = '600 32px Vazirmatn, sans-serif';
+    ctx.fillStyle = '#777';
+    ctx.fillText(label, cardX + cardW - 60, y);
+    ctx.textAlign = 'right';
+    ctx.font = '800 54px Vazirmatn, sans-serif';
+    ctx.fillStyle = color;
+    ctx.fillText(`${fmt(value)} ${data.currency}`, cardX + cardW - 60, y + 68);
+  }
+  row('مجموع واریز', income, credit, cardY + 100);
+  row('مجموع برداشت', expense, debit, cardY + 260);
+  row(net >= 0 ? 'مانده‌ی مثبت این ماه' : 'کسری این ماه', Math.abs(net), net >= 0 ? credit : debit, cardY + 420);
+
+  ctx.strokeStyle = '#eee';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cardX + 40, cardY + 560); ctx.lineTo(cardX + cardW - 40, cardY + 560); ctx.stroke();
+
+  ctx.textAlign = 'right';
+  ctx.font = '600 30px Vazirmatn, sans-serif';
+  ctx.fillStyle = '#999';
+  ctx.fillText('بیشترین هزینه در دسته', cardX + cardW - 60, cardY + 630);
+  ctx.font = '800 42px Vazirmatn, sans-serif';
+  ctx.fillStyle = accentDeep;
+  ctx.fillText(topCat ? `${topCat[0]} — ${fmt(topCat[1])} ${data.currency}` : 'ثبت نشده', cardX + cardW - 60, cardY + 685);
+
+  ctx.textAlign = 'center';
+  ctx.font = '500 26px Vazirmatn, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.fillText('ساخته‌شده با Ariana APP', W / 2, H - 50);
+
+  return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+}
+document.getElementById('shareMonthSummaryBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('shareMonthSummaryBtn');
+  const origText = btn.textContent;
+  btn.disabled = true; btn.textContent = 'در حال ساخت تصویر…';
+  try{
+    const blob = await generateMonthSummaryImage();
+    const range = getPeriodRange('monthly', todayIso());
+    const fileName = `kholase-${range.label.replace(/\s+/g,'-')}.png`;
+    const file = new File([blob], fileName, { type: 'image/png' });
+    if(navigator.share && navigator.canShare && navigator.canShare({ files:[file] })){
+      await navigator.share({ files:[file], title: 'خلاصه‌ی مالی این ماه' });
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showSuccessToast('تصویر دانلود شد');
+    }
+  }catch(err){
+    console.error('Share summary failed', err);
+    alert('ساخت تصویر ناموفق بود.');
+  }finally{
+    btn.disabled = false; btn.textContent = origText;
+  }
+});
 
 const PERSON_EMOJIS = ['👨','👩','🧒','👦','👧','🧑','👴','👵','🧔','👶'];
 const PERSON_COLORS = ['#6B2D5C','#5C7A3D','#A9822C','#2FA6A0','#8B3A56','#5B84DA','#C9822C','#9A5FB0'];
@@ -3205,6 +3372,7 @@ document.getElementById('typeIncomeBtn').addEventListener('click', () => setType
 document.getElementById('typeExpenseBtn').addEventListener('click', () => setType('expense'));
 function setType(t){
   currentType = t;
+  categoryManuallyPicked = false;
   document.getElementById('typeIncomeBtn').classList.toggle('active', t==='income');
   document.getElementById('typeExpenseBtn').classList.toggle('active', t==='expense');
   document.getElementById('splitToggleWrap').style.display = (t === 'expense') ? 'block' : 'none';
@@ -3229,6 +3397,42 @@ function populateCategorySelect(){
   sel.innerHTML = data.categories[currentType].map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
   refreshSplitCategoryOptions();
 }
+
+/* ---------- auto category suggestion based on past descriptions ---------- */
+let categoryManuallyPicked = false;
+document.getElementById('categorySelect').addEventListener('change', () => { categoryManuallyPicked = true; });
+function normalizeDescForMatch(s){
+  return (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+function suggestCategoryForDesc(desc){
+  const norm = normalizeDescForMatch(desc);
+  if(!norm || norm.length < 2) return null;
+  const candidates = (data.transactions || []).filter(t => t.type === currentType && t.category && t.desc);
+  if(!candidates.length) return null;
+  // exact description match first, then "contains" match, each counted by frequency
+  const exact = candidates.filter(t => normalizeDescForMatch(t.desc) === norm);
+  const partial = candidates.filter(t => {
+    const d = normalizeDescForMatch(t.desc);
+    return d.includes(norm) || norm.includes(d);
+  });
+  const pool = exact.length ? exact : partial;
+  if(!pool.length) return null;
+  const counts = {};
+  pool.forEach(t => { counts[t.category] = (counts[t.category] || 0) + 1; });
+  return Object.keys(counts).sort((a,b) => counts[b] - counts[a])[0];
+}
+let categorySuggestTimer = null;
+document.getElementById('descInput').addEventListener('input', (e) => {
+  clearTimeout(categorySuggestTimer);
+  if(categoryManuallyPicked) return;
+  categorySuggestTimer = setTimeout(() => {
+    const suggestion = suggestCategoryForDesc(e.target.value);
+    const sel = document.getElementById('categorySelect');
+    if(suggestion && [...sel.options].some(o => o.value === suggestion)){
+      sel.value = suggestion;
+    }
+  }, 350);
+});
 
 /* ---------- split transaction across categories ---------- */
 function setSplitMode(on){
@@ -3462,6 +3666,7 @@ function render(){
   populateCategorySelect();
 
   const { totals, totalIncome, totalExpense, balance } = computeTotals();
+  lastComputedTotals = { totalIncome, totalExpense, balance };
   const balEl = document.getElementById('balanceAmount');
   animateNumber(balEl, balance, data.currency);
   balEl.className = 'bank-card-amount' + (balance < 0 ? ' neg' : '');
@@ -3470,6 +3675,7 @@ function render(){
   document.getElementById('bankCardBrand').textContent = data.title || 'صندوق خانواده';
   document.getElementById('bankCardHolder').textContent = (personEmoji(currentUserId) || '👤') + ' ' + personName(currentUserId);
   document.getElementById('bankCardDate').textContent = formatJalaliShort(todayIso());
+  applyBalanceVisibility();
   renderBudgetProgress();
   renderInsights(totalIncome, totalExpense, balance);
   renderStreak();
@@ -3586,7 +3792,7 @@ function cancelEditTransaction(){
   document.getElementById('editModeBar').style.display = 'none';
   document.getElementById('cancelEditBtn').style.display = 'none';
   document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
-  document.getElementById('descInput').value = '';
+  document.getElementById('descInput').value = ''; categoryManuallyPicked = false;
   clearAmountField('amountInput');
   updatePhotoPreview();
   txDatePicker.resetToToday();
@@ -4131,7 +4337,7 @@ async function init(){
         if(data.budgets && data.budgets[r.category] > 0) checkBudgetWarning(r.category);
       });
       await saveData();
-      document.getElementById('descInput').value = '';
+      document.getElementById('descInput').value = ''; categoryManuallyPicked = false;
       clearSplitRows();
       pendingPhotoDataUrl = null;
       updatePhotoPreview();
@@ -4175,7 +4381,7 @@ async function init(){
       checkBudgetWarning(category);
     }
 
-    document.getElementById('descInput').value = '';
+    document.getElementById('descInput').value = ''; categoryManuallyPicked = false;
     clearAmountField('amountInput');
     pendingPhotoDataUrl = null;
     updatePhotoPreview();

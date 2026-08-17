@@ -48,7 +48,7 @@ body[data-theme="slate"]{
 }
 
 /* ================= LAYOUT ================= */
-.wrap{ max-width:520px; margin:0 auto; padding:26px 20px 60px 20px; position:relative; }
+.wrap{ max-width:520px; margin:0 auto; padding:26px 20px 86px 20px; position:relative; }
 .site-header{ margin-bottom:18px; text-align:center; }
 .brand-tag{ font-size:11.5px; font-weight:700; letter-spacing:.5px; color:var(--accent); text-transform:uppercase; margin-bottom:2px; }
 h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
@@ -364,10 +364,26 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .switch input:checked + .switch-track::before{ transform:translateX(18px); }
 
 /* ================= TABS (main screen) ================= */
-.tab-nav{ display:flex; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:5px; margin-bottom:12px; position:sticky; top:6px; z-index:5; }
-.tab-nav-btn{ flex:1; border:none; background:transparent; border-radius:10px; padding:8px 4px; font-family:inherit; font-size:11px; color:var(--ink-soft); display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; transition:.15s; }
-.tab-nav-btn span{ font-size:10.5px; font-weight:600; }
-.tab-nav-btn.active{ background:var(--accent); color:#fff; }
+.tab-nav{
+  position:fixed; left:0; right:0; bottom:0; z-index:50;
+  display:flex; gap:2px; background:var(--card-bg); border-top:1px solid var(--line);
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom)); margin:0;
+  box-shadow:0 -4px 16px rgba(0,0,0,0.08);
+  max-width:520px; left:50%; transform:translateX(-50%);
+  border-radius:0;
+}
+.tab-nav-btn{
+  flex:1; border:none; background:transparent; border-radius:12px; padding:6px 2px 4px;
+  font-family:inherit; font-size:11px; color:var(--ink-soft);
+  display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; transition:.15s;
+}
+.tab-nav-btn .tab-icon{
+  font-size:21px; line-height:1; width:38px; height:30px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center; transition:.15s;
+}
+.tab-nav-btn span{ font-size:10px; font-weight:600; }
+.tab-nav-btn.active{ background:transparent; color:var(--accent); }
+.tab-nav-btn.active .tab-icon{ background:var(--accent); filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15)); }
 .tab-panel{ animation: tabFade .22s ease; }
 @keyframes tabFade{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
 
@@ -809,10 +825,10 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     </div>
 
     <div class="tab-nav" id="tabNav">
-      <button type="button" class="tab-nav-btn active" data-tab="transactions">💳<span>تراکنش‌ها</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="breakdown">👤<span>ریز هر شخص</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="cheques">🧾<span>چک‌ها</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="reports">📊<span>گزارش و اهداف</span></button>
+      <button type="button" class="tab-nav-btn active" data-tab="transactions"><span class="tab-icon">💳</span><span>تراکنش‌ها</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="breakdown"><span class="tab-icon">👤</span><span>ریز هر شخص</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="cheques"><span class="tab-icon">🧾</span><span>چک‌ها</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="reports"><span class="tab-icon">📊</span><span>گزارش و اهداف</span></button>
     </div>
 
     <div class="tab-panel" data-tab="transactions">

@@ -471,6 +471,33 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
   align-items:center; justify-content:center; padding:20px;
 }
 .photo-lightbox img{ max-width:100%; max-height:90vh; border-radius:8px; }
+.photo-lightbox-nav{
+  position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.15);
+  border:none; color:#fff; width:44px; height:44px; border-radius:50%; font-size:20px; cursor:pointer;
+}
+.photo-lightbox-nav.prev{ right:16px; }
+.photo-lightbox-nav.next{ left:16px; }
+.photo-lightbox-count{
+  position:absolute; top:16px; left:50%; transform:translateX(-50%); color:#fff; font-size:12px;
+  background:rgba(0,0,0,0.4); padding:4px 10px; border-radius:999px;
+}
+.photo-preview-strip{ display:flex; gap:8px; flex-wrap:wrap; }
+.photo-preview-item{ position:relative; width:76px; height:76px; flex-shrink:0; }
+.photo-preview-item img{ width:100%; height:100%; object-fit:cover; border-radius:8px; border:1px solid var(--line); }
+.photo-preview-remove{
+  position:absolute; top:-6px; left:-6px; width:20px; height:20px; border-radius:50%;
+  background:var(--debit); color:#fff; border:2px solid var(--card-bg); font-size:11px;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;
+}
+.photo-preview-add{
+  width:76px; height:76px; border-radius:8px; border:1.5px dashed var(--line); background:var(--bg);
+  display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--ink-soft); cursor:pointer;
+}
+.tx-thumb-stack{ position:relative; display:inline-block; }
+.tx-thumb-count{
+  position:absolute; bottom:-2px; left:-2px; background:var(--ink); color:#fff; font-size:9px; font-weight:700;
+  border-radius:999px; padding:1px 5px; border:2px solid var(--card-bg);
+}
 .confirm-modal-overlay{
   display:none; position:fixed; inset:0; z-index:230; background:rgba(0,0,0,0.5);
   align-items:center; justify-content:center; padding:20px;
@@ -743,6 +770,33 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         <div class="settings-chevron">‹</div>
       </div>
 
+      <div class="settings-item" id="annualReportBtn">
+        <div class="settings-icon">📅</div>
+        <div class="settings-text">
+          <div class="settings-title">گزارش سالانه (PDF)</div>
+          <div class="settings-sub">جمع‌بندی کل سال، برای چاپ یا ذخیره</div>
+        </div>
+        <div class="settings-chevron">‹</div>
+      </div>
+
+      <div class="settings-item" id="inviteQrBtn">
+        <div class="settings-icon">📱</div>
+        <div class="settings-text">
+          <div class="settings-title">دعوت عضو جدید</div>
+          <div class="settings-sub">QR کد برای نصب سریع اپ</div>
+        </div>
+        <div class="settings-chevron">‹</div>
+      </div>
+
+      <div class="settings-item" id="familyStatusBtn">
+        <div class="settings-icon">👥</div>
+        <div class="settings-text">
+          <div class="settings-title">وضعیت اعضای خانواده</div>
+          <div class="settings-sub">کی الان آنلاینه یا آخرین ورودش کی بوده</div>
+        </div>
+        <div class="settings-chevron">‹</div>
+      </div>
+
       <div class="settings-item" id="shareSummaryBtn">
         <div class="settings-icon">🖼️</div>
         <div class="settings-text">
@@ -765,6 +819,18 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     <div class="card" id="activityLogCard" style="display:none;">
       <div class="section-title">تاریخچه فعالیت</div>
       <div id="activityLogList"></div>
+    </div>
+
+    <div class="card" id="inviteQrCard" style="display:none; text-align:center;">
+      <div class="section-title">دعوت عضو جدید</div>
+      <img id="inviteQrImg" alt="QR کد نصب" style="width:220px; height:220px; border-radius:12px; margin:8px auto; display:block; background:#fff;">
+      <div style="font-size:12px; color:var(--ink-soft); margin-bottom:10px;">این کد رو با گوشی عضو جدید اسکن کنید تا صفحه‌ی نصب اپ باز بشه؛ بعدش خودش باید یه یوزر/رمز از پنل مدیریت بگیره.</div>
+      <button type="button" id="copyInviteLinkBtn" class="ghost-btn" style="width:100%;">📋 کپی لینک نصب</button>
+    </div>
+
+    <div class="card" id="familyStatusCard" style="display:none;">
+      <div class="section-title">وضعیت اعضای خانواده</div>
+      <div id="familyStatusList"></div>
     </div>
 
     <div class="card" id="changePwCard" style="display:none;">
@@ -871,7 +937,8 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         <div class="field">
           <label>توضیح</label>
           <div style="display:flex; gap:6px;">
-            <input type="text" id="descInput" placeholder="مثلاً: حقوق مرداد" required style="flex:1;">
+            <input type="text" id="descInput" placeholder="مثلاً: حقوق مرداد" required style="flex:1;" list="descSuggestions" autocomplete="off">
+            <datalist id="descSuggestions"></datalist>
             <button type="button" id="voiceInputBtn" title="ورود صوتی" style="width:42px; border:1px solid var(--line); border-radius:6px; background:var(--bg); cursor:pointer; font-size:16px;">🎤</button>
           </div>
           <div id="voiceStatusHint" style="font-size:11px; color:var(--accent-deep); margin-top:4px; display:none;"></div>
@@ -889,15 +956,15 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
           </div>
         </div>
         <div class="field">
-          <label>عکس رسید (اختیاری)</label>
-          <input type="file" id="photoInput" accept="image/*">
+          <label>عکس رسید (اختیاری، می‌تونید چند عکس اضافه کنید)</label>
+          <input type="file" id="photoInput" accept="image/*" multiple>
           <div id="photoPreviewBox" style="display:none; margin-top:8px;">
-            <img id="photoPreviewImg" style="max-width:100%; max-height:160px; border-radius:8px; border:1px solid var(--line);">
-            <button type="button" id="photoRemoveBtn" class="mini-del" style="display:block; margin-top:4px;">حذف عکس</button>
+            <div id="photoPreviewStrip" class="photo-preview-strip"></div>
           </div>
         </div>
-        <div id="editModeBar" style="display:none; align-items:center; background:var(--bg-deep); border-radius:8px; padding:8px 10px; font-size:12px;">
+        <div id="editModeBar" style="display:none; align-items:center; justify-content:space-between; background:var(--bg-deep); border-radius:8px; padding:8px 10px; font-size:12px;">
           <span>✎ در حال ویرایش تراکنش</span>
+          <span id="printReceiptBtn" style="text-decoration:underline; cursor:pointer; color:var(--accent-deep);">🖨️ چاپ رسید</span>
         </div>
         <div style="display:flex; gap:8px;">
           <button type="submit" class="submit-btn" id="submitBtnLbl" style="flex:1;">ثبت تراکنش</button>
@@ -1300,6 +1367,73 @@ function sbSubscribeRealtime(){
       }
     })
     .subscribe();
+}
+
+/* ---------- presence: "who's online / last seen" ---------- */
+let presenceHeartbeatInterval = null;
+async function sbUpdatePresence(){
+  if(!sb || !currentUsername) return;
+  try{
+    await sb.from('presence').upsert({
+      username: currentUsername,
+      person_id: currentUserId,
+      last_seen: new Date().toISOString()
+    });
+  }catch(e){ console.warn('Presence update failed (has the presence table been created?)', e); }
+}
+function startPresenceHeartbeat(){
+  sbUpdatePresence();
+  if(presenceHeartbeatInterval) clearInterval(presenceHeartbeatInterval);
+  presenceHeartbeatInterval = setInterval(() => {
+    if(document.visibilityState === 'visible') sbUpdatePresence();
+  }, 30000);
+}
+function stopPresenceHeartbeat(){
+  if(presenceHeartbeatInterval){ clearInterval(presenceHeartbeatInterval); presenceHeartbeatInterval = null; }
+}
+function relativeTimeFromNow(isoTimestamp){
+  const diffMs = Date.now() - new Date(isoTimestamp).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if(mins < 1) return 'همین الان';
+  if(mins < 60) return `${faDigits(mins)} دقیقه پیش`;
+  const hours = Math.floor(mins / 60);
+  if(hours < 24) return `${faDigits(hours)} ساعت پیش`;
+  const days = Math.floor(hours / 24);
+  if(days < 30) return `${faDigits(days)} روز پیش`;
+  return formatDate(isoTimestamp.slice(0,10));
+}
+async function renderFamilyStatus(){
+  const box = document.getElementById('familyStatusList');
+  if(!box) return;
+  if(!sb){
+    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📡</span>این قابلیت نیاز به اتصال آنلاین داره.</div>';
+    return;
+  }
+  box.innerHTML = '<div class="empty-state">در حال بارگذاری…</div>';
+  try{
+    const { data: rows, error } = await sb.from('presence').select('username, person_id, last_seen');
+    if(error) throw error;
+    const owners = data.people.filter(p => p.canLogin);
+    box.innerHTML = owners.map(p => {
+      const row = (rows || []).find(r => r.person_id === p.id);
+      let statusHtml;
+      if(!row){
+        statusHtml = '<span style="color:var(--ink-soft);">هنوز وارد نشده</span>';
+      } else {
+        const diffMin = (Date.now() - new Date(row.last_seen).getTime()) / 60000;
+        statusHtml = diffMin < 1.5
+          ? '<span style="color:var(--credit); font-weight:700;">🟢 آنلاینه</span>'
+          : `<span style="color:var(--ink-soft);">آخرین بازدید: ${relativeTimeFromNow(row.last_seen)}</span>`;
+      }
+      return `<div class="tx-row" style="border-bottom:1px solid var(--line); padding:10px 0;">
+        <div class="avatar-dot" style="background:${personColor(p.id)};">${avatarInnerHtml(p.id)}</div>
+        <div class="tx-main"><div class="tx-desc">${escapeHtml(p.name)}</div><div class="tx-meta">${statusHtml}</div></div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    console.error('renderFamilyStatus failed', e);
+    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">⚠️</span>هنوز جدول presence روی Supabase ساخته نشده.</div>';
+  }
 }
 
 async function storageGet(key){
@@ -2351,6 +2485,7 @@ document.addEventListener('visibilitychange', () => {
       renderLoginScreen();
     }
     try{ sessionStorage.removeItem('sandoogh-hidden-at'); }catch(e){}
+    if(currentUserId) sbUpdatePresence();
   }
 });
 function enterApp(){
@@ -2368,8 +2503,9 @@ function enterApp(){
   showScreen('app');
   checkNoEntryReminder();
   saveSession();
+  startPresenceHeartbeat();
 }
-document.getElementById('logoutBtn').addEventListener('click', () => { currentUserId = null; currentUsername = null; clearSession(); renderLoginScreen(); showSuccessToast('با موفقیت خارج شدید'); });
+document.getElementById('logoutBtn').addEventListener('click', () => { stopPresenceHeartbeat(); currentUserId = null; currentUsername = null; clearSession(); renderLoginScreen(); showSuccessToast('با موفقیت خارج شدید'); });
 
 /* ---------- backup / restore ---------- */
 function exportBackup(){
@@ -2429,6 +2565,8 @@ document.getElementById('changePwBtn').addEventListener('click', () => {
   const card = document.getElementById('changePwCard');
   const opening = card.style.display === 'none';
   document.getElementById('activityLogCard').style.display = 'none';
+  document.getElementById('inviteQrCard').style.display = 'none';
+  document.getElementById('familyStatusCard').style.display = 'none';
   card.style.display = opening ? 'block' : 'none';
   document.getElementById('pwRuleText').textContent = PW_RULE_TEXT;
   document.getElementById('pwFormUsername').value = currentUsername;
@@ -2442,8 +2580,40 @@ document.getElementById('activityLogBtn').addEventListener('click', () => {
   const card = document.getElementById('activityLogCard');
   const opening = card.style.display === 'none';
   document.getElementById('changePwCard').style.display = 'none';
+  document.getElementById('inviteQrCard').style.display = 'none';
+  document.getElementById('familyStatusCard').style.display = 'none';
   card.style.display = opening ? 'block' : 'none';
   if(opening) renderActivityLog();
+});
+document.getElementById('inviteQrBtn').addEventListener('click', () => {
+  const card = document.getElementById('inviteQrCard');
+  const opening = card.style.display === 'none';
+  document.getElementById('changePwCard').style.display = 'none';
+  document.getElementById('activityLogCard').style.display = 'none';
+  document.getElementById('familyStatusCard').style.display = 'none';
+  card.style.display = opening ? 'block' : 'none';
+  if(opening){
+    const url = location.origin + location.pathname;
+    document.getElementById('inviteQrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
+  }
+});
+document.getElementById('copyInviteLinkBtn').addEventListener('click', async () => {
+  const url = location.origin + location.pathname;
+  try{
+    await navigator.clipboard.writeText(url);
+    showSuccessToast('لینک کپی شد');
+  }catch(e){
+    prompt('لینک نصب اپ رو کپی کنید:', url);
+  }
+});
+document.getElementById('familyStatusBtn').addEventListener('click', () => {
+  const card = document.getElementById('familyStatusCard');
+  const opening = card.style.display === 'none';
+  document.getElementById('changePwCard').style.display = 'none';
+  document.getElementById('activityLogCard').style.display = 'none';
+  document.getElementById('inviteQrCard').style.display = 'none';
+  card.style.display = opening ? 'block' : 'none';
+  if(opening) renderFamilyStatus();
 });
 function renderActivityLog(){
   const box = document.getElementById('activityLogList');
@@ -2667,6 +2837,73 @@ function generatePdfReport(){
   setTimeout(() => win.print(), 400);
 }
 document.getElementById('pdfReportBtn').addEventListener('click', generatePdfReport);
+function generateAnnualPdfReport(){
+  const range = getPeriodRange('yearly', todayIso());
+  const yearTxs = data.transactions.filter(t => t.date >= range.start && t.date <= range.end)
+    .sort((a,b) => (a.date||'').localeCompare(b.date||''));
+  const income = yearTxs.filter(t=>t.type==='income').reduce((s,t)=>s+(Number(t.amount)||0),0);
+  const expense = yearTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+(Number(t.amount)||0),0);
+
+  const personRows = data.people.map(p => {
+    const inc = yearTxs.filter(t=>t.personId===p.id && t.type==='income').reduce((s,t)=>s+(Number(t.amount)||0),0);
+    const exp = yearTxs.filter(t=>t.personId===p.id && t.type==='expense').reduce((s,t)=>s+(Number(t.amount)||0),0);
+    return { name: p.name, inc, exp };
+  }).filter(r => r.inc > 0 || r.exp > 0);
+
+  const monthlyRows = [];
+  for(let m=1; m<=12; m++){
+    const [jy] = isoToJalali(range.start);
+    const mStart = jalaliToIso(jy, m, 1);
+    const mEnd = jalaliToIso(jy, m, jalaliMonthLength(jy, m));
+    const inc = yearTxs.filter(t => t.date >= mStart && t.date <= mEnd && t.type==='income').reduce((s,t)=>s+(Number(t.amount)||0),0);
+    const exp = yearTxs.filter(t => t.date >= mStart && t.date <= mEnd && t.type==='expense').reduce((s,t)=>s+(Number(t.amount)||0),0);
+    if(inc > 0 || exp > 0) monthlyRows.push({ label: JALALI_MONTHS[m-1], inc, exp });
+  }
+
+  const personRowsHtml = personRows.map(r => `
+    <tr><td>${escapeHtml(r.name)}</td><td>${fmt(r.inc)}</td><td>${fmt(r.exp)}</td><td>${fmt(r.inc-r.exp)}</td></tr>
+  `).join('');
+  const monthlyRowsHtml = monthlyRows.map(r => `
+    <tr><td>${escapeHtml(r.label)}</td><td>${fmt(r.inc)}</td><td>${fmt(r.exp)}</td><td>${fmt(r.inc-r.exp)}</td></tr>
+  `).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8">
+    <title>گزارش سالانه - ${escapeHtml(range.label)}</title>
+    <style>
+      body{ font-family:Tahoma,Arial,sans-serif; padding:24px; color:#222; }
+      h1{ font-size:20px; margin-bottom:2px; }
+      h2{ font-size:14px; color:#666; font-weight:normal; margin-top:0; }
+      .stats{ display:flex; gap:16px; margin:16px 0; }
+      .stat{ flex:1; border:1px solid #ddd; border-radius:8px; padding:10px; text-align:center; }
+      .stat b{ display:block; font-size:18px; margin-top:4px; }
+      table{ width:100%; border-collapse:collapse; margin-top:10px; font-size:12px; }
+      th, td{ border:1px solid #ddd; padding:6px 8px; text-align:right; }
+      th{ background:#f2f2f2; }
+      h3{ font-size:14px; margin-top:24px; border-bottom:2px solid #333; padding-bottom:4px; }
+      @media print { body{ padding:8px; } }
+    </style>
+    </head><body>
+      <h1>${escapeHtml(data.title || 'صندوق خانواده')}</h1>
+      <h2>گزارش مالی سال: ${escapeHtml(range.label)}</h2>
+      <div class="stats">
+        <div class="stat">مجموع واریز<b style="color:#2a7a3d;">${fmt(income)} ${escapeHtml(data.currency)}</b></div>
+        <div class="stat">مجموع برداشت<b style="color:#a33a3a;">${fmt(expense)} ${escapeHtml(data.currency)}</b></div>
+        <div class="stat">خالص<b>${fmt(income-expense)} ${escapeHtml(data.currency)}</b></div>
+      </div>
+      <h3>روند ماه به ماه</h3>
+      <table><thead><tr><th>ماه</th><th>واریز</th><th>برداشت</th><th>خالص</th></tr></thead>
+      <tbody>${monthlyRowsHtml || '<tr><td colspan="4">داده‌ای نیست</td></tr>'}</tbody></table>
+      <h3>ریز حساب هر شخص</h3>
+      <table><thead><tr><th>شخص</th><th>واریز</th><th>برداشت</th><th>خالص</th></tr></thead>
+      <tbody>${personRowsHtml || '<tr><td colspan="4">داده‌ای نیست</td></tr>'}</tbody></table>
+    </body></html>
+  `);
+  win.document.close();
+  setTimeout(() => win.print(), 400);
+}
+document.getElementById('annualReportBtn').addEventListener('click', generateAnnualPdfReport);
 
 /* ---------- shareable summary image ---------- */
 async function generateShareImage(){
@@ -3524,6 +3761,20 @@ function setType(t){
   populateCategorySelect();
   populatePersonSelect();
   populateAccountSelect();
+  populateDescSuggestions();
+}
+function populateDescSuggestions(){
+  const dl = document.getElementById('descSuggestions');
+  if(!dl) return;
+  const counts = {};
+  data.transactions.forEach(t => {
+    if(t.type !== currentType || !t.desc) return;
+    const key = t.desc.trim();
+    if(!key) return;
+    counts[key] = (counts[key] || 0) + 1;
+  });
+  const top = Object.keys(counts).sort((a,b) => counts[b] - counts[a]).slice(0, 20);
+  dl.innerHTML = top.map(d => `<option value="${escapeHtml(d)}"></option>`).join('');
 }
 function populatePersonSelect(){
   const sel = document.getElementById('personSelect');
@@ -3889,7 +4140,13 @@ function renderTxList(){
     const arrow = tx.type === 'income' ? '↓' : '↑';
     const sign = tx.type === 'income' ? '+' : '−';
     const editedTag = tx.editedAt ? ' <span title="ویرایش شده">✎</span>' : '';
-    const photoThumb = tx.photo ? `<img src="${tx.photo}" class="tx-thumb" data-full="${tx.photo}">` : '';
+    const photos = txPhotos(tx);
+    const photoThumb = photos.length
+      ? `<span class="tx-thumb-stack" data-photos='${escapeHtml(JSON.stringify(photos))}'>
+           <img src="${photos[0]}" class="tx-thumb">
+           ${photos.length > 1 ? `<span class="tx-thumb-count">${faDigits(photos.length)}</span>` : ''}
+         </span>`
+      : '';
     html += `
     <div class="tx-row" data-id="${tx.id}">
       <div class="tx-row-inner">
@@ -3910,8 +4167,8 @@ function renderTxList(){
   });
   list.innerHTML = html;
 
-  list.querySelectorAll('.tx-thumb').forEach(img => {
-    img.addEventListener('click', () => openPhotoLightbox(img.dataset.full));
+  list.querySelectorAll('.tx-thumb-stack').forEach(el => {
+    el.addEventListener('click', () => openPhotoLightbox(JSON.parse(el.dataset.photos), 0));
   });
   list.querySelectorAll('.edit-btn').forEach(btn => {
     btn.addEventListener('click', () => startEditTransaction(btn.dataset.id));
@@ -3924,7 +4181,7 @@ function renderTxList(){
 /* ---------- edit transaction ---------- */
 let editingTxId = null;
 let wasEditSave = false;
-let pendingPhotoDataUrl = null;
+let pendingPhotoDataUrls = [];
 
 function startEditTransaction(id){
   const tx = data.transactions.find(t => String(t.id) === String(id));
@@ -3941,7 +4198,7 @@ function startEditTransaction(id){
   document.getElementById('descInput').value = tx.desc;
   setAmountFieldValue('amountInput', tx.amount);
   txDatePicker.setSelected(tx.date);
-  pendingPhotoDataUrl = tx.photo || null;
+  pendingPhotoDataUrls = txPhotos(tx).slice();
   updatePhotoPreview();
   document.getElementById('editModeBar').style.display = 'flex';
   document.getElementById('cancelEditBtn').style.display = 'block';
@@ -3949,7 +4206,7 @@ function startEditTransaction(id){
 }
 function cancelEditTransaction(){
   editingTxId = null;
-  pendingPhotoDataUrl = null;
+  pendingPhotoDataUrls = [];
   document.getElementById('editModeBar').style.display = 'none';
   document.getElementById('cancelEditBtn').style.display = 'none';
   document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
@@ -3959,8 +4216,59 @@ function cancelEditTransaction(){
   txDatePicker.resetToToday();
 }
 document.getElementById('cancelEditBtn').addEventListener('click', cancelEditTransaction);
+document.getElementById('printReceiptBtn').addEventListener('click', () => {
+  if(editingTxId) printSingleReceipt(editingTxId);
+});
+function printSingleReceipt(id){
+  const tx = data.transactions.find(t => String(t.id) === String(id));
+  if(!tx) return;
+  const photos = txPhotos(tx);
+  const photosHtml = photos.length
+    ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:16px;">${photos.map(p => `<img src="${p}" style="width:140px; border-radius:8px; border:1px solid #ddd;">`).join('')}</div>`
+    : '';
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8">
+    <title>رسید تراکنش</title>
+    <style>
+      body{ font-family:Tahoma,Arial,sans-serif; padding:28px; color:#222; }
+      h1{ font-size:18px; margin-bottom:2px; }
+      h2{ font-size:13px; color:#666; font-weight:normal; margin-top:2px; }
+      .receipt-box{ border:2px dashed #999; border-radius:12px; padding:20px; margin-top:20px; max-width:380px; }
+      .row{ display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee; font-size:13px; }
+      .row:last-child{ border-bottom:none; }
+      .row b{ font-weight:700; }
+      .amount{ text-align:center; font-size:26px; font-weight:800; margin:14px 0; }
+      .amount.income{ color:#2a7a3d; }
+      .amount.expense{ color:#a33a3a; }
+      @media print { body{ padding:8px; } }
+    </style>
+    </head><body>
+      <h1>${escapeHtml(data.title || 'صندوق خانواده')}</h1>
+      <h2>رسید تراکنش</h2>
+      <div class="receipt-box">
+        <div class="amount ${tx.type}">${tx.type==='income'?'+':'−'}${fmt(tx.amount)} ${escapeHtml(data.currency)}</div>
+        <div class="row"><span>نوع</span><b>${tx.type==='income'?'واریز':'برداشت'}</b></div>
+        <div class="row"><span>تاریخ</span><b>${escapeHtml(formatDate(tx.date))}</b></div>
+        <div class="row"><span>شخص</span><b>${escapeHtml(personName(tx.personId))}</b></div>
+        <div class="row"><span>از حساب</span><b>${escapeHtml(personName(tx.accountId || accountOwnerFallback(tx)))}</b></div>
+        <div class="row"><span>دسته‌بندی</span><b>${escapeHtml(tx.category||'—')}</b></div>
+        <div class="row"><span>توضیح</span><b>${escapeHtml(tx.desc||'—')}</b></div>
+      </div>
+      ${photosHtml}
+    </body></html>
+  `);
+  win.document.close();
+  setTimeout(() => win.print(), 400);
+}
 
 /* ---------- photo attach ---------- */
+function txPhotos(tx){
+  if(Array.isArray(tx.photos) && tx.photos.length) return tx.photos;
+  if(tx.photo) return [tx.photo];
+  return [];
+}
+const MAX_PHOTOS_PER_TX = 6;
 function compressImageFile(file){
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -3985,42 +4293,83 @@ function compressImageFile(file){
 }
 function updatePhotoPreview(){
   const box = document.getElementById('photoPreviewBox');
-  const img = document.getElementById('photoPreviewImg');
-  if(pendingPhotoDataUrl){
-    img.src = pendingPhotoDataUrl;
+  const strip = document.getElementById('photoPreviewStrip');
+  if(pendingPhotoDataUrls.length){
     box.style.display = 'block';
+    strip.innerHTML = pendingPhotoDataUrls.map((url, i) => `
+      <div class="photo-preview-item">
+        <img src="${url}">
+        <button type="button" class="photo-preview-remove" data-idx="${i}">✕</button>
+      </div>`).join('') +
+      (pendingPhotoDataUrls.length < MAX_PHOTOS_PER_TX ? `<div class="photo-preview-add" id="photoAddMoreBtn">+</div>` : '');
+    strip.querySelectorAll('.photo-preview-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pendingPhotoDataUrls.splice(Number(btn.dataset.idx), 1);
+        updatePhotoPreview();
+      });
+    });
+    const addBtn = document.getElementById('photoAddMoreBtn');
+    if(addBtn) addBtn.addEventListener('click', () => document.getElementById('photoInput').click());
   } else {
     box.style.display = 'none';
+    strip.innerHTML = '';
   }
   document.getElementById('photoInput').value = '';
 }
 document.getElementById('photoInput').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if(!file) return;
+  const files = [...(e.target.files || [])];
+  if(!files.length) return;
+  const room = MAX_PHOTOS_PER_TX - pendingPhotoDataUrls.length;
+  if(room <= 0){ alert(`حداکثر ${faDigits(MAX_PHOTOS_PER_TX)} عکس برای هر تراکنش.`); updatePhotoPreview(); return; }
   try{
-    pendingPhotoDataUrl = await compressImageFile(file);
+    for(const file of files.slice(0, room)){
+      pendingPhotoDataUrls.push(await compressImageFile(file));
+    }
     updatePhotoPreview();
   }catch(err){
     console.error(err);
     alert('خطا در بارگذاری عکس.');
   }
 });
-document.getElementById('photoRemoveBtn').addEventListener('click', () => {
-  pendingPhotoDataUrl = null;
-  updatePhotoPreview();
-});
-function openPhotoLightbox(src){
+let lightboxPhotos = [];
+let lightboxIndex = 0;
+function openPhotoLightbox(photos, startIdx){
+  lightboxPhotos = Array.isArray(photos) ? photos : [photos];
+  lightboxIndex = startIdx || 0;
   let overlay = document.getElementById('photoLightbox');
   if(!overlay){
     overlay = document.createElement('div');
     overlay.id = 'photoLightbox';
     overlay.className = 'photo-lightbox';
-    overlay.innerHTML = '<img id="photoLightboxImg">';
-    overlay.addEventListener('click', () => overlay.style.display = 'none');
+    overlay.innerHTML = `
+      <span class="photo-lightbox-count" id="photoLightboxCount"></span>
+      <button type="button" class="photo-lightbox-nav prev" id="photoLightboxPrev">›</button>
+      <img id="photoLightboxImg">
+      <button type="button" class="photo-lightbox-nav next" id="photoLightboxNext">‹</button>`;
+    overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.style.display = 'none'; });
+    document.getElementById('photoLightboxPrev').addEventListener('click', (e) => { e.stopPropagation(); moveLightbox(1); });
+    document.getElementById('photoLightboxNext').addEventListener('click', (e) => { e.stopPropagation(); moveLightbox(-1); });
     document.body.appendChild(overlay);
   }
-  document.getElementById('photoLightboxImg').src = src;
+  renderLightboxFrame();
   overlay.style.display = 'flex';
+}
+function moveLightbox(dir){
+  lightboxIndex = (lightboxIndex + dir + lightboxPhotos.length) % lightboxPhotos.length;
+  renderLightboxFrame();
+}
+function renderLightboxFrame(){
+  document.getElementById('photoLightboxImg').src = lightboxPhotos[lightboxIndex];
+  const countEl = document.getElementById('photoLightboxCount');
+  const navBtns = document.querySelectorAll('.photo-lightbox-nav');
+  if(lightboxPhotos.length > 1){
+    countEl.textContent = `${faDigits(lightboxIndex+1)} / ${faDigits(lightboxPhotos.length)}`;
+    countEl.style.display = 'block';
+    navBtns.forEach(b => b.style.display = 'flex');
+  } else {
+    countEl.style.display = 'none';
+    navBtns.forEach(b => b.style.display = 'none');
+  }
 }
 
 /* ---------- undo delete ---------- */
@@ -4490,7 +4839,7 @@ async function init(){
       rows.forEach(r => {
         data.transactions.push({
           id: newId('t'), type: 'expense', desc, amount: r.amount, date, personId, accountId, category: r.category,
-          splitGroupId, photo: pendingPhotoDataUrl || null,
+          splitGroupId, photos: pendingPhotoDataUrls.slice(),
           enteredById: currentUserId, createdAt: Date.now()
         });
       });
@@ -4501,7 +4850,7 @@ async function init(){
       await saveData();
       document.getElementById('descInput').value = ''; categoryManuallyPicked = false;
       clearSplitRows();
-      pendingPhotoDataUrl = null;
+      pendingPhotoDataUrls = [];
       updatePhotoPreview();
       txDatePicker.resetToToday();
       render();
@@ -4518,7 +4867,7 @@ async function init(){
       const tx = data.transactions.find(t => String(t.id) === String(editingTxId));
       if(tx){
         tx.desc = desc; tx.amount = amount; tx.date = date; tx.personId = personId; tx.accountId = accountId;
-        tx.category = category; tx.type = currentType; tx.photo = pendingPhotoDataUrl || null;
+        tx.category = category; tx.type = currentType; tx.photos = pendingPhotoDataUrls.slice(); delete tx.photo;
         tx.editedAt = Date.now(); tx.editedBy = currentUserId;
         logActivity('edit_tx', `${currentType==='income'?'واریز':'برداشت'} ${fmt(amount)} - ${desc} (${personName(personId)})`);
       }
@@ -4533,7 +4882,7 @@ async function init(){
       }
       data.transactions.push({
         id: newId('t'), type: currentType, desc, amount, date, personId, accountId, category,
-        photo: pendingPhotoDataUrl || null,
+        photos: pendingPhotoDataUrls.slice(),
         enteredById: currentUserId, createdAt: Date.now()
       });
       logActivity('add_tx', `${currentType==='income'?'واریز':'برداشت'} ${fmt(amount)} - ${desc} (${personName(personId)})`);
@@ -4546,7 +4895,7 @@ async function init(){
 
     document.getElementById('descInput').value = ''; categoryManuallyPicked = false;
     clearAmountField('amountInput');
-    pendingPhotoDataUrl = null;
+    pendingPhotoDataUrls = [];
     updatePhotoPreview();
     txDatePicker.resetToToday();
     render();

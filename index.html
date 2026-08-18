@@ -115,7 +115,20 @@ h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
 .user-bar button#adminPanelBtn{ background:var(--accent); }
 .user-bar button#backupBtn, .user-bar button#restoreBtn{ background:var(--accent2); }
 .user-bar button#changePwBtn{ background:var(--bg-deep); color:var(--ink); }
-.user-bar button#logoutBtn{ background:transparent; border:1.5px solid var(--debit); color:var(--debit); padding:6px 12px; }
+.user-bar button#logoutBtn{
+  background:transparent; border:1.5px solid var(--debit); color:var(--debit);
+  width:38px; height:38px; padding:0; border-radius:50%; font-size:15px;
+  display:flex; align-items:center; justify-content:center;
+}
+.user-bar button#settingsBtn{
+  background:var(--card-bg); color:var(--ink); border:1.5px solid var(--line);
+  width:38px; height:38px; padding:0; border-radius:50%; font-size:16px;
+  display:flex; align-items:center; justify-content:center;
+}
+.admin-badge-icon{
+  font-size:12px; background:var(--accent); color:#fff; border-radius:50%;
+  width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; padding:0;
+}
 .user-bar button#themeToggleBtn{
   background:var(--card-bg); color:var(--accent); width:38px; height:38px; padding:0;
   border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px;
@@ -367,9 +380,9 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .tab-nav{
   position:fixed; left:0; right:0; bottom:0; z-index:50;
   display:flex; gap:2px; background:var(--card-bg); border-top:1px solid var(--line);
-  padding:9px 8px calc(9px + env(safe-area-inset-bottom)); margin:0;
+  padding:9px 8px calc(9px + env(safe-area-inset-bottom)); margin:0 auto;
   box-shadow:0 -4px 16px rgba(0,0,0,0.08);
-  max-width:520px; left:50%; transform:translateX(-50%);
+  max-width:520px;
   border-radius:0;
 }
 .tab-nav-btn{
@@ -852,11 +865,11 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     <header class="site-header"><div class="brand-tag">Ariana APP</div><h1 id="pageTitle">گردش مالی خانواده</h1></header>
 
     <div class="user-bar">
-      <div class="who">👤 <span id="whoName"></span> <span id="adminTag" class="admin-badge" style="display:none;">مدیر</span> <span id="storageIndicator" class="storage-indicator-pill"></span></div>
+      <div class="who">👤 <span id="whoName"></span> <span id="adminTag" class="admin-badge-icon" title="مدیر" style="display:none;">👑</span> <span id="storageIndicator" class="storage-indicator-pill"></span></div>
       <div class="actions">
         <button id="themeToggleBtn" title="تغییر تم">🌙</button>
-        <button id="settingsBtn">⚙️ تنظیمات</button>
-        <button id="logoutBtn">خروج</button>
+        <button id="settingsBtn" title="تنظیمات">⚙️</button>
+        <button id="logoutBtn" title="خروج">🚪</button>
       </div>
     </div>
 
@@ -1565,10 +1578,10 @@ function showStorageBanner(){
 function updateStorageIndicator(){
   const el = document.getElementById('storageIndicator');
   if(!el) return;
-  if(storageMode === 'sync') el.textContent = '🟢 آنلاین';
-  else if(storageMode === 'cloud') el.textContent = '🟢 آنلاین';
-  else if(storageMode === 'local') el.textContent = '📴 آفلاین';
-  else el.textContent = '⚠️ ذخیره نشد';
+  if(storageMode === 'sync'){ el.textContent = '🟢'; el.title = 'آنلاین - همگام با بقیه گوشی‌ها'; }
+  else if(storageMode === 'cloud'){ el.textContent = '🟢'; el.title = 'آنلاین'; }
+  else if(storageMode === 'local'){ el.textContent = '📴'; el.title = 'آفلاین - فقط همین گوشی'; }
+  else { el.textContent = '⚠️'; el.title = 'ذخیره نشد'; }
 }
 
 function getPerson(id){ return data.people.find(p => p.id === id); }

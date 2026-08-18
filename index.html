@@ -865,7 +865,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     <header class="site-header"><div class="brand-tag">Ariana APP</div><h1 id="pageTitle">گردش مالی خانواده</h1></header>
 
     <div class="user-bar">
-      <div class="who">👤 <span id="whoName"></span> <span id="adminTag" class="admin-badge-icon" title="مدیر" style="display:none;">👑</span> <span id="storageIndicator" class="storage-indicator-pill"></span></div>
+      <div class="who">👤 <span id="whoName"></span> <span id="storageIndicator" class="storage-indicator-pill"></span></div>
       <div class="actions">
         <button id="themeToggleBtn" title="تغییر تم">🌙</button>
         <button id="settingsBtn" title="تنظیمات">⚙️</button>
@@ -873,6 +873,15 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       </div>
     </div>
 
+    <div class="tab-nav" id="tabNav">
+      <button type="button" class="tab-nav-btn" data-tab="transactions"><span class="tab-icon">💳</span><span>تراکنش‌ها</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="breakdown"><span class="tab-icon">👤</span><span>ریز هر شخص</span></button>
+      <button type="button" class="tab-nav-btn active" data-tab="home"><span class="tab-icon">🏠</span><span>خانه</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="cheques"><span class="tab-icon">🧾</span><span>چک‌ها</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="reports"><span class="tab-icon">📊</span><span>گزارش و اهداف</span></button>
+    </div>
+
+    <div class="tab-panel" data-tab="home">
     <div class="bank-card" id="bankCard">
       <div class="bank-card-shine"></div>
       <div class="bank-card-top">
@@ -903,15 +912,9 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       <div id="budgetProgressBox"></div>
       <button type="button" id="shareMonthSummaryBtn" class="ghost-btn" style="width:100%; margin-top:10px;">📤 اشتراک‌گذاری خلاصه‌ی این ماه</button>
     </div>
-
-    <div class="tab-nav" id="tabNav">
-      <button type="button" class="tab-nav-btn active" data-tab="transactions"><span class="tab-icon">💳</span><span>تراکنش‌ها</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="breakdown"><span class="tab-icon">👤</span><span>ریز هر شخص</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="cheques"><span class="tab-icon">🧾</span><span>چک‌ها</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="reports"><span class="tab-icon">📊</span><span>گزارش و اهداف</span></button>
     </div>
 
-    <div class="tab-panel" data-tab="transactions">
+    <div class="tab-panel" data-tab="transactions" style="display:none;">
     <div class="sub-tab-nav" id="txSubTabNav">
       <button type="button" class="sub-tab-btn active" data-txsubtab="add">ثبت تراکنش جدید</button>
       <button type="button" class="sub-tab-btn" data-txsubtab="list">فهرست تراکنش‌ها</button>
@@ -2510,7 +2513,7 @@ function enterApp(){
   txDatePicker.resetToToday(); txDatePicker.close(); chDatePicker.resetToToday(); chDatePicker.close(); applyTheme(); updateThemeToggleIcon();
   generateRecurringIfDue().then(() => render());
   render();
-  showTab('transactions');
+  showTab('home');
   showTxSubTab('add');
   updateStorageIndicator();
   showStorageBanner();
@@ -2676,6 +2679,11 @@ document.getElementById('changePwForm').addEventListener('submit', async (e) => 
 });
 
 /* ---------- main tabs ---------- */
+function scrollAppToTop(){
+  window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  const wrapEl = document.querySelector('.wrap');
+  if(wrapEl) wrapEl.scrollTop = 0;
+}
 function showTab(tab){
   document.querySelectorAll('.tab-panel').forEach(p => {
     p.style.display = (p.dataset.tab === tab) ? '' : 'none';
@@ -2683,6 +2691,7 @@ function showTab(tab){
   document.querySelectorAll('.tab-nav-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === tab);
   });
+  scrollAppToTop();
 }
 function showTxSubTab(tab){
   document.querySelectorAll('.sub-tab-panel[data-txsubtab]').forEach(p => {
@@ -2691,6 +2700,7 @@ function showTxSubTab(tab){
   document.querySelectorAll('#txSubTabNav .sub-tab-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.txsubtab === tab);
   });
+  scrollAppToTop();
 }
 document.getElementById('txSubTabNav').addEventListener('click', (e) => {
   const btn = e.target.closest('.sub-tab-btn');
@@ -2703,6 +2713,7 @@ function showReportsSubTab(tab){
   document.querySelectorAll('#reportsSubTabNav .sub-tab-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.reportsubtab === tab);
   });
+  scrollAppToTop();
 }
 document.getElementById('reportsSubTabNav').addEventListener('click', (e) => {
   const btn = e.target.closest('.sub-tab-btn');
@@ -3123,7 +3134,7 @@ function renderAccountsList(){
       return `
       <div class="tag-row" style="flex-direction:column; align-items:stretch; gap:6px; border-bottom:1px dashed var(--line); padding-bottom:10px; margin-bottom:10px;">
         <div style="display:flex; align-items:center; justify-content:space-between;">
-          <div><b>${escapeHtml(u)}</b> <span style="color:var(--ink-soft); font-size:12px;">— ${escapeHtml(pName)}</span> ${u==='admin'?'<span class="admin-badge">مدیر</span>':''}</div>
+          <div><b>${escapeHtml(u)}</b> <span style="color:var(--ink-soft); font-size:12px;">— ${escapeHtml(pName)}</span></div>
           ${isMe ? '' : `<button type="button" class="mini-del" data-del-acc="${escapeHtml(u)}" title="حذف حساب">✕</button>`}
         </div>
         <div style="display:flex; gap:6px;">
@@ -4091,7 +4102,6 @@ function render(){
   document.title = data.title;
   document.getElementById('pageTitle').textContent = data.title;
   document.getElementById('whoName').textContent = personName(currentUserId);
-  document.getElementById('adminTag').style.display = isCurrentAdmin() ? 'inline-block' : 'none';
   document.getElementById('amountLbl').textContent = `مبلغ (${data.currency})`;
   const chAmountLblEl = document.getElementById('chAmountLbl');
   if(chAmountLblEl) chAmountLblEl.textContent = `مبلغ (${data.currency})`;
@@ -4596,6 +4606,7 @@ document.getElementById('chSubTabNav').addEventListener('click', (e) => {
     p.style.display = (p.dataset.chsubtab === tab) ? '' : 'none';
   });
   document.querySelectorAll('#chSubTabNav .sub-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+  scrollAppToTop();
 });
 document.querySelectorAll('.ch-filter-btn').forEach(btn => {
   btn.addEventListener('click', () => {

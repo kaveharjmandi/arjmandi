@@ -20,30 +20,24 @@ html,body{margin:0;padding:0;}
 body{ font-family:'Vazirmatn',sans-serif; min-height:100vh; }
 
 /* ================= THEMES ================= */
-body[data-theme="grape"]{
-  --bg:#F7F1F6; --bg-deep:#ECE0EA; --line:#E0CCDE; --ink:#2E1A38; --ink-soft:#6E5A78;
-  --accent:#6B2D5C; --accent-deep:#4A1F40; --accent2:#5C7A3D; --accent2-deep:#3F5828;
-  --credit:#4C7A3D; --debit:#8B3A56; --card-bg:#FFFFFF;
+body[data-theme="light"]{
+  --bg:#F7F5FA; --bg-deep:#ECE8F3; --line:#E1DCEC; --ink:#211C2E; --ink-soft:#655D78;
+  --accent:#7A2E68; --accent-deep:#591F4B; --accent2:#2E7D5B; --accent2-deep:#1F5940;
+  --credit:#1E8F52; --debit:#C22C56; --card-bg:#FFFFFF;
+  --warn-bg:#FFF4E5; --warn-border:#F0B860; --warn-text:#8A5A00;
   background-color:var(--bg);
   background-image:
-    radial-gradient(ellipse 700px 400px at 100% -10%, rgba(107,45,92,0.10), transparent 60%),
-    radial-gradient(ellipse 600px 400px at -10% 110%, rgba(92,122,61,0.10), transparent 55%);
+    radial-gradient(ellipse 700px 400px at 100% -10%, rgba(122,46,104,0.08), transparent 60%),
+    radial-gradient(ellipse 600px 400px at -10% 110%, rgba(46,125,91,0.07), transparent 55%);
   background-attachment:fixed;
 }
-body[data-theme="classic"]{
-  --bg:#F1ECDC; --bg-deep:#E8E1CC; --line:#C3CBB4; --ink:#1F2D24; --ink-soft:#5B6A5C;
-  --accent:#A9822C; --accent-deep:#8A6A20; --accent2:#3B6B4A; --accent2-deep:#2D5138;
-  --credit:#3B6B4A; --debit:#8B3A3A; --card-bg:#FBF9F2;
+body[data-theme="dark"]{
+  --bg:#121017; --bg-deep:#0A090E; --line:#2B2735; --ink:#F3F0F8; --ink-soft:#B0A8C0;
+  --accent:#E27DC4; --accent-deep:#C25FA8; --accent2:#4FD69C; --accent2-deep:#34B384;
+  --credit:#4FD69C; --debit:#FF6B85; --card-bg:#1C1926;
+  --warn-bg:#3A2D12; --warn-border:#B8863C; --warn-text:#F0C878;
   background-color:var(--bg);
-  background-image: linear-gradient(var(--line) 1px, transparent 1px);
-  background-size: 100% 40px; background-position: 0 120px;
-}
-body[data-theme="slate"]{
-  --bg:#111826; --bg-deep:#0B0F17; --line:#243046; --ink:#E9EEF5; --ink-soft:#8B98AD;
-  --accent:#2FA6A0; --accent-deep:#1F7B76; --accent2:#5B84DA; --accent2-deep:#3D5FAE;
-  --credit:#3FBF8F; --debit:#E06B84; --card-bg:#161F30;
-  background-color:var(--bg);
-  background-image: radial-gradient(circle at 15% -10%, rgba(47,166,160,0.14), transparent 50%);
+  background-image: radial-gradient(circle at 15% -10%, rgba(226,125,196,0.10), transparent 50%);
   background-attachment:fixed;
 }
 
@@ -122,6 +116,12 @@ h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
 .user-bar button#backupBtn, .user-bar button#restoreBtn{ background:var(--accent2); }
 .user-bar button#changePwBtn{ background:var(--bg-deep); color:var(--ink); }
 .user-bar button#logoutBtn{ background:transparent; border:1.5px solid var(--debit); color:var(--debit); padding:6px 12px; }
+.user-bar button#themeToggleBtn{
+  background:var(--card-bg); color:var(--accent); width:38px; height:38px; padding:0;
+  border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px;
+  border:2px solid var(--accent); transition: transform .3s ease, background .2s ease;
+}
+.user-bar button#themeToggleBtn:active{ transform:scale(0.88) rotate(15deg); }
 .admin-badge{ font-size:10px; background:var(--accent); color:#fff; border-radius:4px; padding:2px 6px; }
 .storage-indicator-pill{
   font-size:10px; color:var(--ink-soft); background:var(--bg); border-radius:999px; padding:3px 9px;
@@ -388,7 +388,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 @keyframes tabFade{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
 
 /* ================= CHEQUES ================= */
-.cheque-alert-banner{ background:#FFF4E5; border:1px solid #F0B860; color:#8A5A00; border-radius:12px; padding:10px 12px; font-size:12.5px; line-height:1.9; margin-bottom:12px; }
+.cheque-alert-banner{ background:var(--warn-bg); border:1px solid var(--warn-border); color:var(--warn-text); border-radius:12px; padding:10px 12px; font-size:12.5px; line-height:1.9; margin-bottom:12px; }
 .cheque-alert-banner b{ display:block; margin-bottom:2px; font-size:13px; }
 .cheque-row{ display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--line); }
 .cheque-row:last-child{ border-bottom:none; }
@@ -399,7 +399,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .cheque-title{ font-size:13.5px; font-weight:700; color:var(--ink); }
 .cheque-sub{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
 .cheque-badge{ display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px; margin-inline-start:6px; }
-.cheque-badge.due-soon{ background:#FFF4E5; color:#8A5A00; }
+.cheque-badge.due-soon{ background:var(--warn-bg); color:var(--warn-text); }
 .cheque-badge.overdue{ background:rgba(139,58,86,0.15); color:var(--debit); }
 .cheque-badge.cashed{ background:rgba(76,122,61,0.15); color:var(--credit); }
 .cheque-badge.bounced{ background:rgba(139,58,86,0.15); color:var(--debit); }
@@ -523,7 +523,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
-<body data-theme="grape">
+<body data-theme="light">
 <div class="wrap">
   <div id="pullRefreshIndicator" class="pull-refresh-indicator"></div>
   <div id="loading" class="loading">در حال بارگذاری صندوق…</div>
@@ -854,6 +854,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     <div class="user-bar">
       <div class="who">👤 <span id="whoName"></span> <span id="adminTag" class="admin-badge" style="display:none;">مدیر</span> <span id="storageIndicator" class="storage-indicator-pill"></span></div>
       <div class="actions">
+        <button id="themeToggleBtn" title="تغییر تم">🌙</button>
         <button id="settingsBtn">⚙️ تنظیمات</button>
         <button id="logoutBtn">خروج</button>
       </div>
@@ -1176,7 +1177,7 @@ function defaultData(){
   return {
     schema: 1,
     title: 'گردش مالی خانواده',
-    theme: 'grape',
+    theme: null, // null = follow system preference until user explicitly picks
     currency: 'تومان',
     people: [
       { id:'kaveh', name:'کاوه', isAdmin:true, canLogin:true, avatar:'👨', color:'#6B2D5C' },
@@ -1481,7 +1482,7 @@ async function loadData(){
       sbLastSavedJson = JSON.stringify(sbData);
       const d = defaultData();
       if(!data.categories) data.categories = d.categories;
-      if(!data.theme) data.theme = 'grape';
+      if(data.theme === 'grape' || data.theme === 'classic' || data.theme === 'slate' || data.theme === 'auto') data.theme = (data.theme === 'slate') ? 'dark' : (data.theme === 'auto' ? null : 'light');
       if(!data.title) data.title = d.title;
       if(!data.currency) data.currency = d.currency;
       if(!Array.isArray(data.transactions)) data.transactions = [];
@@ -1500,7 +1501,7 @@ async function loadData(){
       }
       const d = defaultData();
       if(!data.categories) data.categories = d.categories;
-      if(!data.theme) data.theme = 'grape';
+      if(data.theme === 'grape' || data.theme === 'classic' || data.theme === 'slate' || data.theme === 'auto') data.theme = (data.theme === 'slate') ? 'dark' : (data.theme === 'auto' ? null : 'light');
       if(!data.title) data.title = d.title;
       if(!data.currency) data.currency = d.currency;
       if(!Array.isArray(data.transactions)) data.transactions = [];
@@ -1518,7 +1519,7 @@ async function loadData(){
         data = JSON.parse(res.value);
         const d = defaultData();
         if(!data.categories) data.categories = d.categories;
-        if(!data.theme) data.theme = 'grape';
+        if(data.theme === 'grape' || data.theme === 'classic' || data.theme === 'slate' || data.theme === 'auto') data.theme = (data.theme === 'slate') ? 'dark' : (data.theme === 'auto' ? null : 'light');
         if(!data.title) data.title = d.title;
         if(!data.currency) data.currency = d.currency;
         if(!Array.isArray(data.transactions)) data.transactions = [];
@@ -2493,7 +2494,7 @@ function enterApp(){
   document.getElementById('personSelect').value = '';
   currentType = 'income';
   currentFilter = 'all';
-  txDatePicker.resetToToday(); txDatePicker.close(); chDatePicker.resetToToday(); chDatePicker.close(); applyTheme();
+  txDatePicker.resetToToday(); txDatePicker.close(); chDatePicker.resetToToday(); chDatePicker.close(); applyTheme(); updateThemeToggleIcon();
   generateRecurringIfDue().then(() => render());
   render();
   showTab('transactions');
@@ -2704,6 +2705,7 @@ document.getElementById('tabNav').addEventListener('click', (e) => {
 });
 
 /* ---------- settings ---------- */
+document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
 document.getElementById('settingsBtn').addEventListener('click', () => {
   document.getElementById('settingsWhoName').textContent = personName(currentUserId);
   document.getElementById('adminPanelBtn').style.display = isCurrentAdmin() ? 'flex' : 'none';
@@ -3206,18 +3208,16 @@ function renderAdminPanel(){
   };
 
   const themes = [
-    { id:'grape', label:'انگور 🍇', color:'#6B2D5C' },
-    { id:'classic', label:'کلاسیک 📜', color:'#A9822C' },
-    { id:'slate', label:'مدرن تیره 🌙', color:'#2FA6A0' },
-    { id:'auto', label:'خودکار (سیستم) ⚙️', color:'linear-gradient(90deg,#6B2D5C,#2FA6A0)' }
+    { id:'light', label:'روشن ☀️', color:'#F7F5FA' },
+    { id:'dark', label:'تیره 🌙', color:'#121017' }
   ];
   document.getElementById('themeOptions').innerHTML = themes.map(t => `
     <div class="theme-swatch ${data.theme===t.id?'active':''}" data-theme-id="${t.id}">
-      <div class="swatch-dot" style="background:${t.color}"></div>${t.label}
+      <div class="swatch-dot" style="background:${t.color}; border:1px solid var(--line);"></div>${t.label}
     </div>`).join('');
   document.querySelectorAll('.theme-swatch').forEach(el => {
     el.addEventListener('click', async () => {
-      data.theme = el.dataset.themeId; await saveData(); applyTheme(); renderAdminPanel();
+      data.theme = el.dataset.themeId; await saveData(); applyTheme(); renderAdminPanel(); updateThemeToggleIcon();
     });
   });
 
@@ -3226,13 +3226,29 @@ function renderAdminPanel(){
   document.getElementById('txt_title').onchange = async (e) => { data.title = e.target.value.trim() || 'گردش مالی خانواده'; await saveData(); render(); };
   document.getElementById('txt_currency').onchange = async (e) => { data.currency = e.target.value.trim() || 'تومان'; await saveData(); render(); };
 }
+function resolvedTheme(){
+  if(data.theme === 'light' || data.theme === 'dark') return data.theme;
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return prefersDark ? 'dark' : 'light';
+}
 function applyTheme(){
-  let theme = data.theme || 'grape';
-  if(theme === 'auto'){
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    theme = prefersDark ? 'slate' : 'grape';
-  }
+  const theme = resolvedTheme();
   document.body.setAttribute('data-theme', theme);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.setAttribute('content', theme === 'dark' ? '#121017' : '#7A2E68');
+}
+function updateThemeToggleIcon(){
+  const btn = document.getElementById('themeToggleBtn');
+  if(!btn) return;
+  const theme = resolvedTheme();
+  btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  btn.title = theme === 'dark' ? 'رفتن به تم روشن' : 'رفتن به تم تیره';
+}
+async function toggleTheme(){
+  data.theme = (resolvedTheme() === 'dark') ? 'light' : 'dark';
+  await saveData();
+  applyTheme();
+  updateThemeToggleIcon();
 }
 
 /* ---------- monthly insights ---------- */
@@ -4801,6 +4817,12 @@ function checkDuplicateTransaction(desc, amount, personId){
 async function init(){
   await loadData();
   applyTheme();
+  updateThemeToggleIcon();
+  if(window.matchMedia){
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if(data.theme !== 'light' && data.theme !== 'dark'){ applyTheme(); updateThemeToggleIcon(); }
+    });
+  }
   txDatePicker.resetToToday();
   chDatePicker.resetToToday();
   setType('income');

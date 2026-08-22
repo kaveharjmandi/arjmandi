@@ -752,6 +752,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         <div class="settings-icon">⬇️</div>
         <div class="settings-text">
           <div class="settings-title">پشتیبان‌گیری (JSON)</div>
+          <div class="settings-sub">هر روز که اپ رو باز کنید، خودکار هم دانلود می‌شه</div>
         </div>
         <div class="settings-chevron">‹</div>
       </div>
@@ -1556,7 +1557,52 @@ async function loadData(){
   showStorageBanner();
   updateStorageIndicator();
 }
+/* ---------- safe merge before saving (prevents one stale device from
+   silently wiping out records another device already added) ---------- */
+function mergeItemKey(item){ return (item && item.id != null) ? ('id:' + item.id) : JSON.stringify(item); }
+function mergeArraysSafely(localArr, serverArr){
+  localArr = Array.isArray(localArr) ? localArr : [];
+  serverArr = Array.isArray(serverArr) ? serverArr : [];
+  const map = new Map();
+  serverArr.forEach(item => { if(item) map.set(mergeItemKey(item), item); });
+  localArr.forEach(item => {
+    if(!item) return;
+    const k = mergeItemKey(item);
+    const existing = map.get(k);
+    if(!existing){ map.set(k, item); return; }
+    const localTime = item.editedAt || item.createdAt || item.at || 0;
+    const existingTime = existing.editedAt || existing.createdAt || existing.at || 0;
+    map.set(k, localTime >= existingTime ? item : existing);
+  });
+  return Array.from(map.values());
+}
+async function mergeWithServerBeforeSave(){
+  if(!sb) return;
+  try{
+    const serverData = await sbLoad();
+    if(!serverData || typeof serverData !== 'object') return;
+    data.transactions = mergeArraysSafely(data.transactions, serverData.transactions);
+    data.cheques = mergeArraysSafely(data.cheques, serverData.cheques);
+    data.goals = mergeArraysSafely(data.goals, serverData.goals);
+    data.loans = mergeArraysSafely(data.loans, serverData.loans);
+    data.people = mergeArraysSafely(data.people, serverData.people);
+    if(Array.isArray(serverData.activityLog) || Array.isArray(data.activityLog)){
+      data.activityLog = mergeArraysSafely(data.activityLog, serverData.activityLog)
+        .sort((a,b) => (b.at||0) - (a.at||0)).slice(0, 300);
+    }
+    data.auth = Object.assign({}, serverData.auth || {}, data.auth || {});
+    if(serverData.budgets) data.budgets = Object.assign({}, serverData.budgets, data.budgets || {});
+    if(serverData.categories){
+      data.categories = data.categories || { income:[], expense:[] };
+      data.categories.income = Array.from(new Set([...(serverData.categories.income||[]), ...(data.categories.income||[])]));
+      data.categories.expense = Array.from(new Set([...(serverData.categories.expense||[]), ...(data.categories.expense||[])]));
+    }
+  }catch(e){
+    console.warn('Pre-save merge failed, saving local copy as-is', e);
+  }
+}
 async function saveData(){
+  await mergeWithServerBeforeSave();
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
   const sbOk = await sbSave(data);
   if(sbOk){
@@ -2502,9 +2548,27 @@ document.addEventListener('visibilitychange', () => {
       renderLoginScreen();
     }
     try{ sessionStorage.removeItem('sandoogh-hidden-at'); }catch(e){}
-    if(currentUserId) sbUpdatePresence();
+    if(currentUserId){
+      sbUpdatePresence();
+      refreshFromServerIfStale();
+    }
   }
 });
+async function refreshFromServerIfStale(){
+  if(!sb) return;
+  try{
+    const serverData = await sbLoad();
+    if(!serverData || typeof serverData !== 'object') return;
+    if(JSON.stringify(serverData) === sbLastSavedJson) return; // nothing new
+    data = serverData;
+    mergeDefaults();
+    sbLastSavedJson = JSON.stringify(serverData);
+    try{ localStorage.setItem(STORAGE_KEY, sbLastSavedJson); }catch(e){}
+    if(document.getElementById('app').style.display !== 'none') render();
+  }catch(e){
+    console.warn('refreshFromServerIfStale failed', e);
+  }
+}
 function enterApp(){
   document.getElementById('changePwCard').style.display = 'none';
   document.getElementById('personSelect').value = '';
@@ -2521,6 +2585,7 @@ function enterApp(){
   checkNoEntryReminder();
   saveSession();
   startPresenceHeartbeat();
+  setTimeout(maybeAutoBackupLocally, 1800);
 }
 document.getElementById('logoutBtn').addEventListener('click', () => { stopPresenceHeartbeat(); currentUserId = null; currentUsername = null; clearSession(); renderLoginScreen(); showSuccessToast('با موفقیت خارج شدید'); });
 
@@ -2535,6 +2600,19 @@ function exportBackup(){
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+/* ---------- automatic local backup (downloads a file when the app is opened, if due) ---------- */
+const AUTO_BACKUP_INTERVAL_DAYS = 1;
+function maybeAutoBackupLocally(){
+  try{
+    const last = Number(localStorage.getItem('sandoogh-last-auto-backup') || 0);
+    const dueMs = AUTO_BACKUP_INTERVAL_DAYS * 24 * 60 * 60 * 1000;
+    if(Date.now() - last < dueMs) return;
+    if(!data.transactions || !data.transactions.length) return; // nothing worth backing up yet
+    exportBackup();
+    localStorage.setItem('sandoogh-last-auto-backup', String(Date.now()));
+    showSuccessToast('پشتیبان امروز خودکار دانلود شد 📥');
+  }catch(e){ console.warn('Auto backup failed', e); }
 }
 function mergeImportedData(imported){
   if(!Array.isArray(imported.transactions)) return false;

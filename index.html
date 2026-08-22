@@ -726,7 +726,10 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
       <h1>تنظیمات</h1>
     </header>
     <div class="user-bar">
-      <div class="who">👤 <span id="settingsWhoName"></span></div>
+      <div class="who">
+        <button id="themeToggleBtn" title="تغییر تم">🌙</button>
+        👤 <span id="settingsWhoName"></span>
+      </div>
     </div>
 
     <div class="card settings-card">
@@ -900,17 +903,11 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
   <div id="app" style="display:none;">
     <header class="site-header app-header-bar">
       <button id="settingsBtn" class="hamburger-btn" title="تنظیمات">☰</button>
-      <div class="app-header-titles">
-        <div class="brand-tag">Ariana APP</div>
-        <h1 id="pageTitle">گردش مالی خانواده</h1>
-      </div>
-      <span class="header-spacer"></span>
     </header>
 
     <div class="user-bar">
       <div class="who">👤 <span id="whoName"></span> <span id="storageIndicator" class="storage-indicator-pill"></span></div>
       <div class="actions">
-        <button id="themeToggleBtn" title="تغییر تم">🌙</button>
         <button id="logoutBtn" title="خروج">🚪</button>
       </div>
     </div>
@@ -4232,7 +4229,6 @@ document.getElementById('periodTodayLink').addEventListener('click', () => {
 /* ---------- render ---------- */
 function render(){
   document.title = data.title;
-  document.getElementById('pageTitle').textContent = data.title;
   document.getElementById('whoName').textContent = personName(currentUserId);
   document.getElementById('amountLbl').textContent = `مبلغ (${data.currency})`;
   const chAmountLblEl = document.getElementById('chAmountLbl');
@@ -4663,6 +4659,8 @@ function setupPullToRefresh(){
   if(!wrap || !indicator) return;
   let startY = 0, pulling = false;
   wrap.addEventListener('touchstart', (e) => {
+    const drawerOpen = document.getElementById('settingsScreen').classList.contains('open');
+    if(drawerOpen) return;
     if(window.scrollY <= 0 && document.getElementById('app').style.display !== 'none'){
       startY = e.touches[0].clientY; pulling = true;
     }

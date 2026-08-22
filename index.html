@@ -722,15 +722,9 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
   <div id="settingsDrawerBackdrop" class="drawer-backdrop"></div>
   <div id="settingsScreen" class="settings-drawer">
     <header class="site-header">
-      <button id="settingsCloseBtn" class="drawer-close-btn" title="بستن">✕</button>
       <h1>تنظیمات</h1>
+      <button id="themeToggleBtn" class="drawer-close-btn" title="تغییر تم">🌙</button>
     </header>
-    <div class="user-bar">
-      <div class="who">
-        <button id="themeToggleBtn" title="تغییر تم">🌙</button>
-        👤 <span id="settingsWhoName"></span>
-      </div>
-    </div>
 
     <div class="card settings-card">
       <div class="settings-item" id="adminPanelBtn" style="display:none;">
@@ -784,6 +778,19 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
         </div>
         <div class="pw-msg" id="pinSetupMsg"></div>
         <button type="button" id="pinSetupSaveBtn" class="submit-btn">ذخیره PIN</button>
+      </div>
+
+      <div class="settings-item" style="align-items:center;">
+        <div class="settings-icon">⏱️</div>
+        <div class="settings-text">
+          <div class="settings-title">قفل خودکار پس از عدم فعالیت</div>
+        </div>
+        <select id="autoLockSelect" style="border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:6px 8px; font-family:'Vazirmatn',sans-serif; font-size:12px; color:var(--ink);">
+          <option value="5">۵ دقیقه</option>
+          <option value="15">۱۵ دقیقه</option>
+          <option value="30">۳۰ دقیقه</option>
+          <option value="60">۱ ساعت</option>
+        </select>
       </div>
 
       <div class="settings-item" id="backupBtn">
@@ -1258,7 +1265,8 @@ function defaultData(){
     goals: [],
     loans: [],
     streak: { count: 0, lastDateIso: null, longest: 0 },
-    badges: []
+    badges: [],
+    autoLockMinutes: 15
   };
 }
 
@@ -1312,6 +1320,7 @@ function mergeDefaults(){
   if(!data.streak) data.streak = { count: 0, lastDateIso: null, longest: 0 };
   if(!Array.isArray(data.badges)) data.badges = [];
   if(!data.auth) data.auth = {};
+  if(!data.autoLockMinutes) data.autoLockMinutes = 15;
   migrateRialToTomanIfNeeded();
   // migrate old scheme where the auth key WAS the personId (no explicit personId field yet)
   Object.keys(data.auth).forEach(key => {
@@ -2859,13 +2868,17 @@ document.getElementById('tabNav').addEventListener('click', (e) => {
 /* ---------- settings ---------- */
 document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
 document.getElementById('settingsBtn').addEventListener('click', () => {
-  document.getElementById('settingsWhoName').textContent = personName(currentUserId);
   document.getElementById('adminPanelBtn').style.display = isCurrentAdmin() ? 'flex' : 'none';
   document.getElementById('changePwCard').style.display = 'none';
   renderFingerprintSection();
+  document.getElementById('autoLockSelect').value = String(data.autoLockMinutes || 15);
   openSettingsDrawer();
 });
-document.getElementById('settingsCloseBtn').addEventListener('click', closeSettingsDrawer);
+document.getElementById('autoLockSelect').addEventListener('change', async (e) => {
+  data.autoLockMinutes = Number(e.target.value) || 15;
+  await saveData();
+  showSuccessToast('زمان قفل خودکار ذخیره شد');
+});
 
 function renderFingerprintSection(){
   const row = document.getElementById('fpToggleRow');
@@ -4934,14 +4947,14 @@ async function subscribeToPush(){
 
 /* ---------- init ---------- */
 /* ---------- auto logout on inactivity ---------- */
-const IDLE_LIMIT_MS = 15 * 60 * 1000; // 15 minutes
+function idleLimitMs(){ return (Number(data.autoLockMinutes) || 15) * 60 * 1000; }
 let lastActivityAt = Date.now();
 ['click','keydown','touchstart','mousemove','scroll'].forEach(evt => {
   document.addEventListener(evt, () => { lastActivityAt = Date.now(); }, { passive:true });
 });
 setInterval(() => {
   const appVisible = document.getElementById('app').style.display !== 'none';
-  if(appVisible && currentUserId && (Date.now() - lastActivityAt) > IDLE_LIMIT_MS){
+  if(appVisible && currentUserId && (Date.now() - lastActivityAt) > idleLimitMs()){
     currentUserId = null; currentUsername = null;
     renderLoginScreen();
     document.getElementById('pwError').textContent = 'به‌خاطر عدم فعالیت، خودکار خارج شدید.';

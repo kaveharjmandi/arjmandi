@@ -45,6 +45,34 @@ body[data-theme="dark"]{
 .wrap{ max-width:520px; margin:0 auto; padding:26px 20px 100px 20px; position:relative; }
 .site-header{ margin-bottom:18px; text-align:center; }
 .brand-tag{ font-size:11.5px; font-weight:700; letter-spacing:.5px; color:var(--accent); text-transform:uppercase; margin-bottom:2px; }
+.app-header-bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.app-header-titles{ flex:1; min-width:0; }
+.header-spacer{ width:40px; flex-shrink:0; }
+.hamburger-btn{
+  width:40px; height:40px; flex-shrink:0; border-radius:12px; background:var(--card-bg);
+  border:1px solid var(--line); font-size:19px; color:var(--ink); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.hamburger-btn:active{ background:var(--bg); }
+
+/* settings side drawer */
+.drawer-backdrop{
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:90;
+}
+.drawer-backdrop.show{ display:block; }
+.settings-drawer{
+  position:fixed; top:0; right:0; bottom:0; width:86%; max-width:360px;
+  background:var(--bg); z-index:95; box-shadow:-8px 0 28px rgba(0,0,0,0.28);
+  transform:translateX(100%); transition:transform .25s ease;
+  overflow-y:auto; padding:20px 18px 40px;
+}
+.settings-drawer.open{ transform:translateX(0); }
+.settings-drawer .site-header{ display:flex; align-items:center; gap:10px; text-align:right; margin-bottom:14px; }
+.settings-drawer .site-header h1{ flex:1; }
+.drawer-close-btn{
+  width:34px; height:34px; flex-shrink:0; border-radius:50%; border:1px solid var(--line);
+  background:var(--card-bg); color:var(--ink-soft); font-size:15px; cursor:pointer;
+}
 h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
 
 .card{
@@ -351,6 +379,10 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .live-clock{
   text-align:center; font-size:12px; color:var(--ink-soft); padding:16px 0 4px;
   font-family:'IBM Plex Mono',monospace; letter-spacing:0.3px;
+}
+.app-footer{ padding-bottom:14px; }
+.app-credit{
+  text-align:center; font-size:11px; color:var(--ink-soft); opacity:0.7; margin-top:2px;
 }
 
 .pw-msg{font-size:12px; margin-top:6px; min-height:16px;}
@@ -687,11 +719,14 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
   </div>
 
   <!-- SETTINGS -->
-  <div id="settingsScreen" style="display:none;">
-    <header class="site-header"><h1>تنظیمات</h1></header>
+  <div id="settingsDrawerBackdrop" class="drawer-backdrop"></div>
+  <div id="settingsScreen" class="settings-drawer">
+    <header class="site-header">
+      <button id="settingsCloseBtn" class="drawer-close-btn" title="بستن">✕</button>
+      <h1>تنظیمات</h1>
+    </header>
     <div class="user-bar">
       <div class="who">👤 <span id="settingsWhoName"></span></div>
-      <div class="actions"><button id="settingsBackBtn">‹ بازگشت به صندوق</button></div>
     </div>
 
     <div class="card settings-card">
@@ -863,13 +898,19 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 
   <!-- MAIN APP -->
   <div id="app" style="display:none;">
-    <header class="site-header"><div class="brand-tag">Ariana APP</div><h1 id="pageTitle">گردش مالی خانواده</h1></header>
+    <header class="site-header app-header-bar">
+      <button id="settingsBtn" class="hamburger-btn" title="تنظیمات">☰</button>
+      <div class="app-header-titles">
+        <div class="brand-tag">Ariana APP</div>
+        <h1 id="pageTitle">گردش مالی خانواده</h1>
+      </div>
+      <span class="header-spacer"></span>
+    </header>
 
     <div class="user-bar">
       <div class="who">👤 <span id="whoName"></span> <span id="storageIndicator" class="storage-indicator-pill"></span></div>
       <div class="actions">
         <button id="themeToggleBtn" title="تغییر تم">🌙</button>
-        <button id="settingsBtn" title="تنظیمات">⚙️</button>
         <button id="logoutBtn" title="خروج">🚪</button>
       </div>
     </div>
@@ -1171,7 +1212,10 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
     </div>
   </div>
 
-  <footer id="liveClock" class="live-clock"></footer>
+  <footer class="app-footer">
+    <div id="liveClock" class="live-clock"></div>
+    <div class="app-credit">ساخته شده توسط کاوه ارجمندی</div>
+  </footer>
 </div>
 
 <script>
@@ -2282,10 +2326,19 @@ const chDatePicker = makeDatePicker({ display:'chDateDisplay', input:'chDateInpu
 
 /* ---------- screens ---------- */
 function showScreen(id){
-  ['loading','pinlockScreen','login','app','adminScreen','settingsScreen'].forEach(s => {
+  ['loading','pinlockScreen','login','app','adminScreen'].forEach(s => {
     document.getElementById(s).style.display = (s === id) ? '' : 'none';
   });
 }
+function openSettingsDrawer(){
+  document.getElementById('settingsScreen').classList.add('open');
+  document.getElementById('settingsDrawerBackdrop').classList.add('show');
+}
+function closeSettingsDrawer(){
+  document.getElementById('settingsScreen').classList.remove('open');
+  document.getElementById('settingsDrawerBackdrop').classList.remove('show');
+}
+document.getElementById('settingsDrawerBackdrop').addEventListener('click', closeSettingsDrawer);
 
 /* ---------- quick PIN lock (per device) ---------- */
 function pinKey(username){ return 'sandoogh-pin-' + username; }
@@ -2587,7 +2640,7 @@ function enterApp(){
   startPresenceHeartbeat();
   setTimeout(maybeAutoBackupLocally, 1800);
 }
-document.getElementById('logoutBtn').addEventListener('click', () => { stopPresenceHeartbeat(); currentUserId = null; currentUsername = null; clearSession(); renderLoginScreen(); showSuccessToast('با موفقیت خارج شدید'); });
+document.getElementById('logoutBtn').addEventListener('click', () => { closeSettingsDrawer(); stopPresenceHeartbeat(); currentUserId = null; currentUsername = null; clearSession(); renderLoginScreen(); showSuccessToast('با موفقیت خارج شدید'); });
 
 /* ---------- backup / restore ---------- */
 function exportBackup(){
@@ -2813,9 +2866,9 @@ document.getElementById('settingsBtn').addEventListener('click', () => {
   document.getElementById('adminPanelBtn').style.display = isCurrentAdmin() ? 'flex' : 'none';
   document.getElementById('changePwCard').style.display = 'none';
   renderFingerprintSection();
-  showScreen('settingsScreen');
+  openSettingsDrawer();
 });
-document.getElementById('settingsBackBtn').addEventListener('click', () => { showScreen('app'); render(); });
+document.getElementById('settingsCloseBtn').addEventListener('click', closeSettingsDrawer);
 
 function renderFingerprintSection(){
   const row = document.getElementById('fpToggleRow');
@@ -3101,9 +3154,10 @@ document.getElementById('shareSummaryBtn').addEventListener('click', shareSummar
 document.getElementById('adminPanelBtn').addEventListener('click', () => {
   document.getElementById('adminWhoName').textContent = personName(currentUserId);
   renderAdminPanel();
+  closeSettingsDrawer();
   showScreen('adminScreen');
 });
-document.getElementById('adminBackBtn').addEventListener('click', () => { showScreen('settingsScreen'); });
+document.getElementById('adminBackBtn').addEventListener('click', () => { showScreen('app'); render(); openSettingsDrawer(); });
 
 function renderCatList(containerId, catType){
   const container = document.getElementById(containerId);

@@ -1378,7 +1378,7 @@ body.offline-mode{ padding-top:38px; }
     <div class="tab-panel" data-tab="reports" style="display:none;">
     <div class="sub-tab-nav" id="reportsSubTabNav">
       <button type="button" class="sub-tab-btn active" data-reportsubtab="charts">نمودارها</button>
-      <button type="button" class="sub-tab-btn" data-reportsubtab="goals">اهداف و وام</button>
+      <button type="button" class="sub-tab-btn" data-reportsubtab="goals">اهداف، وام و بدهی</button>
     </div>
 
     <div class="sub-tab-panel" data-reportsubtab="charts">
@@ -1469,7 +1469,31 @@ body.offline-mode{ padding-top:38px; }
           <div class="field"><label>تعداد کل اقساط</label><input type="number" id="newLoanCount" min="1"></div>
           <div class="field"><label>اقساط پرداخت‌شده تا الان</label><input type="number" id="newLoanPaidCount" min="0" value="0"></div>
         </div>
+        <div class="field"><label>روز سررسید هر ماه (اختیاری)</label><input type="number" id="newLoanDueDay" min="1" max="30" placeholder="مثلاً ۱۵"></div>
+        <div class="field"><label>پرداخت اقساط از کدام حساب مالی</label><select id="newLoanWallet"></select></div>
         <button type="button" id="createLoanBtn" class="submit-btn">ثبت وام</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🤝 بدهی و طلب</div>
+      <div id="debtsList"></div>
+      <button type="button" id="openNewDebtBtn" class="ghost-btn" style="width:100%; margin-top:8px;">+ ثبت بدهی/طلب جدید</button>
+      <div id="newDebtForm" style="display:none; margin-top:12px; border-top:1px dashed var(--line); padding-top:12px;">
+        <div class="type-toggle">
+          <div class="type-btn income active" data-debtkind="credit" id="debtKindCreditBtn">طلب (کسی به ما بدهکاره)</div>
+          <div class="type-btn expense" data-debtkind="debt" id="debtKindDebtBtn">بدهی (ما بدهکاریم)</div>
+        </div>
+        <div class="login-field"><label>اسم شخص</label><input type="text" id="newDebtPerson"></div>
+        <div class="field"><label>مبلغ کل</label><input type="number" id="newDebtTotal" min="1"></div>
+        <div class="field date-field debt-due-date-field">
+          <label>سررسید (اختیاری)</label>
+          <input type="text" id="newDebtDueDisplay" class="date-display" readonly placeholder="بدون سررسید">
+          <input type="hidden" id="newDebtDueInput">
+          <div id="newDebtDueCalendarPopup" class="calendar-popup" style="display:none;"></div>
+        </div>
+        <div class="login-field"><label>توضیحات (اختیاری)</label><input type="text" id="newDebtNote"></div>
+        <button type="button" id="createDebtBtn" class="submit-btn">ثبت</button>
       </div>
     </div>
     </div>
@@ -1537,7 +1561,8 @@ function defaultData(){
     categoryIcons: {}, // user-chosen emoji overrides for custom categories, keyed by category name
     wallets: [], // real financial accounts (cash/bank/card/savings/...), separate from the
                  // existing per-person "accountId" concept used on transactions
-    transfers: [] // money moved between wallets — never counted as income/expense
+    transfers: [], // money moved between wallets — never counted as income/expense
+    debts: [] // debt/credit tracking: money owed to us ("credit") or money we owe ("debt")
   };
 }
 
@@ -1664,6 +1689,7 @@ function mergeDefaults(){
   if(!data.categoryIcons || typeof data.categoryIcons !== 'object') data.categoryIcons = {};
   if(!Array.isArray(data.wallets)) data.wallets = [];
   if(!Array.isArray(data.transfers)) data.transfers = [];
+  if(!Array.isArray(data.debts)) data.debts = [];
   migrateWalletsIfNeeded();
   migrateRialToTomanIfNeeded();
   // migrate old scheme where the auth key WAS the personId (no explicit personId field yet)
@@ -2026,6 +2052,7 @@ async function mergeWithServerBeforeSave(){
     data.people = mergeArraysSafely('people', data.people, serverData.people, data.tombstones);
     data.wallets = mergeArraysSafely('wallets', data.wallets, serverData.wallets, data.tombstones);
     data.transfers = mergeArraysSafely('transfers', data.transfers, serverData.transfers, data.tombstones);
+    data.debts = mergeArraysSafely('debts', data.debts, serverData.debts, data.tombstones);
     if(Array.isArray(serverData.activityLog) || Array.isArray(data.activityLog)){
       data.activityLog = mergeArraysSafely('activityLog', data.activityLog, serverData.activityLog, null)
         .sort((a,b) => (b.at||0) - (a.at||0)).slice(0, 300);
@@ -2828,6 +2855,7 @@ const txDatePicker = makeDatePicker({ display:'dateDisplay', input:'dateInput', 
 const chDatePicker = makeDatePicker({ display:'chDateDisplay', input:'chDateInput', popup:'chCalendarPopup' });
 const reportsStartDatePicker = makeDatePicker({ display:'reportsStartDisplay', input:'reportsStartInput', popup:'reportsStartCalendarPopup' });
 const reportsEndDatePicker = makeDatePicker({ display:'reportsEndDisplay', input:'reportsEndInput', popup:'reportsEndCalendarPopup' });
+const newDebtDueDatePicker = makeDatePicker({ display:'newDebtDueDisplay', input:'newDebtDueInput', popup:'newDebtDueCalendarPopup' });
 
 /* ---------- screens ---------- */
 function showScreen(id){
@@ -3301,7 +3329,8 @@ function renderActivityLog(){
     add_tx: '➕ ثبت تراکنش', edit_tx: '✎ ویرایش تراکنش', delete_tx: '✕ حذف تراکنش',
     undo_delete_tx: '↩️ بازگردانی تراکنش', recurring_tx: '🔁 تراکنش خودکار',
     add_account: '👤 ساخت حساب', delete_account: '👤 حذف حساب', reset_password: '🔑 تغییر رمز',
-    add_transfer: '🔁 انتقال بین حساب‌ها'
+    add_transfer: '🔁 انتقال بین حساب‌ها', add_loan: '🏦 ثبت وام', loan_installment: '🏦 پرداخت قسط وام',
+    add_debt: '🤝 ثبت بدهی/طلب', debt_payment: '🤝 پرداخت بدهی/طلب'
   };
   box.innerHTML = log.slice(0, 100).map(entry => {
     const d = new Date(entry.at);
@@ -4831,16 +4860,20 @@ document.getElementById('createLoanBtn').addEventListener('click', async () => {
   const installmentAmount = parseAmountValue(document.getElementById('newLoanInstallment').value);
   const installmentCount = Number(document.getElementById('newLoanCount').value);
   const paidCount = Number(document.getElementById('newLoanPaidCount').value) || 0;
+  const dueDayRaw = Number(document.getElementById('newLoanDueDay').value);
+  const dueDayOfMonth = (dueDayRaw >= 1 && dueDayRaw <= 30) ? dueDayRaw : null;
+  const walletId = document.getElementById('newLoanWallet').value || null;
   if(!name || !totalAmount || !installmentAmount || !installmentCount){
     alert('همه فیلدهای وام رو درست پر کن.'); return;
   }
-  data.loans.push({ id: newId('l'), name, totalAmount, installmentAmount, installmentCount, paidCount, createdAt: Date.now() });
+  data.loans.push({ id: newId('l'), name, totalAmount, installmentAmount, installmentCount, paidCount, dueDayOfMonth, walletId, createdAt: Date.now() });
   logActivity('add_loan', `وام «${name}» ثبت شد`);
   await saveData();
   document.getElementById('newLoanName').value = '';
   clearAmountField('newLoanTotal'); clearAmountField('newLoanInstallment');
   document.getElementById('newLoanCount').value = '';
   document.getElementById('newLoanPaidCount').value = '0';
+  document.getElementById('newLoanDueDay').value = '';
   document.getElementById('newLoanForm').style.display = 'none';
   renderGoalsAndLoans();
   showSuccessToast('وام ثبت شد');
@@ -4853,7 +4886,7 @@ async function payLoanInstallment(id){
   loan.paidCount += 1;
   data.transactions.push({
     id: newId('t'), type:'expense', desc:`قسط وام: ${loan.name}`, amount: loan.installmentAmount, date: todayIso(),
-    personId: currentUserId, category:'قسط وام', loanId: loan.id,
+    personId: currentUserId, accountId: currentUserId, walletId: loan.walletId || null, category:'قسط وام', loanId: loan.id,
     enteredById: currentUserId, createdAt: Date.now()
   });
   logActivity('loan_installment', `قسط «${loan.name}» پرداخت شد (${faDigits(loan.paidCount)}/${faDigits(loan.installmentCount)})`);
@@ -4879,7 +4912,8 @@ function renderLoansList(){
   }
   box.innerHTML = data.loans.map(l => {
     const pct = Math.min(100, Math.round((l.paidCount / l.installmentCount) * 100));
-    const remaining = l.installmentCount - l.paidCount;
+    const remainingCount = l.installmentCount - l.paidCount;
+    const remainingAmount = Math.max(0, l.totalAmount - (l.paidCount * l.installmentAmount));
     const done = l.paidCount >= l.installmentCount;
     return `<div style="background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -4889,19 +4923,135 @@ function renderLoansList(){
       <div style="background:var(--card-bg); border-radius:6px; height:10px; overflow:hidden; margin-bottom:6px;">
         <div style="width:${pct}%; height:100%; background:${done?'var(--credit)':'var(--accent2)'};"></div>
       </div>
-      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); margin-bottom:8px;">
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); margin-bottom:4px;">
         <span>${faDigits(l.paidCount)} از ${faDigits(l.installmentCount)} قسط پرداخت‌شده</span>
-        <span>${done ? '✓ تسویه شد' : `${faDigits(remaining)} قسط مونده`}</span>
+        <span>${done ? '✓ تسویه شد' : `${faDigits(remainingCount)} قسط مونده`}</span>
       </div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); margin-bottom:8px;">
+        <span>مانده بدهی</span>
+        <b style="color:var(--ink); font-family:'IBM Plex Mono',monospace;">${fmt(remainingAmount)} ${data.currency}</b>
+      </div>
+      ${l.dueDayOfMonth ? `<div style="font-size:11px; color:var(--ink-soft); margin-bottom:8px;">سررسید: روز ${faDigits(l.dueDayOfMonth)} هر ماه شمسی</div>` : ''}
       ${done ? '' : `<button type="button" class="ghost-btn" style="width:100%;" data-pay-loan="${l.id}">پرداخت قسط بعدی (${fmt(l.installmentAmount)} ${data.currency})</button>`}
     </div>`;
   }).join('');
   box.querySelectorAll('[data-del-loan]').forEach(btn => btn.addEventListener('click', (e) => deleteLoan(e.target.dataset.delLoan)));
   box.querySelectorAll('[data-pay-loan]').forEach(btn => btn.addEventListener('click', (e) => payLoanInstallment(e.target.dataset.payLoan)));
 }
+
+/* ---------- debts & credits (بدهی و طلب) ---------- */
+let newDebtKind = 'credit';
+document.getElementById('openNewDebtBtn').addEventListener('click', () => {
+  const f = document.getElementById('newDebtForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('debtKindCreditBtn').addEventListener('click', () => {
+  newDebtKind = 'credit';
+  document.getElementById('debtKindCreditBtn').classList.add('active');
+  document.getElementById('debtKindDebtBtn').classList.remove('active');
+});
+document.getElementById('debtKindDebtBtn').addEventListener('click', () => {
+  newDebtKind = 'debt';
+  document.getElementById('debtKindDebtBtn').classList.add('active');
+  document.getElementById('debtKindCreditBtn').classList.remove('active');
+});
+document.getElementById('createDebtBtn').addEventListener('click', async () => {
+  const person = document.getElementById('newDebtPerson').value.trim();
+  const totalAmount = parseAmountValue(document.getElementById('newDebtTotal').value);
+  const dueDate = document.getElementById('newDebtDueInput').value || null;
+  const note = document.getElementById('newDebtNote').value.trim();
+  if(!person || !totalAmount){ alert('اسم شخص و مبلغ کل رو درست پر کن.'); return; }
+  data.debts.push({
+    id: newId('d'), kind: newDebtKind, person, totalAmount, dueDate, note,
+    payments: [], createdAt: Date.now()
+  });
+  logActivity('add_debt', `${newDebtKind==='credit'?'طلب از':'بدهی به'} «${person}» ثبت شد: ${fmt(totalAmount)} ${data.currency}`);
+  await saveData();
+  document.getElementById('newDebtPerson').value = '';
+  clearAmountField('newDebtTotal');
+  document.getElementById('newDebtNote').value = '';
+  document.getElementById('newDebtDueInput').value = '';
+  document.getElementById('newDebtDueDisplay').value = '';
+  document.getElementById('newDebtForm').style.display = 'none';
+  renderDebtsList();
+  showSuccessToast('ثبت شد');
+});
+function debtPaidAmount(d){ return (d.payments || []).reduce((s,p) => s + (p.amount || 0), 0); }
+function debtRemaining(d){ return Math.max(0, (d.totalAmount || 0) - debtPaidAmount(d)); }
+async function payDebtInstallment(id){
+  const d = data.debts.find(x => x.id === id);
+  if(!d) return;
+  const input = document.querySelector(`.debt-pay-input[data-debt-id="${CSS.escape(id)}"]`);
+  const amount = parseAmountValue(input ? input.value : '');
+  if(!amount || amount <= 0){ alert('مبلغ معتبر وارد کن.'); return; }
+  const remaining = debtRemaining(d);
+  const applyAmount = Math.min(amount, remaining);
+  const verb = d.kind === 'credit' ? 'دریافت طلب' : 'پرداخت بدهی';
+  if(!(await confirmAsync(`${verb} ${fmt(applyAmount)} ${data.currency} برای «${d.person}» ثبت بشه؟`))) return;
+  d.payments = d.payments || [];
+  d.payments.push({ id: newId('dp'), amount: applyAmount, date: todayIso(), createdAt: Date.now() });
+  d.editedAt = Date.now();
+  logActivity('debt_payment', `${verb} از/به «${d.person}»: ${fmt(applyAmount)} ${data.currency}`);
+  await saveData();
+  renderDebtsList();
+  showSuccessToast('ثبت شد');
+}
+async function deleteDebt(id){
+  const d = data.debts.find(x => x.id === id);
+  if(!d) return;
+  if(!(await confirmAsync(`${d.kind==='credit'?'طلب از':'بدهی به'} «${d.person}» حذف بشه؟`))) return;
+  data.debts = data.debts.filter(x => x.id !== id);
+  markDeleted('debts', id);
+  await saveData();
+  renderDebtsList();
+}
+function renderDebtsList(){
+  const box = document.getElementById('debtsList');
+  if(!box) return;
+  const debts = data.debts || [];
+  if(debts.length === 0){
+    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🤝</span>هنوز بدهی یا طلبی ثبت نشده.</div>';
+    return;
+  }
+  box.innerHTML = debts.map(d => {
+    const paid = debtPaidAmount(d);
+    const remaining = debtRemaining(d);
+    const pct = d.totalAmount > 0 ? Math.min(100, Math.round((paid / d.totalAmount) * 100)) : 0;
+    const done = remaining <= 0;
+    const isCredit = d.kind === 'credit';
+    const kindLabel = isCredit ? '🟢 طلب از' : '🔴 بدهی به';
+    const barColor = done ? 'var(--credit)' : (isCredit ? 'var(--credit)' : 'var(--debit)');
+    return `<div style="background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <span style="font-weight:700; font-size:13px;">${kindLabel} ${escapeHtml(d.person)}</span>
+        <button type="button" class="mini-del" data-del-debt="${d.id}" title="حذف" aria-label="حذف">✕</button>
+      </div>
+      ${d.note ? `<div style="font-size:11.5px; color:var(--ink-soft); margin-bottom:6px;">${escapeHtml(d.note)}</div>` : ''}
+      <div style="background:var(--card-bg); border-radius:6px; height:10px; overflow:hidden; margin-bottom:6px;">
+        <div style="width:${pct}%; height:100%; background:${barColor};"></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); margin-bottom:8px;">
+        <span>${fmt(paid)} از ${fmt(d.totalAmount)} ${data.currency}</span>
+        <span>${done ? '✓ تسویه شد' : `${fmt(remaining)} مونده`}</span>
+      </div>
+      ${d.dueDate ? `<div style="font-size:11px; color:var(--ink-soft); margin-bottom:8px;">سررسید: ${formatDate(d.dueDate)}</div>` : ''}
+      ${done ? '' : `<div style="display:flex; gap:6px;">
+        <input type="number" class="debt-pay-input" data-debt-id="${d.id}" placeholder="مبلغ پرداخت" min="1" style="flex:1; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); padding:7px 9px; font-size:12px;">
+        <button type="button" class="ghost-btn" data-pay-debt="${d.id}" style="width:auto; padding:0 14px;">ثبت</button>
+      </div>`}
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-del-debt]').forEach(btn => btn.addEventListener('click', (e) => deleteDebt(e.target.dataset.delDebt)));
+  box.querySelectorAll('[data-pay-debt]').forEach(btn => btn.addEventListener('click', (e) => payDebtInstallment(e.target.dataset.payDebt)));
+}
 function renderGoalsAndLoans(){
   renderGoalsList();
+  const walletSel = document.getElementById('newLoanWallet');
+  if(walletSel){
+    walletSel.innerHTML = activeWallets().map(w => `<option value="${w.id}">${walletIcon(w)} ${escapeHtml(w.name)}</option>`).join('');
+  }
   renderLoansList();
+  renderDebtsList();
 }
 
 /* ---------- voice input ---------- */
@@ -6053,6 +6203,10 @@ async function init(){
     const pop = document.getElementById('reportsEndCalendarPopup');
     if(pop.style.display === 'block') reportsEndDatePicker.close(); else reportsEndDatePicker.open();
   });
+  document.getElementById('newDebtDueDisplay').addEventListener('click', () => {
+    const pop = document.getElementById('newDebtDueCalendarPopup');
+    if(pop.style.display === 'block') newDebtDueDatePicker.close(); else newDebtDueDatePicker.open();
+  });
   document.getElementById('reportsStartCalendarPopup').addEventListener('click', (e) => {
     const cell = e.target.closest('.cal-day[data-iso]');
     if(!cell) return;
@@ -6075,6 +6229,8 @@ async function init(){
     if(rptStartField && !path.includes(rptStartField)) reportsStartDatePicker.close();
     const rptEndField = document.querySelector('.rpt-date-field-end');
     if(rptEndField && !path.includes(rptEndField)) reportsEndDatePicker.close();
+    const debtDueField = document.querySelector('.debt-due-date-field');
+    if(debtDueField && !path.includes(debtDueField)) newDebtDueDatePicker.close();
   });
   document.getElementById('reportsPeriodTypeSelect').addEventListener('change', (e) => {
     reportsPeriodType = e.target.value;

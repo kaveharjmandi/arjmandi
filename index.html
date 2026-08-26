@@ -737,6 +737,23 @@ body.offline-mode{ padding-top:38px; }
       </div>
       <div class="admin-section collapsed">
         <button type="button" class="admin-section-toggle" aria-expanded="false">
+          <span class="admin-subtitle">حساب‌ها و کیف‌پول (نقدی، بانکی، کارت و...)</span>
+          <span class="admin-section-chevron">▾</span>
+        </button>
+        <div class="admin-section-body">
+          <div class="section-hint">این‌ها حساب‌های واقعی خانواده‌ن (نقد، بانک، کارت...) — با «حساب‌های کاربری» بالا فرق دارن که برای ورود به برنامه‌ست.</div>
+          <div id="walletsAdminList"></div>
+          <div class="add-row" id="newWalletForm" style="flex-direction:column; align-items:stretch; gap:6px; margin-top:10px;">
+            <input type="text" id="newWalletName" placeholder="اسم حساب (مثلاً: بانک ملت)">
+            <select id="newWalletType"></select>
+            <input type="number" id="newWalletInitial" placeholder="موجودی اولیه" min="0">
+            <input type="text" id="newWalletNote" placeholder="توضیحات (اختیاری)">
+            <button type="button" id="addWalletBtn" style="align-self:flex-start;">افزودن حساب</button>
+          </div>
+        </div>
+      </div>
+      <div class="admin-section collapsed">
+        <button type="button" class="admin-section-toggle" aria-expanded="false">
           <span class="admin-subtitle">بودجه ماهانه دسته‌های برداشت</span>
           <span class="admin-section-chevron">▾</span>
         </button>
@@ -839,6 +856,11 @@ body.offline-mode{ padding-top:38px; }
         <div class="settings-item" data-cat="backup">
           <div class="settings-icon">💾</div>
           <div class="settings-text"><div class="settings-title">پشتیبان‌گیری و بازیابی</div></div>
+          <div class="settings-chevron">‹</div>
+        </div>
+        <div class="settings-item" data-cat="wallets">
+          <div class="settings-icon">💰</div>
+          <div class="settings-text"><div class="settings-title">حساب‌ها و کیف‌پول</div></div>
           <div class="settings-chevron">‹</div>
         </div>
         <div class="settings-item" data-cat="reports">
@@ -979,6 +1001,33 @@ body.offline-mode{ padding-top:38px; }
         <div class="settings-chevron">‹</div>
         <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
       </div>
+      </div>
+    </div>
+
+    <div class="settings-cat-panel" id="catPanel-wallets" style="display:none;">
+      <div class="cat-panel-header"><button type="button" class="cat-back-btn">→ بازگشت</button><div class="section-title">حساب‌ها و کیف‌پول</div></div>
+      <div class="card">
+        <div class="section-title">مجموع دارایی</div>
+        <div id="walletsTotalBox" style="font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:700; color:var(--ink);"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">حساب‌های خانواده</div>
+        <div id="walletsViewList" class="person-breakdown"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">انتقال بین حساب‌ها</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <select id="transferFromWallet"></select>
+          <select id="transferToWallet"></select>
+          <input type="number" id="transferAmount" placeholder="مبلغ" min="0">
+          <input type="text" id="transferDesc" placeholder="توضیح (اختیاری)">
+          <div class="pw-msg" id="transferMsg"></div>
+          <button type="button" id="submitTransferBtn" class="submit-btn">ثبت انتقال</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">انتقال‌های اخیر</div>
+        <div id="recentTransfersList"></div>
       </div>
     </div>
 
@@ -1145,6 +1194,10 @@ body.offline-mode{ padding-top:38px; }
         <div class="field">
           <label id="accountFieldLbl">از حساب کدام‌یک</label>
           <select id="accountSelect"></select>
+        </div>
+        <div class="field">
+          <label id="walletFieldLbl">از/به کدام حساب مالی</label>
+          <select id="walletSelect"></select>
         </div>
         <div class="field" id="categoryFieldWrap">
           <label>دسته‌بندی</label>
@@ -1481,7 +1534,10 @@ function defaultData(){
     autoLockMinutes: 15,
     captchaEnabled: true,
     tombstones: {},
-    categoryIcons: {} // user-chosen emoji overrides for custom categories, keyed by category name
+    categoryIcons: {}, // user-chosen emoji overrides for custom categories, keyed by category name
+    wallets: [], // real financial accounts (cash/bank/card/savings/...), separate from the
+                 // existing per-person "accountId" concept used on transactions
+    transfers: [] // money moved between wallets — never counted as income/expense
   };
 }
 
@@ -1514,6 +1570,73 @@ function migrateRialToTomanIfNeeded(){
   }
   data.migratedRialToToman = true;
 }
+
+/* ---------- real financial accounts ("wallets") ----------
+   NOTE: the app already has an unrelated `tx.accountId` concept meaning "which family
+   member's personal bucket" (see accountOwners()/accountSelect/accountBalancesBox) — that is
+   NOT touched here. This is a separate, orthogonal concept: real-world accounts (cash, bank,
+   card, savings...) that money actually lives in. A transaction can have BOTH a personId/
+   accountId (who it belongs to) and a walletId (which real account it moved through). */
+const WALLET_TYPES = [
+  { id:'cash', label:'کیف پول نقدی', icon:'💵' },
+  { id:'bank', label:'حساب بانکی', icon:'🏦' },
+  { id:'card', label:'کارت بانکی', icon:'💳' },
+  { id:'savings', label:'حساب پس‌انداز', icon:'🐷' },
+  { id:'investment', label:'حساب سرمایه‌گذاری', icon:'📈' },
+  { id:'fund', label:'صندوق', icon:'🏛️' },
+  { id:'other', label:'سایر', icon:'📦' }
+];
+function walletTypeMeta(typeId){
+  return WALLET_TYPES.find(t => t.id === typeId) || WALLET_TYPES[WALLET_TYPES.length - 1];
+}
+// One-time migration: introduces data.wallets/data.transfers and a walletId on every
+// transaction. Existing families had no concept of separate accounts, so we seed one
+// default wallet ("صندوق خانواده") and attribute all pre-existing transactions to it —
+// nothing changes financially, it just gives every past transaction a home. Guarded by
+// data.walletsMigrated so it only ever runs once, even though mergeDefaults() runs on
+// every load (and so it never re-seeds a wallet if the family later deletes all of them).
+function migrateWalletsIfNeeded(){
+  if(data.walletsMigrated) return;
+  if(!Array.isArray(data.wallets)) data.wallets = [];
+  if(data.wallets.length === 0){
+    data.wallets.push({
+      id: newId('w'), name:'صندوق خانواده', type:'fund', icon:'🏛️',
+      color: (typeof CHART_COLORS !== 'undefined' ? CHART_COLORS[0] : '#6B2D5C'),
+      initialBalance: 0, note:'', active: true, createdAt: Date.now()
+    });
+  }
+  const defaultWalletId = data.wallets[0].id;
+  (data.transactions || []).forEach(tx => { if(!tx.walletId) tx.walletId = defaultWalletId; });
+  data.walletsMigrated = true;
+}
+function activeWallets(){
+  return (data.wallets || []).filter(w => w.active !== false);
+}
+function walletById(id){
+  return (data.wallets || []).find(w => w.id === id);
+}
+function walletIcon(w){
+  return w.icon || walletTypeMeta(w.type).icon;
+}
+function walletBalance(walletId){
+  const w = walletById(walletId);
+  if(!w) return 0;
+  let bal = w.initialBalance || 0;
+  (data.transactions || []).forEach(tx => {
+    if(tx.walletId !== walletId) return;
+    if(tx.type === 'income') bal += (tx.amount || 0);
+    else if(tx.type === 'expense') bal -= (tx.amount || 0);
+  });
+  (data.transfers || []).forEach(tr => {
+    if(tr.toWalletId === walletId) bal += (tr.amount || 0);
+    if(tr.fromWalletId === walletId) bal -= (tr.amount || 0);
+  });
+  return bal;
+}
+function totalWalletsBalance(){
+  return activeWallets().reduce((sum, w) => sum + walletBalance(w.id), 0);
+}
+
 function mergeDefaults(){
   const d = defaultData();
   d.people.forEach(defP => {
@@ -1539,6 +1662,9 @@ function mergeDefaults(){
   if(data.captchaEnabled === undefined) data.captchaEnabled = true;
   if(!data.tombstones || typeof data.tombstones !== 'object') data.tombstones = {};
   if(!data.categoryIcons || typeof data.categoryIcons !== 'object') data.categoryIcons = {};
+  if(!Array.isArray(data.wallets)) data.wallets = [];
+  if(!Array.isArray(data.transfers)) data.transfers = [];
+  migrateWalletsIfNeeded();
   migrateRialToTomanIfNeeded();
   // migrate old scheme where the auth key WAS the personId (no explicit personId field yet)
   Object.keys(data.auth).forEach(key => {
@@ -1898,6 +2024,8 @@ async function mergeWithServerBeforeSave(){
     data.goals = mergeArraysSafely('goals', data.goals, serverData.goals, data.tombstones);
     data.loans = mergeArraysSafely('loans', data.loans, serverData.loans, data.tombstones);
     data.people = mergeArraysSafely('people', data.people, serverData.people, data.tombstones);
+    data.wallets = mergeArraysSafely('wallets', data.wallets, serverData.wallets, data.tombstones);
+    data.transfers = mergeArraysSafely('transfers', data.transfers, serverData.transfers, data.tombstones);
     if(Array.isArray(serverData.activityLog) || Array.isArray(data.activityLog)){
       data.activityLog = mergeArraysSafely('activityLog', data.activityLog, serverData.activityLog, null)
         .sort((a,b) => (b.at||0) - (a.at||0)).slice(0, 300);
@@ -2119,6 +2247,57 @@ function isBalanceHidden(){
 }
 function setBalanceHidden(v){
   try{ localStorage.setItem('sandoogh-balance-hidden', v ? '1' : '0'); }catch(e){}
+}
+function renderWalletsSettingsPanel(){
+  const totalBox = document.getElementById('walletsTotalBox');
+  if(!totalBox) return; // panel not in DOM on this build
+  const hidden = isBalanceHidden();
+  const dots = '******';
+  const total = totalWalletsBalance();
+  totalBox.textContent = hidden ? dots : ((total<0?'−':'') + fmt(Math.abs(total)) + ' ' + data.currency);
+
+  const wallets = data.wallets || [];
+  const viewList = document.getElementById('walletsViewList');
+  if(viewList){
+    viewList.innerHTML = wallets.length === 0
+      ? '<div class="empty-state"><span class="empty-state-icon">💰</span>هنوز حسابی ثبت نشده.</div>'
+      : wallets.map(w => {
+        const bal = walletBalance(w.id);
+        return `<div class="person-card">
+          <div class="pname">${walletIcon(w)} ${escapeHtml(w.name)}${w.active === false ? ' <span style="font-size:10px; color:var(--ink-soft);">(غیرفعال)</span>' : ''}</div>
+          <div class="person-line net"><span>موجودی</span><span class="v">${hidden?dots:((bal<0?'−':'')+fmt(Math.abs(bal)))}</span></div>
+        </div>`;
+      }).join('');
+  }
+
+  const fromSel = document.getElementById('transferFromWallet');
+  const toSel = document.getElementById('transferToWallet');
+  if(fromSel && toSel){
+    const active = activeWallets();
+    const opts = active.map(w => `<option value="${w.id}">${walletIcon(w)} ${escapeHtml(w.name)}</option>`).join('');
+    const prevFrom = fromSel.value, prevTo = toSel.value;
+    fromSel.innerHTML = opts; toSel.innerHTML = opts;
+    if(active.some(w => w.id === prevFrom)) fromSel.value = prevFrom;
+    if(active.some(w => w.id === prevTo)) toSel.value = prevTo; else if(active[1]) toSel.value = active[1].id;
+  }
+
+  const recentBox = document.getElementById('recentTransfersList');
+  if(recentBox){
+    const transfers = (data.transfers || []).slice().sort((a,b) => (b.createdAt||0) - (a.createdAt||0)).slice(0, 10);
+    recentBox.innerHTML = transfers.length === 0
+      ? '<div class="empty-state"><span class="empty-state-icon">🔁</span>هنوز انتقالی ثبت نشده.</div>'
+      : transfers.map(t => {
+        const fromW = walletById(t.fromWalletId), toW = walletById(t.toWalletId);
+        return `<div class="tx-row">
+          <div class="tx-icon">🔁</div>
+          <div class="tx-main">
+            <div class="tx-desc">${escapeHtml(fromW ? fromW.name : '؟')} ← ${escapeHtml(toW ? toW.name : '؟')}</div>
+            <div class="tx-meta">${t.desc ? escapeHtml(t.desc) + ' · ' : ''}${formatDate(t.date)}</div>
+          </div>
+          <div class="tx-amount">${fmt(t.amount)}</div>
+        </div>`;
+      }).join('');
+  }
 }
 function renderAccountBalances(){
   const box = document.getElementById('accountBalancesBox');
@@ -3089,6 +3268,28 @@ document.getElementById('familyStatusBtn').addEventListener('click', () => {
   card.style.display = opening ? 'block' : 'none';
   if(opening) renderFamilyStatus();
 });
+document.getElementById('submitTransferBtn').addEventListener('click', async () => {
+  const fromId = document.getElementById('transferFromWallet').value;
+  const toId = document.getElementById('transferToWallet').value;
+  const amount = parseAmountValue(document.getElementById('transferAmount').value);
+  const desc = document.getElementById('transferDesc').value.trim();
+  const msg = document.getElementById('transferMsg');
+  msg.textContent = ''; msg.className = 'pw-msg';
+  if(!fromId || !toId){ msg.textContent = 'حداقل دو حساب فعال برای انتقال لازمه.'; msg.className = 'pw-msg err'; return; }
+  if(fromId === toId){ msg.textContent = 'حساب مبدأ و مقصد نباید یکی باشن.'; msg.className = 'pw-msg err'; return; }
+  if(!amount || amount <= 0){ msg.textContent = 'مبلغ معتبر وارد کنید.'; msg.className = 'pw-msg err'; return; }
+  data.transfers.push({
+    id: newId('tr'), fromWalletId: fromId, toWalletId: toId, amount,
+    date: todayIso(), desc, personId: currentUserId, createdAt: Date.now()
+  });
+  const fromW = walletById(fromId), toW = walletById(toId);
+  logActivity('add_transfer', `انتقال ${fmt(amount)} ${data.currency} از «${fromW?fromW.name:''}» به «${toW?toW.name:''}»`);
+  await saveData();
+  document.getElementById('transferAmount').value = '';
+  document.getElementById('transferDesc').value = '';
+  render();
+  showSuccessToast('انتقال با موفقیت ثبت شد');
+});
 function renderActivityLog(){
   const box = document.getElementById('activityLogList');
   const log = data.activityLog || [];
@@ -3099,7 +3300,8 @@ function renderActivityLog(){
   const ACTION_LABELS = {
     add_tx: '➕ ثبت تراکنش', edit_tx: '✎ ویرایش تراکنش', delete_tx: '✕ حذف تراکنش',
     undo_delete_tx: '↩️ بازگردانی تراکنش', recurring_tx: '🔁 تراکنش خودکار',
-    add_account: '👤 ساخت حساب', delete_account: '👤 حذف حساب', reset_password: '🔑 تغییر رمز'
+    add_account: '👤 ساخت حساب', delete_account: '👤 حذف حساب', reset_password: '🔑 تغییر رمز',
+    add_transfer: '🔁 انتقال بین حساب‌ها'
   };
   box.innerHTML = log.slice(0, 100).map(entry => {
     const d = new Date(entry.at);
@@ -3973,13 +4175,105 @@ document.getElementById('addAccountBtn').addEventListener('click', async () => {
   renderAccountsList();
 });
 
+function renderWalletsAdminList(){
+  const box = document.getElementById('walletsAdminList');
+  if(!box) return;
+  const wallets = data.wallets || [];
+  if(wallets.length === 0){
+    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">💰</span>هنوز حسابی ساخته نشده.</div>';
+    return;
+  }
+  box.innerHTML = wallets.map(w => {
+    const bal = walletBalance(w.id);
+    const typeLabel = walletTypeMeta(w.type).label;
+    return `<div style="background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+          <span style="font-size:17px;">${walletIcon(w)}</span>
+          <input type="text" class="wallet-name-input" data-wallet-id="${w.id}" value="${escapeHtml(w.name)}"
+            style="border:1px solid var(--line); border-radius:6px; background:var(--card-bg); padding:6px 8px; font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink); width:120px;">
+          <span style="font-size:11px; color:var(--ink-soft);">${escapeHtml(typeLabel)}</span>
+        </div>
+        <button type="button" class="mini-del" data-del-wallet="${w.id}" title="حذف" aria-label="حذف این حساب">✕</button>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:12.5px;">
+        <span style="color:var(--ink-soft);">موجودی فعلی</span>
+        <b style="font-family:'IBM Plex Mono',monospace; color:${bal<0?'var(--debit)':'var(--ink)'};">${bal<0?'−':''}${fmt(Math.abs(bal))} ${data.currency}</b>
+      </div>
+      <label style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; font-size:12px; cursor:pointer;">
+        <span>فعال (توی فرم ثبت تراکنش قابل انتخابه)</span>
+        <label class="switch">
+          <input type="checkbox" class="wallet-active-toggle" data-wallet-id="${w.id}" ${w.active !== false ? 'checked' : ''}>
+          <span class="switch-track"></span>
+        </label>
+      </label>
+    </div>`;
+  }).join('');
+
+  box.querySelectorAll('.wallet-name-input').forEach(inp => {
+    inp.addEventListener('change', async (e) => {
+      const w = walletById(e.target.dataset.walletId);
+      if(!w) return;
+      const newName = e.target.value.trim();
+      if(newName) w.name = newName; else e.target.value = w.name;
+      await saveData(); render();
+    });
+  });
+  box.querySelectorAll('.wallet-active-toggle').forEach(chk => {
+    chk.addEventListener('change', async (e) => {
+      const w = walletById(e.target.dataset.walletId);
+      if(!w) return;
+      w.active = e.target.checked;
+      await saveData(); renderAdminPanel(); render();
+    });
+  });
+  box.querySelectorAll('[data-del-wallet]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = e.target.dataset.delWallet;
+      if(data.wallets.length <= 1){ alert('حداقل باید یک حساب مالی بمونه.'); return; }
+      const w = walletById(id);
+      if(!w) return;
+      const hasTx = data.transactions.some(t => t.walletId === id) || (data.transfers||[]).some(t => t.fromWalletId === id || t.toWalletId === id);
+      const warnMsg = hasTx
+        ? `حساب «${w.name}» تراکنش‌های ثبت‌شده داره؛ با حذفش، اون تراکنش‌ها به هیچ حسابی مرتبط نمی‌مونن. مطمئنید؟`
+        : `حساب «${w.name}» حذف بشه؟`;
+      if(!(await confirmAsync(warnMsg))) return;
+      data.wallets = data.wallets.filter(x => x.id !== id);
+      markDeleted('wallets', id);
+      await saveData(); renderAdminPanel(); render();
+      showSuccessToast('حساب حذف شد');
+    });
+  });
+}
 function renderAdminPanel(){
   renderPeopleAvatarList();
   renderAccountsList();
+  renderWalletsAdminList();
   renderCatList('incomeCatList', 'income');
   renderCatList('expenseCatList', 'expense');
   renderBudgetsList();
   renderRecurringList();
+
+  const newWalletTypeSel = document.getElementById('newWalletType');
+  if(newWalletTypeSel && !newWalletTypeSel.dataset.populated){
+    newWalletTypeSel.innerHTML = WALLET_TYPES.map(t => `<option value="${t.id}">${t.icon} ${t.label}</option>`).join('');
+    newWalletTypeSel.dataset.populated = '1';
+  }
+  document.getElementById('addWalletBtn').onclick = async () => {
+    const nameInp = document.getElementById('newWalletName');
+    const name = nameInp.value.trim(); if(!name) return;
+    const type = document.getElementById('newWalletType').value;
+    const initial = parseAmountValue(document.getElementById('newWalletInitial').value) || 0;
+    const note = document.getElementById('newWalletNote').value.trim();
+    data.wallets.push({
+      id: newId('w'), name, type, icon: walletTypeMeta(type).icon,
+      color: CHART_COLORS[data.wallets.length % CHART_COLORS.length],
+      initialBalance: initial, note, active: true, createdAt: Date.now()
+    });
+    nameInp.value = ''; document.getElementById('newWalletInitial').value = ''; document.getElementById('newWalletNote').value = '';
+    await saveData(); renderAdminPanel(); render();
+    showSuccessToast('حساب جدید اضافه شد');
+  };
 
   document.getElementById('addIncomeCatBtn').onclick = async () => {
     const inp = document.getElementById('newIncomeCat');
@@ -4710,6 +5004,18 @@ function populateAccountSelect(){
   if(stillValid) sel.value = prevVal;
   else sel.value = owners.some(p => p.id === currentUserId) ? currentUserId : (owners[0] ? owners[0].id : '');
 }
+function populateWalletSelect(){
+  const sel = document.getElementById('walletSelect');
+  if(!sel) return;
+  const wallets = activeWallets();
+  const lbl = document.getElementById('walletFieldLbl');
+  if(lbl) lbl.textContent = currentType === 'income' ? 'واریز به کدام حساب مالی' : 'از کدام حساب مالی کسر بشه';
+  const prevVal = sel.value;
+  sel.innerHTML = wallets.map(w => `<option value="${w.id}">${walletIcon(w)} ${escapeHtml(w.name)}</option>`).join('');
+  const stillValid = wallets.some(w => w.id === prevVal);
+  if(stillValid) sel.value = prevVal;
+  else sel.value = wallets[0] ? wallets[0].id : '';
+}
 function populateCategorySelect(){
   const sel = document.getElementById('categorySelect');
   sel.innerHTML = data.categories[currentType].map(c => `<option value="${escapeHtml(c)}">${categoryEmoji(c)} ${escapeHtml(c)}</option>`).join('');
@@ -4978,6 +5284,7 @@ function render(){
 
   populatePersonSelect();
   populateAccountSelect();
+  populateWalletSelect();
 
   populateCategorySelect();
 
@@ -4993,6 +5300,7 @@ function render(){
   document.getElementById('bankCardDate').textContent = formatJalaliShort(todayIso());
   applyBalanceVisibility();
   renderAccountBalances();
+  renderWalletsSettingsPanel();
   renderBudgetProgress();
   renderInsights(totalIncome, totalExpense, balance);
   renderStreak();
@@ -5101,6 +5409,8 @@ function startEditTransaction(id){
   document.getElementById('personSelect').value = tx.personId;
   populateAccountSelect();
   document.getElementById('accountSelect').value = tx.accountId || accountOwnerFallback(tx);
+  populateWalletSelect();
+  if(tx.walletId) document.getElementById('walletSelect').value = tx.walletId;
   populateCategorySelect();
   document.getElementById('categorySelect').value = tx.category || '';
   document.getElementById('descInput').value = tx.desc;
@@ -5799,6 +6109,7 @@ async function init(){
     const date = document.getElementById('dateInput').value;
     const personId = document.getElementById('personSelect').value;
     const accountId = document.getElementById('accountSelect').value;
+    const walletId = document.getElementById('walletSelect').value;
     const splitOn = currentType === 'expense' && !editingTxId && document.getElementById('splitModeCheckbox').checked;
 
     if(splitOn){
@@ -5808,7 +6119,7 @@ async function init(){
       const total = rows.reduce((s,r) => s + r.amount, 0);
       rows.forEach(r => {
         data.transactions.push({
-          id: newId('t'), type: 'expense', desc, amount: r.amount, date, personId, accountId, category: r.category,
+          id: newId('t'), type: 'expense', desc, amount: r.amount, date, personId, accountId, walletId, category: r.category,
           splitGroupId, photos: pendingPhotoDataUrls.slice(),
           enteredById: currentUserId, createdAt: Date.now()
         });
@@ -5837,7 +6148,7 @@ async function init(){
       const tx = data.transactions.find(t => String(t.id) === String(editingTxId));
       if(tx){
         tx.desc = desc; tx.amount = amount; tx.date = date; tx.personId = personId; tx.accountId = accountId;
-        tx.category = category; tx.type = currentType; tx.photos = pendingPhotoDataUrls.slice(); delete tx.photo;
+        tx.walletId = walletId; tx.category = category; tx.type = currentType; tx.photos = pendingPhotoDataUrls.slice(); delete tx.photo;
         tx.editedAt = Date.now(); tx.editedBy = currentUserId;
         logActivity('edit_tx', `${currentType==='income'?'واریز':'برداشت'} ${fmt(amount)} - ${desc} (${personName(personId)})`);
       }
@@ -5851,7 +6162,7 @@ async function init(){
         if(!(await confirmAsync('یه تراکنش مشابه (همین توضیح، مبلغ و شخص) چند دقیقه پیش ثبت شده. مطمئنید تکراری نیست؟'))) return;
       }
       data.transactions.push({
-        id: newId('t'), type: currentType, desc, amount, date, personId, accountId, category,
+        id: newId('t'), type: currentType, desc, amount, date, personId, accountId, walletId, category,
         photos: pendingPhotoDataUrls.slice(),
         enteredById: currentUserId, createdAt: Date.now()
       });

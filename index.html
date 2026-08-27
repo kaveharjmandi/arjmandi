@@ -62,7 +62,7 @@ body[data-theme="dark"]{
 }
 .drawer-backdrop.show{ display:block; }
 .settings-drawer{
-  position:fixed; top:0; right:0; bottom:0; width:86%; max-width:360px;
+  position:fixed; top:0; right:0; bottom:0; width:78%; max-width:310px;
   background:var(--bg); z-index:95; box-shadow:-8px 0 28px rgba(0,0,0,0.28);
   transform:translateX(100%); transition:transform .25s ease;
   overflow-y:auto; padding:20px 18px 40px;
@@ -757,23 +757,6 @@ body.offline-mode{ padding-top:38px; }
       </div>
       <div class="admin-section collapsed">
         <button type="button" class="admin-section-toggle" aria-expanded="false">
-          <span class="admin-subtitle">حساب‌ها و کیف‌پول (نقدی، بانکی، کارت و...)</span>
-          <span class="admin-section-chevron">▾</span>
-        </button>
-        <div class="admin-section-body">
-          <div class="section-hint">این‌ها حساب‌های واقعی خانواده‌ن (نقد، بانک، کارت...) — با «حساب‌های کاربری» بالا فرق دارن که برای ورود به برنامه‌ست.</div>
-          <div id="walletsAdminList"></div>
-          <div class="add-row" id="newWalletForm" style="flex-direction:column; align-items:stretch; gap:6px; margin-top:10px;">
-            <input type="text" id="newWalletName" placeholder="اسم حساب (مثلاً: بانک ملت)">
-            <select id="newWalletType"></select>
-            <input type="number" id="newWalletInitial" placeholder="موجودی اولیه" min="0">
-            <input type="text" id="newWalletNote" placeholder="توضیحات (اختیاری)">
-            <button type="button" id="addWalletBtn" style="align-self:flex-start;">افزودن حساب</button>
-          </div>
-        </div>
-      </div>
-      <div class="admin-section collapsed">
-        <button type="button" class="admin-section-toggle" aria-expanded="false">
           <span class="admin-subtitle">بودجه ماهانه دسته‌های برداشت</span>
           <span class="admin-section-chevron">▾</span>
         </button>
@@ -858,31 +841,6 @@ body.offline-mode{ padding-top:38px; }
     </div>
   </div>
 
-  <!-- WALLET DETAIL -->
-  <div id="walletDetailScreen" style="display:none;">
-    <header class="site-header"><h1>جزئیات حساب</h1></header>
-    <div class="user-bar">
-      <div class="who" id="walletDetailName">💰 —</div>
-      <div class="actions"><button id="walletDetailBackBtn">‹ بازگشت</button></div>
-    </div>
-    <div class="card">
-      <div class="section-title">موجودی فعلی</div>
-      <div id="walletDetailBalance" style="font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:700; color:var(--ink);"></div>
-      <div id="walletDetailMeta" style="font-size:11.5px; color:var(--ink-soft); margin-top:6px;"></div>
-    </div>
-    <div class="card">
-      <div class="section-title">روند موجودی</div>
-      <div id="walletDetailTrendBox"></div>
-    </div>
-    <div class="card">
-      <div class="section-title">تراکنش‌های این حساب</div>
-      <div id="walletDetailTxList"></div>
-    </div>
-    <div class="card">
-      <div class="section-title">انتقال‌های این حساب</div>
-      <div id="walletDetailTransfersList"></div>
-    </div>
-  </div>
 
   <!-- SETTINGS -->
   <div id="settingsDrawerBackdrop" class="drawer-backdrop"></div>
@@ -902,11 +860,6 @@ body.offline-mode{ padding-top:38px; }
         <div class="settings-item" data-cat="backup">
           <div class="settings-icon">💾</div>
           <div class="settings-text"><div class="settings-title">پشتیبان‌گیری و بازیابی</div></div>
-          <div class="settings-chevron">‹</div>
-        </div>
-        <div class="settings-item" data-cat="wallets">
-          <div class="settings-icon">💰</div>
-          <div class="settings-text"><div class="settings-title">حساب‌ها و کیف‌پول</div></div>
           <div class="settings-chevron">‹</div>
         </div>
         <div class="settings-item" data-cat="reports">
@@ -1050,33 +1003,6 @@ body.offline-mode{ padding-top:38px; }
       </div>
     </div>
 
-    <div class="settings-cat-panel" id="catPanel-wallets" style="display:none;">
-      <div class="cat-panel-header"><button type="button" class="cat-back-btn">→ بازگشت</button><div class="section-title">حساب‌ها و کیف‌پول</div></div>
-      <div class="card">
-        <div class="section-title">مجموع دارایی</div>
-        <div id="walletsTotalBox" style="font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:700; color:var(--ink);"></div>
-      </div>
-      <div class="card">
-        <div class="section-title">حساب‌های خانواده</div>
-        <div id="walletsViewList" class="person-breakdown"></div>
-      </div>
-      <div class="card">
-        <div class="section-title">انتقال بین حساب‌ها</div>
-        <div style="display:flex; flex-direction:column; gap:6px;">
-          <select id="transferFromWallet"></select>
-          <select id="transferToWallet"></select>
-          <input type="number" id="transferAmount" placeholder="مبلغ" min="0">
-          <input type="text" id="transferDesc" placeholder="توضیح (اختیاری)">
-          <div class="pw-msg" id="transferMsg"></div>
-          <button type="button" id="submitTransferBtn" class="submit-btn">ثبت انتقال</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="section-title">انتقال‌های اخیر</div>
-        <div id="recentTransfersList"></div>
-      </div>
-    </div>
-
     <div class="settings-cat-panel" id="catPanel-reports" style="display:none;">
       <div class="cat-panel-header"><button type="button" class="cat-back-btn">→ بازگشت</button><div class="section-title">گزارش‌ها</div></div>
       <div class="card settings-card">
@@ -1184,7 +1110,6 @@ body.offline-mode{ padding-top:38px; }
         <button type="button" class="fab-menu-item" data-fabaction="credit"><span class="fab-menu-icon" style="background:var(--credit);">🟢</span><span>طلب</span></button>
         <button type="button" class="fab-menu-item" data-fabaction="debt"><span class="fab-menu-icon" style="background:var(--debit);">🔴</span><span>بدهی</span></button>
         <button type="button" class="fab-menu-item" data-fabaction="cheque"><span class="fab-menu-icon" style="background:var(--accent2);">🧾</span><span>چک</span></button>
-        <button type="button" class="fab-menu-item" data-fabaction="transfer"><span class="fab-menu-icon" style="background:var(--accent);">🔁</span><span>انتقال</span></button>
         <button type="button" class="fab-menu-item" data-fabaction="income"><span class="fab-menu-icon" style="background:var(--credit);">➕</span><span>درآمد</span></button>
         <button type="button" class="fab-menu-item" data-fabaction="expense"><span class="fab-menu-icon" style="background:var(--debit);">➖</span><span>هزینه</span></button>
       </div>
@@ -1506,10 +1431,6 @@ body.offline-mode{ padding-top:38px; }
         <span><span style="display:inline-block; width:10px; height:10px; background:var(--debit); border-radius:2px;"></span> برداشت</span>
       </div>
     </div>
-    <div class="card" id="walletTrendCard">
-      <div class="section-title" id="walletTrendChartTitle">روند دارایی خالص (مجموع حساب‌ها)</div>
-      <div id="walletTrendChartBox"></div>
-    </div>
     </div>
 
     <div class="sub-tab-panel" data-reportsubtab="goals" style="display:none;">
@@ -1714,124 +1635,6 @@ function walletById(id){
 function walletIcon(w){
   return w.icon || walletTypeMeta(w.type).icon;
 }
-function walletBalance(walletId){
-  const w = walletById(walletId);
-  if(!w) return 0;
-  let bal = w.initialBalance || 0;
-  (data.transactions || []).forEach(tx => {
-    if(tx.walletId !== walletId) return;
-    if(tx.type === 'income') bal += (tx.amount || 0);
-    else if(tx.type === 'expense') bal -= (tx.amount || 0);
-  });
-  (data.transfers || []).forEach(tr => {
-    if(tr.toWalletId === walletId) bal += (tr.amount || 0);
-    if(tr.fromWalletId === walletId) bal -= (tr.amount || 0);
-  });
-  return bal;
-}
-function totalWalletsBalance(){
-  return activeWallets().reduce((sum, w) => sum + walletBalance(w.id), 0);
-}
-// Historical net worth as of a given date: replays every income/expense transaction with a
-// walletId up to (and including) that date. Transfers are intentionally excluded — money moving
-// between two wallets nets to zero across the total, so they don't change the combined balance.
-// Includes inactive wallets too, since they still held real money in the past.
-function walletsBalanceAsOf(dateIso){
-  let bal = (data.wallets || []).reduce((s,w) => s + (w.initialBalance || 0), 0);
-  (data.transactions || []).forEach(tx => {
-    if(!tx.walletId || tx.date > dateIso) return;
-    if(tx.type === 'income') bal += (tx.amount || 0);
-    else if(tx.type === 'expense') bal -= (tx.amount || 0);
-  });
-  return bal;
-}
-// Same idea but scoped to one wallet — unlike the aggregate version, transfers DO matter here
-// since they move money into or out of this specific wallet (they only net to zero in aggregate).
-function walletBalanceAsOf(walletId, dateIso){
-  const w = walletById(walletId);
-  if(!w) return 0;
-  let bal = w.initialBalance || 0;
-  (data.transactions || []).forEach(tx => {
-    if(tx.walletId !== walletId || tx.date > dateIso) return;
-    if(tx.type === 'income') bal += (tx.amount || 0);
-    else if(tx.type === 'expense') bal -= (tx.amount || 0);
-  });
-  (data.transfers || []).forEach(tr => {
-    if(tr.date > dateIso) return;
-    if(tr.toWalletId === walletId) bal += (tr.amount || 0);
-    if(tr.fromWalletId === walletId) bal -= (tr.amount || 0);
-  });
-  return bal;
-}
-function openWalletDetail(walletId){
-  const w = walletById(walletId);
-  if(!w) return;
-  const hidden = isBalanceHidden();
-  const dots = '******';
-  document.getElementById('walletDetailName').textContent = `${walletIcon(w)} ${w.name}`;
-  const bal = walletBalance(walletId);
-  document.getElementById('walletDetailBalance').textContent = hidden ? dots : ((bal<0?'−':'')+fmt(Math.abs(bal))+' '+data.currency);
-  document.getElementById('walletDetailMeta').textContent =
-    `نوع: ${walletTypeMeta(w.type).label}${w.note ? ' · ' + w.note : ''}${w.active === false ? ' · غیرفعال' : ''}`;
-
-  const buckets = buildReportsTrendBuckets();
-  const trendBox = document.getElementById('walletDetailTrendBox');
-  if(buckets.length === 0){
-    trendBox.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📊</span>داده‌ای برای نمایش نیست.</div>';
-  } else {
-    const points = buckets.map(b => ({ label: b.label, value: walletBalanceAsOf(walletId, b.range.end) }));
-    const maxVal = Math.max(1, ...points.map(p => Math.abs(p.value)));
-    const chartH = 120, barW = 20, gap = 12;
-    const svgW = points.length * (barW + gap) + gap;
-    let bars = '';
-    points.forEach((p,i) => {
-      const gx = gap + i*(barW+gap);
-      const h = Math.max(2, Math.round((Math.abs(p.value)/maxVal)*chartH));
-      const color = p.value < 0 ? 'var(--debit)' : 'var(--accent2)';
-      bars += `<rect x="${gx}" y="${chartH-h+18}" width="${barW}" height="${h}" fill="${color}" rx="3"/>`;
-      bars += `<text x="${gx+barW/2}" y="${chartH+34}" font-size="9.5" fill="var(--ink-soft)" text-anchor="middle">${escapeHtml(p.label)}</text>`;
-    });
-    trendBox.innerHTML = `<svg viewBox="0 0 ${svgW} ${chartH+38}" style="width:100%; max-width:480px; display:block; margin:0 auto;">${bars}</svg>`;
-  }
-
-  const txBox = document.getElementById('walletDetailTxList');
-  const txs = data.transactions.filter(t => t.walletId === walletId).slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,30);
-  txBox.innerHTML = txs.length === 0
-    ? '<div class="empty-state"><span class="empty-state-icon">📭</span>هنوز تراکنشی از این حساب ثبت نشده.</div>'
-    : txs.map(tx => {
-      const sign = tx.type === 'income' ? '+' : '−';
-      return `<div class="tx-row">
-        ${txIconHtml(tx)}
-        <div class="tx-main">
-          <div class="tx-desc">${escapeHtml(tx.desc)}</div>
-          <div class="tx-meta">${tx.category ? categoryChipHtml(tx.category) : ''} · ${formatDate(tx.date)}</div>
-        </div>
-        <div class="tx-amount ${tx.type}">${hidden?dots:(sign+fmt(tx.amount))}</div>
-      </div>`;
-    }).join('');
-
-  const trBox = document.getElementById('walletDetailTransfersList');
-  const transfers = (data.transfers||[]).filter(t => t.fromWalletId === walletId || t.toWalletId === walletId)
-    .slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,20);
-  trBox.innerHTML = transfers.length === 0
-    ? '<div class="empty-state"><span class="empty-state-icon">🔁</span>هنوز انتقالی برای این حساب ثبت نشده.</div>'
-    : transfers.map(t => {
-      const isOut = t.fromWalletId === walletId;
-      const other = walletById(isOut ? t.toWalletId : t.fromWalletId);
-      return `<div class="tx-row">
-        <div class="tx-icon">🔁</div>
-        <div class="tx-main">
-          <div class="tx-desc">${isOut ? 'انتقال به' : 'دریافت از'} ${escapeHtml(other ? other.name : '؟')}</div>
-          <div class="tx-meta">${t.desc ? escapeHtml(t.desc)+' · ' : ''}${formatDate(t.date)}</div>
-        </div>
-        <div class="tx-amount ${isOut?'expense':'income'}">${hidden?dots:((isOut?'−':'+')+fmt(t.amount))}</div>
-      </div>`;
-    }).join('');
-
-  showScreen('walletDetailScreen');
-}
-document.getElementById('walletDetailBackBtn').addEventListener('click', () => { showScreen('app'); });
-
 function mergeDefaults(){
   const d = defaultData();
   d.people.forEach(defP => {
@@ -2414,7 +2217,7 @@ function wireAmountField(inputEl){
   });
 }
 function wireAllAmountFields(){
-  ['amountInput','chAmount','newGoalTarget','newLoanTotal','newLoanInstallment','newRecAmount']
+  ['amountInput','chAmount','newGoalTarget','newLoanTotal','newLoanInstallment','newRecAmount','newDebtTotal']
     .forEach(id => wireAmountField(document.getElementById(id)));
   document.querySelectorAll('.budget-input, .split-amt').forEach(wireAmountField);
 }
@@ -2444,63 +2247,6 @@ function isBalanceHidden(){
 }
 function setBalanceHidden(v){
   try{ localStorage.setItem('sandoogh-balance-hidden', v ? '1' : '0'); }catch(e){}
-}
-function renderWalletsSettingsPanel(){
-  const totalBox = document.getElementById('walletsTotalBox');
-  if(!totalBox) return; // panel not in DOM on this build
-  const hidden = isBalanceHidden();
-  const dots = '******';
-  const total = totalWalletsBalance();
-  totalBox.textContent = hidden ? dots : ((total<0?'−':'') + fmt(Math.abs(total)) + ' ' + data.currency);
-
-  const wallets = data.wallets || [];
-  const viewList = document.getElementById('walletsViewList');
-  if(viewList){
-    viewList.innerHTML = wallets.length === 0
-      ? '<div class="empty-state"><span class="empty-state-icon">💰</span>هنوز حسابی ثبت نشده.</div>'
-      : wallets.map(w => {
-        const bal = walletBalance(w.id);
-        return `<div class="person-card" data-wallet-id="${w.id}" style="cursor:pointer;">
-          <div class="pname">${walletIcon(w)} ${escapeHtml(w.name)}${w.active === false ? ' <span style="font-size:10px; color:var(--ink-soft);">(غیرفعال)</span>' : ''}</div>
-          <div class="person-line net"><span>موجودی</span><span class="v">${hidden?dots:((bal<0?'−':'')+fmt(Math.abs(bal)))}</span></div>
-        </div>`;
-      }).join('');
-    viewList.querySelectorAll('[data-wallet-id]').forEach(card => {
-      card.addEventListener('click', () => {
-        closeSettingsDrawer();
-        openWalletDetail(card.dataset.walletId);
-      });
-    });
-  }
-
-  const fromSel = document.getElementById('transferFromWallet');
-  const toSel = document.getElementById('transferToWallet');
-  if(fromSel && toSel){
-    const active = activeWallets();
-    const opts = active.map(w => `<option value="${w.id}">${walletIcon(w)} ${escapeHtml(w.name)}</option>`).join('');
-    const prevFrom = fromSel.value, prevTo = toSel.value;
-    fromSel.innerHTML = opts; toSel.innerHTML = opts;
-    if(active.some(w => w.id === prevFrom)) fromSel.value = prevFrom;
-    if(active.some(w => w.id === prevTo)) toSel.value = prevTo; else if(active[1]) toSel.value = active[1].id;
-  }
-
-  const recentBox = document.getElementById('recentTransfersList');
-  if(recentBox){
-    const transfers = (data.transfers || []).slice().sort((a,b) => (b.createdAt||0) - (a.createdAt||0)).slice(0, 10);
-    recentBox.innerHTML = transfers.length === 0
-      ? '<div class="empty-state"><span class="empty-state-icon">🔁</span>هنوز انتقالی ثبت نشده.</div>'
-      : transfers.map(t => {
-        const fromW = walletById(t.fromWalletId), toW = walletById(t.toWalletId);
-        return `<div class="tx-row">
-          <div class="tx-icon">🔁</div>
-          <div class="tx-main">
-            <div class="tx-desc">${escapeHtml(fromW ? fromW.name : '؟')} ← ${escapeHtml(toW ? toW.name : '؟')}</div>
-            <div class="tx-meta">${t.desc ? escapeHtml(t.desc) + ' · ' : ''}${formatDate(t.date)}</div>
-          </div>
-          <div class="tx-amount">${fmt(t.amount)}</div>
-        </div>`;
-      }).join('');
-  }
 }
 function renderAccountBalances(){
   const box = document.getElementById('accountBalancesBox');
@@ -3016,7 +2762,7 @@ const newDebtDueDatePicker = makeDatePicker({ display:'newDebtDueDisplay', input
 
 /* ---------- screens ---------- */
 function showScreen(id){
-  ['loading','pinlockScreen','login','app','adminScreen','walletDetailScreen'].forEach(s => {
+  ['loading','pinlockScreen','login','app','adminScreen'].forEach(s => {
     document.getElementById(s).style.display = (s === id) ? '' : 'none';
   });
 }
@@ -3441,28 +3187,6 @@ document.getElementById('familyStatusBtn').addEventListener('click', () => {
   document.getElementById('inviteQrCard').style.display = 'none';
   card.style.display = opening ? 'block' : 'none';
   if(opening) renderFamilyStatus();
-});
-document.getElementById('submitTransferBtn').addEventListener('click', async () => {
-  const fromId = document.getElementById('transferFromWallet').value;
-  const toId = document.getElementById('transferToWallet').value;
-  const amount = parseAmountValue(document.getElementById('transferAmount').value);
-  const desc = document.getElementById('transferDesc').value.trim();
-  const msg = document.getElementById('transferMsg');
-  msg.textContent = ''; msg.className = 'pw-msg';
-  if(!fromId || !toId){ msg.textContent = 'حداقل دو حساب فعال برای انتقال لازمه.'; msg.className = 'pw-msg err'; return; }
-  if(fromId === toId){ msg.textContent = 'حساب مبدأ و مقصد نباید یکی باشن.'; msg.className = 'pw-msg err'; return; }
-  if(!amount || amount <= 0){ msg.textContent = 'مبلغ معتبر وارد کنید.'; msg.className = 'pw-msg err'; return; }
-  data.transfers.push({
-    id: newId('tr'), fromWalletId: fromId, toWalletId: toId, amount,
-    date: todayIso(), desc, personId: currentUserId, createdAt: Date.now()
-  });
-  const fromW = walletById(fromId), toW = walletById(toId);
-  logActivity('add_transfer', `انتقال ${fmt(amount)} ${data.currency} از «${fromW?fromW.name:''}» به «${toW?toW.name:''}»`);
-  await saveData();
-  document.getElementById('transferAmount').value = '';
-  document.getElementById('transferDesc').value = '';
-  render();
-  showSuccessToast('انتقال با موفقیت ثبت شد');
 });
 function renderActivityLog(){
   const box = document.getElementById('activityLogList');
@@ -4019,9 +3743,6 @@ document.getElementById('fabMenu').addEventListener('click', (e) => {
     showTab('transactions');
     showTxSubTab('add');
     setType(action);
-  } else if(action === 'transfer'){
-    openSettingsDrawer();
-    showSettingsCat('wallets');
   } else if(action === 'cheque'){
     showTab('cheques');
   } else if(action === 'debt' || action === 'credit'){
@@ -4391,105 +4112,13 @@ document.getElementById('addAccountBtn').addEventListener('click', async () => {
   renderAccountsList();
 });
 
-function renderWalletsAdminList(){
-  const box = document.getElementById('walletsAdminList');
-  if(!box) return;
-  const wallets = data.wallets || [];
-  if(wallets.length === 0){
-    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">💰</span>هنوز حسابی ساخته نشده.</div>';
-    return;
-  }
-  box.innerHTML = wallets.map(w => {
-    const bal = walletBalance(w.id);
-    const typeLabel = walletTypeMeta(w.type).label;
-    return `<div style="background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-        <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-          <span style="font-size:17px;">${walletIcon(w)}</span>
-          <input type="text" class="wallet-name-input" data-wallet-id="${w.id}" value="${escapeHtml(w.name)}"
-            style="border:1px solid var(--line); border-radius:6px; background:var(--card-bg); padding:6px 8px; font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink); width:120px;">
-          <span style="font-size:11px; color:var(--ink-soft);">${escapeHtml(typeLabel)}</span>
-        </div>
-        <button type="button" class="mini-del" data-del-wallet="${w.id}" title="حذف" aria-label="حذف این حساب">✕</button>
-      </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:12.5px;">
-        <span style="color:var(--ink-soft);">موجودی فعلی</span>
-        <b style="font-family:'IBM Plex Mono',monospace; color:${bal<0?'var(--debit)':'var(--ink)'};">${bal<0?'−':''}${fmt(Math.abs(bal))} ${data.currency}</b>
-      </div>
-      <label style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; font-size:12px; cursor:pointer;">
-        <span>فعال (توی فرم ثبت تراکنش قابل انتخابه)</span>
-        <label class="switch">
-          <input type="checkbox" class="wallet-active-toggle" data-wallet-id="${w.id}" ${w.active !== false ? 'checked' : ''}>
-          <span class="switch-track"></span>
-        </label>
-      </label>
-    </div>`;
-  }).join('');
-
-  box.querySelectorAll('.wallet-name-input').forEach(inp => {
-    inp.addEventListener('change', async (e) => {
-      const w = walletById(e.target.dataset.walletId);
-      if(!w) return;
-      const newName = e.target.value.trim();
-      if(newName) w.name = newName; else e.target.value = w.name;
-      await saveData(); render();
-    });
-  });
-  box.querySelectorAll('.wallet-active-toggle').forEach(chk => {
-    chk.addEventListener('change', async (e) => {
-      const w = walletById(e.target.dataset.walletId);
-      if(!w) return;
-      w.active = e.target.checked;
-      await saveData(); renderAdminPanel(); render();
-    });
-  });
-  box.querySelectorAll('[data-del-wallet]').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const id = e.target.dataset.delWallet;
-      if(data.wallets.length <= 1){ alert('حداقل باید یک حساب مالی بمونه.'); return; }
-      const w = walletById(id);
-      if(!w) return;
-      const hasTx = data.transactions.some(t => t.walletId === id) || (data.transfers||[]).some(t => t.fromWalletId === id || t.toWalletId === id);
-      const warnMsg = hasTx
-        ? `حساب «${w.name}» تراکنش‌های ثبت‌شده داره؛ با حذفش، اون تراکنش‌ها به هیچ حسابی مرتبط نمی‌مونن. مطمئنید؟`
-        : `حساب «${w.name}» حذف بشه؟`;
-      if(!(await confirmAsync(warnMsg))) return;
-      data.wallets = data.wallets.filter(x => x.id !== id);
-      markDeleted('wallets', id);
-      await saveData(); renderAdminPanel(); render();
-      showSuccessToast('حساب حذف شد');
-    });
-  });
-}
 function renderAdminPanel(){
   renderPeopleAvatarList();
   renderAccountsList();
-  renderWalletsAdminList();
   renderCatList('incomeCatList', 'income');
   renderCatList('expenseCatList', 'expense');
   renderBudgetsList();
   renderRecurringList();
-
-  const newWalletTypeSel = document.getElementById('newWalletType');
-  if(newWalletTypeSel && !newWalletTypeSel.dataset.populated){
-    newWalletTypeSel.innerHTML = WALLET_TYPES.map(t => `<option value="${t.id}">${t.icon} ${t.label}</option>`).join('');
-    newWalletTypeSel.dataset.populated = '1';
-  }
-  document.getElementById('addWalletBtn').onclick = async () => {
-    const nameInp = document.getElementById('newWalletName');
-    const name = nameInp.value.trim(); if(!name) return;
-    const type = document.getElementById('newWalletType').value;
-    const initial = parseAmountValue(document.getElementById('newWalletInitial').value) || 0;
-    const note = document.getElementById('newWalletNote').value.trim();
-    data.wallets.push({
-      id: newId('w'), name, type, icon: walletTypeMeta(type).icon,
-      color: CHART_COLORS[data.wallets.length % CHART_COLORS.length],
-      initialBalance: initial, note, active: true, createdAt: Date.now()
-    });
-    nameInp.value = ''; document.getElementById('newWalletInitial').value = ''; document.getElementById('newWalletNote').value = '';
-    await saveData(); renderAdminPanel(); render();
-    showSuccessToast('حساب جدید اضافه شد');
-  };
 
   document.getElementById('addIncomeCatBtn').onclick = async () => {
     const inp = document.getElementById('newIncomeCat');
@@ -4871,34 +4500,6 @@ function renderCharts(){
 
   renderPieChart(range);
   renderBarChart();
-  renderWalletTrendChart();
-}
-
-function renderWalletTrendChart(){
-  const box = document.getElementById('walletTrendChartBox');
-  if(!box) return;
-  if(!data.wallets || data.wallets.length === 0){
-    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">💰</span>هنوز حسابی ثبت نشده.</div>';
-    return;
-  }
-  const buckets = buildReportsTrendBuckets();
-  if(buckets.length === 0){
-    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📊</span>داده‌ای برای نمایش نیست.</div>';
-    return;
-  }
-  const points = buckets.map(b => ({ label: b.label, value: walletsBalanceAsOf(b.range.end) }));
-  const maxVal = Math.max(1, ...points.map(p => Math.abs(p.value)));
-  const chartH = 130, barW = 22, gap = 14;
-  const svgW = points.length * (barW + gap) + gap;
-  let bars = '';
-  points.forEach((p, i) => {
-    const gx = gap + i * (barW + gap);
-    const h = Math.max(2, Math.round((Math.abs(p.value) / maxVal) * chartH));
-    const color = p.value < 0 ? 'var(--debit)' : 'var(--accent2)';
-    bars += `<rect x="${gx}" y="${chartH - h + 20}" width="${barW}" height="${h}" fill="${color}" rx="3"/>`;
-    bars += `<text x="${gx + barW/2}" y="${chartH + 36}" font-size="10" fill="var(--ink-soft)" text-anchor="middle">${escapeHtml(p.label)}</text>`;
-  });
-  box.innerHTML = `<svg viewBox="0 0 ${svgW} ${chartH + 40}" style="width:100%; max-width:480px; display:block; margin:0 auto;">${bars}</svg>`;
 }
 
 function renderPieChart(range){
@@ -5258,6 +4859,7 @@ function renderDebtsList(){
   }).join('');
   box.querySelectorAll('[data-del-debt]').forEach(btn => btn.addEventListener('click', (e) => deleteDebt(e.target.dataset.delDebt)));
   box.querySelectorAll('[data-pay-debt]').forEach(btn => btn.addEventListener('click', (e) => payDebtInstallment(e.target.dataset.payDebt)));
+  box.querySelectorAll('.debt-pay-input').forEach(wireAmountField);
 }
 function renderGoalsAndLoans(){
   renderGoalsList();
@@ -5665,7 +5267,6 @@ function render(){
   document.getElementById('bankCardDate').textContent = formatJalaliShort(todayIso());
   applyBalanceVisibility();
   renderAccountBalances();
-  renderWalletsSettingsPanel();
   renderBudgetProgress();
   renderInsights(totalIncome, totalExpense, balance);
   renderStreak();

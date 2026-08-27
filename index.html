@@ -1224,31 +1224,8 @@ body.offline-mode{ padding-top:38px; }
     </div>
 
     <div class="tab-panel" data-tab="home">
-    <div id="homeGreeting" class="home-greeting"></div>
-    <div class="net-worth-card">
-      <div class="net-worth-label-row">
-        <span>💰 دارایی خالص (مجموع حساب‌ها)</span>
-      </div>
-      <div class="net-worth-amount" id="netWorthAmount">۰</div>
-      <div class="stat-row cols-3" style="margin-top:12px;">
-        <div class="stat-tile income"><div class="val" id="monthIncomeVal">۰</div><div class="lbl">درآمد این ماه</div></div>
-        <div class="stat-tile expense"><div class="val" id="monthExpenseVal">۰</div><div class="lbl">هزینه این ماه</div></div>
-        <div class="stat-tile"><div class="val" id="monthNetVal">۰</div><div class="lbl">پس‌انداز این ماه</div></div>
-      </div>
-    </div>
-    <div class="card" id="walletCardsSection">
-      <div class="section-title">حساب‌های من</div>
-      <div id="walletHorizontalCards" class="wallet-hcards"></div>
-    </div>
     <div class="card" id="homeAlertsCard" style="display:none;">
       <div id="homeAlertsBox"></div>
-    </div>
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-        <div class="section-title" style="margin-bottom:0;">آخرین تراکنش‌ها</div>
-        <button type="button" id="homeSeeAllTxBtn" class="ghost-btn" style="width:auto; padding:4px 12px; font-size:11.5px;">مشاهده همه</button>
-      </div>
-      <div id="homeRecentTxBox"></div>
     </div>
     <div class="bank-card" id="bankCard">
       <div class="bank-card-shine"></div>
@@ -1279,6 +1256,13 @@ body.offline-mode{ padding-top:38px; }
       <div id="streakBox"></div>
       <div id="budgetProgressBox"></div>
       <button type="button" id="shareMonthSummaryBtn" class="ghost-btn" style="width:100%; margin-top:10px;">📤 اشتراک‌گذاری خلاصه‌ی این ماه</button>
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <div class="section-title" style="margin-bottom:0;">آخرین تراکنش‌ها</div>
+        <button type="button" id="homeSeeAllTxBtn" class="ghost-btn" style="width:auto; padding:4px 12px; font-size:11.5px;">مشاهده همه</button>
+      </div>
+      <div id="homeRecentTxBox"></div>
     </div>
     </div>
 
@@ -5796,48 +5780,20 @@ function computeHomeAlerts(){
   return alerts;
 }
 function renderHomeDashboard(){
-  const greetEl = document.getElementById('homeGreeting');
-  if(!greetEl) return; // this build doesn't have the phase-3 dashboard markup
-  greetEl.textContent = `سلام 👋 ${personName(currentUserId)}`;
+  const alertsCard = document.getElementById('homeAlertsCard');
+  const alertsBox = document.getElementById('homeAlertsBox');
+  if(!alertsCard || !alertsBox) return; // this build doesn't have the phase-3 dashboard markup
 
   const hidden = isBalanceHidden();
   const dots = '******';
-  const netWorth = totalWalletsBalance();
-  document.getElementById('netWorthAmount').textContent = hidden ? dots : ((netWorth<0?'−':'') + fmt(Math.abs(netWorth)) + ' ' + data.currency);
 
-  const m = computeThisMonthTotals();
-  document.getElementById('monthIncomeVal').textContent = hidden ? dots : (fmt(m.income) + ' ' + data.currency);
-  document.getElementById('monthExpenseVal').textContent = hidden ? dots : (fmt(m.expense) + ' ' + data.currency);
-  document.getElementById('monthNetVal').textContent = hidden ? dots : ((m.net<0?'−':'') + fmt(Math.abs(m.net)) + ' ' + data.currency);
-
-  const walletsBox = document.getElementById('walletHorizontalCards');
-  const walletsSection = document.getElementById('walletCardsSection');
-  const wallets = data.wallets || [];
-  if(walletsSection) walletsSection.style.display = wallets.length === 0 ? 'none' : '';
-  if(walletsBox){
-    walletsBox.innerHTML = wallets.map(w => {
-      const bal = walletBalance(w.id);
-      return `<div class="wallet-hcard" data-wallet-id="${w.id}">
-        <div class="whc-name">${walletIcon(w)} ${escapeHtml(w.name)}</div>
-        <div class="whc-balance" style="color:${bal<0?'var(--debit)':'var(--ink)'};">${hidden?dots:((bal<0?'−':'')+fmt(Math.abs(bal)))}</div>
-      </div>`;
-    }).join('');
-    walletsBox.querySelectorAll('[data-wallet-id]').forEach(card => {
-      card.addEventListener('click', () => openWalletDetail(card.dataset.walletId));
-    });
-  }
-
-  const alertsCard = document.getElementById('homeAlertsCard');
-  const alertsBox = document.getElementById('homeAlertsBox');
-  if(alertsCard && alertsBox){
-    const alerts = computeHomeAlerts();
-    if(alerts.length === 0){
-      alertsCard.style.display = 'none';
-    } else {
-      alertsCard.style.display = '';
-      alertsBox.innerHTML = `<div class="section-title">هشدارها</div>` +
-        alerts.map(a => `<div class="home-alert-row ${a.level}"><span>${a.icon}</span><span>${escapeHtml(a.text)}</span></div>`).join('');
-    }
+  const alerts = computeHomeAlerts();
+  if(alerts.length === 0){
+    alertsCard.style.display = 'none';
+  } else {
+    alertsCard.style.display = '';
+    alertsBox.innerHTML = `<div class="section-title">هشدارها</div>` +
+      alerts.map(a => `<div class="home-alert-row ${a.level}"><span>${a.icon}</span><span>${escapeHtml(a.text)}</span></div>`).join('');
   }
 
   const recentBox = document.getElementById('homeRecentTxBox');

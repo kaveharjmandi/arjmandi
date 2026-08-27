@@ -258,11 +258,27 @@ h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
   transition:height .2s; display:flex; align-items:center; justify-content:center;
 }
 .stat-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
+.stat-row.cols-3{ grid-template-columns:1fr 1fr 1fr; }
 .stat-tile{ background:var(--bg); border-radius:10px; padding:12px; text-align:center; }
 .stat-tile .val{ font-family:'IBM Plex Mono',monospace; font-size:16px; font-weight:700; }
 .stat-tile.income .val{ color:var(--credit); }
 .stat-tile.expense .val{ color:var(--debit); }
 .stat-tile .lbl{ font-size:11px; color:var(--ink-soft); margin-top:3px; }
+.home-greeting{ font-size:15px; font-weight:700; color:var(--ink); margin-bottom:12px; }
+.net-worth-card{
+  background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:16px;
+  margin-bottom:16px; box-shadow: 0 3px 14px rgba(0,0,0,0.06), 0 1px 0 var(--line);
+}
+.net-worth-label-row{ font-size:12px; color:var(--ink-soft); font-weight:700; }
+.net-worth-amount{ font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:700; color:var(--ink); margin-top:6px; }
+.wallet-hcards{ display:flex; gap:10px; overflow-x:auto; padding-bottom:2px; margin:0 -2px; }
+.wallet-hcard{ flex:0 0 auto; min-width:132px; background:var(--bg); border-radius:10px; padding:11px 13px; }
+.wallet-hcard .whc-name{ font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px; margin-bottom:8px; white-space:nowrap; }
+.wallet-hcard .whc-balance{ font-family:'IBM Plex Mono',monospace; font-size:13.5px; font-weight:700; white-space:nowrap; }
+.home-alert-row{ display:flex; align-items:center; gap:8px; font-size:12px; padding:9px 10px; border-radius:8px; margin-bottom:6px; }
+.home-alert-row:last-child{ margin-bottom:0; }
+.home-alert-row.high{ background:rgba(200,60,60,0.1); color:var(--debit); }
+.home-alert-row.med{ background:var(--warn-bg); color:var(--warn-text); }
 
 .person-breakdown{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .person-card{ background:var(--bg); border-radius:10px; padding:12px; }
@@ -1141,6 +1157,32 @@ body.offline-mode{ padding-top:38px; }
     </div>
 
     <div class="tab-panel" data-tab="home">
+    <div id="homeGreeting" class="home-greeting"></div>
+    <div class="net-worth-card">
+      <div class="net-worth-label-row">
+        <span>💰 دارایی خالص (مجموع حساب‌ها)</span>
+      </div>
+      <div class="net-worth-amount" id="netWorthAmount">۰</div>
+      <div class="stat-row cols-3" style="margin-top:12px;">
+        <div class="stat-tile income"><div class="val" id="monthIncomeVal">۰</div><div class="lbl">درآمد این ماه</div></div>
+        <div class="stat-tile expense"><div class="val" id="monthExpenseVal">۰</div><div class="lbl">هزینه این ماه</div></div>
+        <div class="stat-tile"><div class="val" id="monthNetVal">۰</div><div class="lbl">پس‌انداز این ماه</div></div>
+      </div>
+    </div>
+    <div class="card" id="walletCardsSection">
+      <div class="section-title">حساب‌های من</div>
+      <div id="walletHorizontalCards" class="wallet-hcards"></div>
+    </div>
+    <div class="card" id="homeAlertsCard" style="display:none;">
+      <div id="homeAlertsBox"></div>
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <div class="section-title" style="margin-bottom:0;">آخرین تراکنش‌ها</div>
+        <button type="button" id="homeSeeAllTxBtn" class="ghost-btn" style="width:auto; padding:4px 12px; font-size:11.5px;">مشاهده همه</button>
+      </div>
+      <div id="homeRecentTxBox"></div>
+    </div>
     <div class="bank-card" id="bankCard">
       <div class="bank-card-shine"></div>
       <div class="bank-card-top">
@@ -1438,6 +1480,10 @@ body.offline-mode{ padding-top:38px; }
         <span><span style="display:inline-block; width:10px; height:10px; background:var(--debit); border-radius:2px;"></span> برداشت</span>
       </div>
     </div>
+    <div class="card" id="walletTrendCard">
+      <div class="section-title" id="walletTrendChartTitle">روند دارایی خالص (مجموع حساب‌ها)</div>
+      <div id="walletTrendChartBox"></div>
+    </div>
     </div>
 
     <div class="sub-tab-panel" data-reportsubtab="goals" style="display:none;">
@@ -1660,6 +1706,19 @@ function walletBalance(walletId){
 }
 function totalWalletsBalance(){
   return activeWallets().reduce((sum, w) => sum + walletBalance(w.id), 0);
+}
+// Historical net worth as of a given date: replays every income/expense transaction with a
+// walletId up to (and including) that date. Transfers are intentionally excluded — money moving
+// between two wallets nets to zero across the total, so they don't change the combined balance.
+// Includes inactive wallets too, since they still held real money in the past.
+function walletsBalanceAsOf(dateIso){
+  let bal = (data.wallets || []).reduce((s,w) => s + (w.initialBalance || 0), 0);
+  (data.transactions || []).forEach(tx => {
+    if(!tx.walletId || tx.date > dateIso) return;
+    if(tx.type === 'income') bal += (tx.amount || 0);
+    else if(tx.type === 'expense') bal -= (tx.amount || 0);
+  });
+  return bal;
 }
 
 function mergeDefaults(){
@@ -2364,6 +2423,7 @@ function applyBalanceVisibility(){
     expEl.textContent = fmt(totalExpense) + ' ' + data.currency;
     if(eyeBtn) eyeBtn.textContent = '👁';
   }
+  renderHomeDashboard();
 }
 document.getElementById('balanceEyeBtn').addEventListener('click', () => {
   setBalanceHidden(!isBalanceHidden());
@@ -4684,6 +4744,34 @@ function renderCharts(){
 
   renderPieChart(range);
   renderBarChart();
+  renderWalletTrendChart();
+}
+
+function renderWalletTrendChart(){
+  const box = document.getElementById('walletTrendChartBox');
+  if(!box) return;
+  if(!data.wallets || data.wallets.length === 0){
+    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">💰</span>هنوز حسابی ثبت نشده.</div>';
+    return;
+  }
+  const buckets = buildReportsTrendBuckets();
+  if(buckets.length === 0){
+    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📊</span>داده‌ای برای نمایش نیست.</div>';
+    return;
+  }
+  const points = buckets.map(b => ({ label: b.label, value: walletsBalanceAsOf(b.range.end) }));
+  const maxVal = Math.max(1, ...points.map(p => Math.abs(p.value)));
+  const chartH = 130, barW = 22, gap = 14;
+  const svgW = points.length * (barW + gap) + gap;
+  let bars = '';
+  points.forEach((p, i) => {
+    const gx = gap + i * (barW + gap);
+    const h = Math.max(2, Math.round((Math.abs(p.value) / maxVal) * chartH));
+    const color = p.value < 0 ? 'var(--debit)' : 'var(--accent2)';
+    bars += `<rect x="${gx}" y="${chartH - h + 20}" width="${barW}" height="${h}" fill="${color}" rx="3"/>`;
+    bars += `<text x="${gx + barW/2}" y="${chartH + 36}" font-size="10" fill="var(--ink-soft)" text-anchor="middle">${escapeHtml(p.label)}</text>`;
+  });
+  box.innerHTML = `<svg viewBox="0 0 ${svgW} ${chartH + 40}" style="width:100%; max-width:480px; display:block; margin:0 auto;">${bars}</svg>`;
 }
 
 function renderPieChart(range){
@@ -5462,6 +5550,115 @@ function render(){
   renderChequeList();
   renderChequeAlerts();
 }
+
+function computeThisMonthTotals(){
+  const range = getPeriodRange('monthly', todayIso());
+  let income = 0, expense = 0;
+  data.transactions.forEach(t => {
+    if(t.date < range.start || t.date > range.end) return;
+    if(t.type === 'income') income += (t.amount || 0);
+    else if(t.type === 'expense') expense += (t.amount || 0);
+  });
+  return { income, expense, net: income - expense };
+}
+function computeHomeAlerts(){
+  const alerts = [];
+  (data.cheques || []).filter(c => c.status === 'pending').forEach(c => {
+    const d = daysDiff(c.dueDate);
+    if(d > 2) return;
+    const dirLabel = c.direction === 'payable' ? 'پرداخت به' : 'دریافت از';
+    const when = d < 0 ? `${faDigits(Math.abs(d))} روز گذشته` : (d === 0 ? 'امروز' : (d === 1 ? 'فردا' : `${faDigits(d)} روز دیگه`));
+    alerts.push({ level: d < 0 ? 'high' : 'med', icon:'🧾', text:`چک ${dirLabel} ${chequePersonLabel(c)} — سررسید: ${when}` });
+  });
+  const monthRange = getPeriodRange('monthly', todayIso());
+  const [, , jdToday] = isoToJalali(todayIso());
+  (data.loans || []).forEach(l => {
+    if(!l.dueDayOfMonth || l.paidCount >= l.installmentCount) return;
+    if(jdToday < l.dueDayOfMonth) return;
+    const paidThisMonth = data.transactions.some(t => t.loanId === l.id && t.date >= monthRange.start && t.date <= monthRange.end);
+    if(!paidThisMonth) alerts.push({ level:'high', icon:'🏦', text:`قسط «${l.name}» عقب‌افتاده (سررسید روز ${faDigits(l.dueDayOfMonth)})` });
+  });
+  Object.keys(data.budgets || {}).forEach(cat => {
+    const budget = data.budgets[cat];
+    if(!budget) return;
+    const spent = monthSpendForCategory(cat);
+    if(spent >= budget) alerts.push({ level:'high', icon:'🟠', text:`بودجه «${cat}» پر شده (${fmt(spent)} از ${fmt(budget)})` });
+    else if(spent >= budget * 0.8) alerts.push({ level:'med', icon:'🟡', text:`بودجه «${cat}» ${faDigits(Math.round(spent/budget*100))}٪ مصرف شده` });
+  });
+  (data.debts || []).forEach(d => {
+    if(!d.dueDate || debtRemaining(d) <= 0) return;
+    const diff = daysDiff(d.dueDate);
+    if(diff > 2) return;
+    const label = d.kind === 'credit' ? 'دریافت طلب از' : 'پرداخت بدهی به';
+    const when = diff < 0 ? `${faDigits(Math.abs(diff))} روز گذشته` : (diff === 0 ? 'امروز' : (diff === 1 ? 'فردا' : `${faDigits(diff)} روز دیگه`));
+    alerts.push({ level: diff < 0 ? 'high' : 'med', icon:'🤝', text:`${label} «${d.person}» — سررسید: ${when}` });
+  });
+  return alerts;
+}
+function renderHomeDashboard(){
+  const greetEl = document.getElementById('homeGreeting');
+  if(!greetEl) return; // this build doesn't have the phase-3 dashboard markup
+  greetEl.textContent = `سلام 👋 ${personName(currentUserId)}`;
+
+  const hidden = isBalanceHidden();
+  const dots = '******';
+  const netWorth = totalWalletsBalance();
+  document.getElementById('netWorthAmount').textContent = hidden ? dots : ((netWorth<0?'−':'') + fmt(Math.abs(netWorth)) + ' ' + data.currency);
+
+  const m = computeThisMonthTotals();
+  document.getElementById('monthIncomeVal').textContent = hidden ? dots : (fmt(m.income) + ' ' + data.currency);
+  document.getElementById('monthExpenseVal').textContent = hidden ? dots : (fmt(m.expense) + ' ' + data.currency);
+  document.getElementById('monthNetVal').textContent = hidden ? dots : ((m.net<0?'−':'') + fmt(Math.abs(m.net)) + ' ' + data.currency);
+
+  const walletsBox = document.getElementById('walletHorizontalCards');
+  const walletsSection = document.getElementById('walletCardsSection');
+  const wallets = data.wallets || [];
+  if(walletsSection) walletsSection.style.display = wallets.length === 0 ? 'none' : '';
+  if(walletsBox){
+    walletsBox.innerHTML = wallets.map(w => {
+      const bal = walletBalance(w.id);
+      return `<div class="wallet-hcard">
+        <div class="whc-name">${walletIcon(w)} ${escapeHtml(w.name)}</div>
+        <div class="whc-balance" style="color:${bal<0?'var(--debit)':'var(--ink)'};">${hidden?dots:((bal<0?'−':'')+fmt(Math.abs(bal)))}</div>
+      </div>`;
+    }).join('');
+  }
+
+  const alertsCard = document.getElementById('homeAlertsCard');
+  const alertsBox = document.getElementById('homeAlertsBox');
+  if(alertsCard && alertsBox){
+    const alerts = computeHomeAlerts();
+    if(alerts.length === 0){
+      alertsCard.style.display = 'none';
+    } else {
+      alertsCard.style.display = '';
+      alertsBox.innerHTML = `<div class="section-title">هشدارها</div>` +
+        alerts.map(a => `<div class="home-alert-row ${a.level}"><span>${a.icon}</span><span>${escapeHtml(a.text)}</span></div>`).join('');
+    }
+  }
+
+  const recentBox = document.getElementById('homeRecentTxBox');
+  if(recentBox){
+    const recent = (data.transactions || []).slice().sort((a,b) => (b.createdAt||0) - (a.createdAt||0)).slice(0, 5);
+    recentBox.innerHTML = recent.length === 0
+      ? '<div class="empty-state"><span class="empty-state-icon">📭</span>هنوز تراکنشی ثبت نشده.</div>'
+      : recent.map(tx => {
+        const sign = tx.type === 'income' ? '+' : '−';
+        return `<div class="tx-row">
+          ${txIconHtml(tx)}
+          <div class="tx-main">
+            <div class="tx-desc">${escapeHtml(tx.desc)}</div>
+            <div class="tx-meta">${tx.category ? categoryChipHtml(tx.category) : ''} · ${relativeDayLabel(tx.date)}</div>
+          </div>
+          <div class="tx-amount ${tx.type}">${hidden?dots:(sign+fmt(tx.amount))}</div>
+        </div>`;
+      }).join('');
+  }
+}
+document.getElementById('homeSeeAllTxBtn').addEventListener('click', () => {
+  showTab('transactions');
+  showTxSubTab('list');
+});
 
 function relativeDayLabel(dateStr){
   const todayI = todayIso();

@@ -272,7 +272,7 @@ h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
 .net-worth-label-row{ font-size:12px; color:var(--ink-soft); font-weight:700; }
 .net-worth-amount{ font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:700; color:var(--ink); margin-top:6px; }
 .wallet-hcards{ display:flex; gap:10px; overflow-x:auto; padding-bottom:2px; margin:0 -2px; }
-.wallet-hcard{ flex:0 0 auto; min-width:132px; background:var(--bg); border-radius:10px; padding:11px 13px; }
+.wallet-hcard{ flex:0 0 auto; min-width:132px; background:var(--bg); border-radius:10px; padding:11px 13px; cursor:pointer; }
 .wallet-hcard .whc-name{ font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px; margin-bottom:8px; white-space:nowrap; }
 .wallet-hcard .whc-balance{ font-family:'IBM Plex Mono',monospace; font-size:13.5px; font-weight:700; white-space:nowrap; }
 .home-alert-row{ display:flex; align-items:center; gap:8px; font-size:12px; padding:9px 10px; border-radius:8px; margin-bottom:6px; }
@@ -452,6 +452,35 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .tab-nav-btn.active .tab-icon{ background:var(--accent); filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15)); }
 .tab-panel{ animation: tabFade .22s ease; }
 @keyframes tabFade{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+/* ================= FAB (quick-add) ================= */
+.fab-wrap{
+  position:fixed; left:20px; bottom:calc(90px + env(safe-area-inset-bottom)); z-index:120;
+  display:flex; flex-direction:column; align-items:flex-start; gap:12px;
+}
+.fab-main-btn{
+  width:56px; height:56px; border-radius:50%; border:none; background:var(--accent); color:#fff;
+  font-size:26px; line-height:1; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,0.28);
+  display:flex; align-items:center; justify-content:center; transition:transform .18s ease;
+  font-family:inherit;
+}
+.fab-main-btn.open{ transform:rotate(45deg); }
+.fab-menu{
+  display:flex; flex-direction:column; gap:10px; opacity:0; pointer-events:none;
+  transform:translateY(10px); transition:opacity .16s ease, transform .16s ease;
+}
+.fab-menu.open{ opacity:1; pointer-events:auto; transform:translateY(0); }
+.fab-menu-item{
+  display:flex; align-items:center; gap:10px; border:none; background:var(--card-bg);
+  border-radius:999px; padding:6px 16px; box-shadow:0 4px 14px rgba(0,0,0,0.16); cursor:pointer;
+  font-family:inherit; font-size:12.5px; font-weight:700; color:var(--ink);
+}
+.fab-menu-icon{
+  width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:14px; color:#fff; flex-shrink:0;
+}
+.fab-backdrop{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.32); z-index:110; }
+.fab-backdrop.show{ display:block; }
 
 /* ================= CHEQUES ================= */
 .cheque-alert-banner{ background:var(--warn-bg); border:1px solid var(--warn-border); color:var(--warn-text); border-radius:12px; padding:10px 12px; font-size:12.5px; line-height:1.9; margin-bottom:12px; }
@@ -854,6 +883,32 @@ body.offline-mode{ padding-top:38px; }
     </div>
   </div>
 
+  <!-- WALLET DETAIL -->
+  <div id="walletDetailScreen" style="display:none;">
+    <header class="site-header"><h1>جزئیات حساب</h1></header>
+    <div class="user-bar">
+      <div class="who" id="walletDetailName">💰 —</div>
+      <div class="actions"><button id="walletDetailBackBtn">‹ بازگشت</button></div>
+    </div>
+    <div class="card">
+      <div class="section-title">موجودی فعلی</div>
+      <div id="walletDetailBalance" style="font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:700; color:var(--ink);"></div>
+      <div id="walletDetailMeta" style="font-size:11.5px; color:var(--ink-soft); margin-top:6px;"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">روند موجودی</div>
+      <div id="walletDetailTrendBox"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">تراکنش‌های این حساب</div>
+      <div id="walletDetailTxList"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">انتقال‌های این حساب</div>
+      <div id="walletDetailTransfersList"></div>
+    </div>
+  </div>
+
   <!-- SETTINGS -->
   <div id="settingsDrawerBackdrop" class="drawer-backdrop"></div>
   <div id="settingsScreen" class="settings-drawer">
@@ -1148,6 +1203,18 @@ body.offline-mode{ padding-top:38px; }
       </div>
     </div>
 
+    <div class="fab-backdrop" id="fabBackdrop"></div>
+    <div class="fab-wrap" id="fabWrap">
+      <div class="fab-menu" id="fabMenu">
+        <button type="button" class="fab-menu-item" data-fabaction="credit"><span class="fab-menu-icon" style="background:var(--credit);">🟢</span><span>طلب</span></button>
+        <button type="button" class="fab-menu-item" data-fabaction="debt"><span class="fab-menu-icon" style="background:var(--debit);">🔴</span><span>بدهی</span></button>
+        <button type="button" class="fab-menu-item" data-fabaction="cheque"><span class="fab-menu-icon" style="background:var(--accent2);">🧾</span><span>چک</span></button>
+        <button type="button" class="fab-menu-item" data-fabaction="transfer"><span class="fab-menu-icon" style="background:var(--accent);">🔁</span><span>انتقال</span></button>
+        <button type="button" class="fab-menu-item" data-fabaction="income"><span class="fab-menu-icon" style="background:var(--credit);">➕</span><span>درآمد</span></button>
+        <button type="button" class="fab-menu-item" data-fabaction="expense"><span class="fab-menu-icon" style="background:var(--debit);">➖</span><span>هزینه</span></button>
+      </div>
+      <button type="button" class="fab-main-btn" id="fabMainBtn" aria-label="ثبت سریع">+</button>
+    </div>
     <div class="tab-nav" id="tabNav">
       <button type="button" class="tab-nav-btn" data-tab="transactions"><span class="tab-icon">💳</span><span>تراکنش‌ها</span></button>
       <button type="button" class="tab-nav-btn" data-tab="breakdown"><span class="tab-icon">👤</span><span>ریز هر شخص</span></button>
@@ -1720,6 +1787,92 @@ function walletsBalanceAsOf(dateIso){
   });
   return bal;
 }
+// Same idea but scoped to one wallet — unlike the aggregate version, transfers DO matter here
+// since they move money into or out of this specific wallet (they only net to zero in aggregate).
+function walletBalanceAsOf(walletId, dateIso){
+  const w = walletById(walletId);
+  if(!w) return 0;
+  let bal = w.initialBalance || 0;
+  (data.transactions || []).forEach(tx => {
+    if(tx.walletId !== walletId || tx.date > dateIso) return;
+    if(tx.type === 'income') bal += (tx.amount || 0);
+    else if(tx.type === 'expense') bal -= (tx.amount || 0);
+  });
+  (data.transfers || []).forEach(tr => {
+    if(tr.date > dateIso) return;
+    if(tr.toWalletId === walletId) bal += (tr.amount || 0);
+    if(tr.fromWalletId === walletId) bal -= (tr.amount || 0);
+  });
+  return bal;
+}
+function openWalletDetail(walletId){
+  const w = walletById(walletId);
+  if(!w) return;
+  const hidden = isBalanceHidden();
+  const dots = '******';
+  document.getElementById('walletDetailName').textContent = `${walletIcon(w)} ${w.name}`;
+  const bal = walletBalance(walletId);
+  document.getElementById('walletDetailBalance').textContent = hidden ? dots : ((bal<0?'−':'')+fmt(Math.abs(bal))+' '+data.currency);
+  document.getElementById('walletDetailMeta').textContent =
+    `نوع: ${walletTypeMeta(w.type).label}${w.note ? ' · ' + w.note : ''}${w.active === false ? ' · غیرفعال' : ''}`;
+
+  const buckets = buildReportsTrendBuckets();
+  const trendBox = document.getElementById('walletDetailTrendBox');
+  if(buckets.length === 0){
+    trendBox.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📊</span>داده‌ای برای نمایش نیست.</div>';
+  } else {
+    const points = buckets.map(b => ({ label: b.label, value: walletBalanceAsOf(walletId, b.range.end) }));
+    const maxVal = Math.max(1, ...points.map(p => Math.abs(p.value)));
+    const chartH = 120, barW = 20, gap = 12;
+    const svgW = points.length * (barW + gap) + gap;
+    let bars = '';
+    points.forEach((p,i) => {
+      const gx = gap + i*(barW+gap);
+      const h = Math.max(2, Math.round((Math.abs(p.value)/maxVal)*chartH));
+      const color = p.value < 0 ? 'var(--debit)' : 'var(--accent2)';
+      bars += `<rect x="${gx}" y="${chartH-h+18}" width="${barW}" height="${h}" fill="${color}" rx="3"/>`;
+      bars += `<text x="${gx+barW/2}" y="${chartH+34}" font-size="9.5" fill="var(--ink-soft)" text-anchor="middle">${escapeHtml(p.label)}</text>`;
+    });
+    trendBox.innerHTML = `<svg viewBox="0 0 ${svgW} ${chartH+38}" style="width:100%; max-width:480px; display:block; margin:0 auto;">${bars}</svg>`;
+  }
+
+  const txBox = document.getElementById('walletDetailTxList');
+  const txs = data.transactions.filter(t => t.walletId === walletId).slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,30);
+  txBox.innerHTML = txs.length === 0
+    ? '<div class="empty-state"><span class="empty-state-icon">📭</span>هنوز تراکنشی از این حساب ثبت نشده.</div>'
+    : txs.map(tx => {
+      const sign = tx.type === 'income' ? '+' : '−';
+      return `<div class="tx-row">
+        ${txIconHtml(tx)}
+        <div class="tx-main">
+          <div class="tx-desc">${escapeHtml(tx.desc)}</div>
+          <div class="tx-meta">${tx.category ? categoryChipHtml(tx.category) : ''} · ${formatDate(tx.date)}</div>
+        </div>
+        <div class="tx-amount ${tx.type}">${hidden?dots:(sign+fmt(tx.amount))}</div>
+      </div>`;
+    }).join('');
+
+  const trBox = document.getElementById('walletDetailTransfersList');
+  const transfers = (data.transfers||[]).filter(t => t.fromWalletId === walletId || t.toWalletId === walletId)
+    .slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,20);
+  trBox.innerHTML = transfers.length === 0
+    ? '<div class="empty-state"><span class="empty-state-icon">🔁</span>هنوز انتقالی برای این حساب ثبت نشده.</div>'
+    : transfers.map(t => {
+      const isOut = t.fromWalletId === walletId;
+      const other = walletById(isOut ? t.toWalletId : t.fromWalletId);
+      return `<div class="tx-row">
+        <div class="tx-icon">🔁</div>
+        <div class="tx-main">
+          <div class="tx-desc">${isOut ? 'انتقال به' : 'دریافت از'} ${escapeHtml(other ? other.name : '؟')}</div>
+          <div class="tx-meta">${t.desc ? escapeHtml(t.desc)+' · ' : ''}${formatDate(t.date)}</div>
+        </div>
+        <div class="tx-amount ${isOut?'expense':'income'}">${hidden?dots:((isOut?'−':'+')+fmt(t.amount))}</div>
+      </div>`;
+    }).join('');
+
+  showScreen('walletDetailScreen');
+}
+document.getElementById('walletDetailBackBtn').addEventListener('click', () => { showScreen('app'); });
 
 function mergeDefaults(){
   const d = defaultData();
@@ -2349,11 +2502,17 @@ function renderWalletsSettingsPanel(){
       ? '<div class="empty-state"><span class="empty-state-icon">💰</span>هنوز حسابی ثبت نشده.</div>'
       : wallets.map(w => {
         const bal = walletBalance(w.id);
-        return `<div class="person-card">
+        return `<div class="person-card" data-wallet-id="${w.id}" style="cursor:pointer;">
           <div class="pname">${walletIcon(w)} ${escapeHtml(w.name)}${w.active === false ? ' <span style="font-size:10px; color:var(--ink-soft);">(غیرفعال)</span>' : ''}</div>
           <div class="person-line net"><span>موجودی</span><span class="v">${hidden?dots:((bal<0?'−':'')+fmt(Math.abs(bal)))}</span></div>
         </div>`;
       }).join('');
+    viewList.querySelectorAll('[data-wallet-id]').forEach(card => {
+      card.addEventListener('click', () => {
+        closeSettingsDrawer();
+        openWalletDetail(card.dataset.walletId);
+      });
+    });
   }
 
   const fromSel = document.getElementById('transferFromWallet');
@@ -2919,7 +3078,7 @@ const newDebtDueDatePicker = makeDatePicker({ display:'newDebtDueDisplay', input
 
 /* ---------- screens ---------- */
 function showScreen(id){
-  ['loading','pinlockScreen','login','app','adminScreen'].forEach(s => {
+  ['loading','pinlockScreen','login','app','adminScreen','walletDetailScreen'].forEach(s => {
     document.getElementById(s).style.display = (s === id) ? '' : 'none';
   });
 }
@@ -3907,6 +4066,47 @@ async function shareSummaryImage(){
   URL.revokeObjectURL(url);
 }
 document.getElementById('shareSummaryBtn').addEventListener('click', shareSummaryImage);
+
+/* ---------- FAB (quick add) ---------- */
+function closeFabMenu(){
+  document.getElementById('fabMenu').classList.remove('open');
+  document.getElementById('fabMainBtn').classList.remove('open');
+  document.getElementById('fabBackdrop').classList.remove('show');
+}
+function openFabMenu(){
+  document.getElementById('fabMenu').classList.add('open');
+  document.getElementById('fabMainBtn').classList.add('open');
+  document.getElementById('fabBackdrop').classList.add('show');
+}
+document.getElementById('fabMainBtn').addEventListener('click', () => {
+  const isOpen = document.getElementById('fabMenu').classList.contains('open');
+  if(isOpen) closeFabMenu(); else openFabMenu();
+});
+document.getElementById('fabBackdrop').addEventListener('click', closeFabMenu);
+document.getElementById('fabMenu').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-fabaction]');
+  if(!btn) return;
+  const action = btn.dataset.fabaction;
+  closeFabMenu();
+  if(action === 'expense' || action === 'income'){
+    showTab('transactions');
+    showTxSubTab('add');
+    setType(action);
+  } else if(action === 'transfer'){
+    openSettingsDrawer();
+    showSettingsCat('wallets');
+  } else if(action === 'cheque'){
+    showTab('cheques');
+  } else if(action === 'debt' || action === 'credit'){
+    showTab('reports');
+    showReportsSubTab('goals');
+    renderGoalsAndLoans();
+    const form = document.getElementById('newDebtForm');
+    form.style.display = 'block';
+    (action === 'credit' ? document.getElementById('debtKindCreditBtn') : document.getElementById('debtKindDebtBtn')).click();
+    form.scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+});
 
 /* ---------- admin ---------- */
 document.getElementById('adminPanelBtn').addEventListener('click', () => {
@@ -5617,11 +5817,14 @@ function renderHomeDashboard(){
   if(walletsBox){
     walletsBox.innerHTML = wallets.map(w => {
       const bal = walletBalance(w.id);
-      return `<div class="wallet-hcard">
+      return `<div class="wallet-hcard" data-wallet-id="${w.id}">
         <div class="whc-name">${walletIcon(w)} ${escapeHtml(w.name)}</div>
         <div class="whc-balance" style="color:${bal<0?'var(--debit)':'var(--ink)'};">${hidden?dots:((bal<0?'−':'')+fmt(Math.abs(bal)))}</div>
       </div>`;
     }).join('');
+    walletsBox.querySelectorAll('[data-wallet-id]').forEach(card => {
+      card.addEventListener('click', () => openWalletDetail(card.dataset.walletId));
+    });
   }
 
   const alertsCard = document.getElementById('homeAlertsCard');

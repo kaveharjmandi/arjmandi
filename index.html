@@ -49,8 +49,6 @@ body[data-theme="dark"]{
 .site-header{ margin-bottom:18px; text-align:center; }
 .brand-tag{ font-size:11.5px; font-weight:700; letter-spacing:.5px; color:var(--accent); text-transform:uppercase; margin-bottom:2px; }
 .app-header-bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-.app-header-titles{ flex:1; min-width:0; }
-.header-spacer{ width:40px; flex-shrink:0; }
 .hamburger-btn{
   width:40px; height:40px; flex-shrink:0; border-radius:12px; background:var(--card-bg);
   border:1px solid var(--line); font-size:19px; color:var(--ink); cursor:pointer;
@@ -158,26 +156,15 @@ h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
   width:38px; height:38px; padding:0; border-radius:50%; font-size:16px;
   display:flex; align-items:center; justify-content:center;
 }
-.admin-badge-icon{
-  font-size:12px; background:var(--accent); color:#fff; border-radius:50%;
-  width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; padding:0;
-}
 .user-bar button#themeToggleBtn{
   background:var(--card-bg); color:var(--accent); width:38px; height:38px; padding:0;
   border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px;
   border:2px solid var(--accent); transition: transform .3s ease, background .2s ease;
 }
 .user-bar button#themeToggleBtn:active{ transform:scale(0.88) rotate(15deg); }
-.admin-badge{ font-size:10px; background:var(--accent); color:#fff; border-radius:4px; padding:2px 6px; }
 .storage-indicator-pill{
   font-size:10px; color:var(--ink-soft); background:var(--bg); border-radius:999px; padding:3px 9px;
 }
-
-/* balance overview */
-.balance-hero{ text-align:center; padding:6px 0 10px; }
-.balance-hero .amount{ font-family:'IBM Plex Mono',monospace; font-size:30px; font-weight:700; color:var(--ink); }
-.balance-hero .amount.neg{ color:var(--debit); }
-.balance-hero .label{ font-size:12px; color:var(--ink-soft); margin-top:4px; }
 
 .bank-card{
   position:relative;
@@ -247,34 +234,16 @@ h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
   display:flex; align-items:center; gap:10px; background:var(--card-bg);
   transition: transform .15s ease; position:relative; z-index:1; width:100%; min-width:0;
 }
-.tx-swipe-bg{
-  position:absolute; inset:0; display:flex; align-items:center; justify-content:space-between;
-  padding:0 14px; font-size:12px; font-weight:700; color:#fff;
-}
-.tx-swipe-bg .left{ background:var(--accent2); flex:1; height:100%; display:flex; align-items:center; }
-.tx-swipe-bg .right{ background:var(--debit); flex:1; height:100%; display:flex; align-items:center; justify-content:flex-end; }
 .pull-refresh-indicator{
   text-align:center; font-size:12px; color:var(--ink-soft); height:0; overflow:hidden;
   transition:height .2s; display:flex; align-items:center; justify-content:center;
 }
 .stat-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
-.stat-row.cols-3{ grid-template-columns:1fr 1fr 1fr; }
 .stat-tile{ background:var(--bg); border-radius:10px; padding:12px; text-align:center; }
 .stat-tile .val{ font-family:'IBM Plex Mono',monospace; font-size:16px; font-weight:700; }
 .stat-tile.income .val{ color:var(--credit); }
 .stat-tile.expense .val{ color:var(--debit); }
 .stat-tile .lbl{ font-size:11px; color:var(--ink-soft); margin-top:3px; }
-.home-greeting{ font-size:15px; font-weight:700; color:var(--ink); margin-bottom:12px; }
-.net-worth-card{
-  background:var(--card-bg); border:1px solid var(--line); border-radius:12px; padding:16px;
-  margin-bottom:16px; box-shadow: 0 3px 14px rgba(0,0,0,0.06), 0 1px 0 var(--line);
-}
-.net-worth-label-row{ font-size:12px; color:var(--ink-soft); font-weight:700; }
-.net-worth-amount{ font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:700; color:var(--ink); margin-top:6px; }
-.wallet-hcards{ display:flex; gap:10px; overflow-x:auto; padding-bottom:2px; margin:0 -2px; }
-.wallet-hcard{ flex:0 0 auto; min-width:132px; background:var(--bg); border-radius:10px; padding:11px 13px; cursor:pointer; }
-.wallet-hcard .whc-name{ font-size:12px; font-weight:700; display:flex; align-items:center; gap:4px; margin-bottom:8px; white-space:nowrap; }
-.wallet-hcard .whc-balance{ font-family:'IBM Plex Mono',monospace; font-size:13.5px; font-weight:700; white-space:nowrap; }
 .home-alert-row{ display:flex; align-items:center; gap:8px; font-size:12px; padding:9px 10px; border-radius:8px; margin-bottom:6px; }
 .home-alert-row:last-child{ margin-bottom:0; }
 .home-alert-row.high{ background:rgba(200,60,60,0.1); color:var(--debit); }
@@ -650,6 +619,11 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 }
 .offline-banner.show{ transform:translateY(0); }
 body.offline-mode{ padding-top:38px; }
+.storage-banner{
+  position:fixed; top:0; left:0; right:0; z-index:300;
+  background:var(--warn-bg); color:var(--warn-text); border-bottom:1px solid var(--warn-border);
+  font-size:12.5px; text-align:center; padding:9px 12px;
+}
 .new-cat-row{ display:flex; gap:8px; margin-top:6px; }
 .new-cat-emoji-btn{
   width:38px; height:38px; flex-shrink:0; border-radius:8px; border:1px solid var(--line);
@@ -671,6 +645,7 @@ body.offline-mode{ padding-top:38px; }
 </head>
 <body data-theme="light">
 <div id="offlineBanner" class="offline-banner">📡 آفلاین هستید — تغییرات بعد از وصل‌شدن اینترنت سینک می‌شن</div>
+<div id="storageBanner" class="storage-banner" style="display:none;"></div>
 <div class="wrap">
   <div id="pullRefreshIndicator" class="pull-refresh-indicator"></div>
   <div id="loading" class="loading">در حال بارگذاری صندوق…</div>
@@ -1608,7 +1583,6 @@ const STORAGE_KEY = 'family-fund-data';
 let data = null;
 let currentUserId = null;
 let currentUsername = null;
-let pendingLoginId = null;
 let captchaCode = '';
 let currentType = 'income';
 let currentFilter = 'all';
@@ -2868,26 +2842,6 @@ async function registerFingerprint(username){
     return false;
   }
 }
-async function loginWithFingerprint(username){
-  if(!webauthnSupported()) return false;
-  const credId = data.auth[username] && data.auth[username].webauthnId;
-  if(!credId) return false;
-  try{
-    const challenge = crypto.getRandomValues(new Uint8Array(32));
-    const assertion = await navigator.credentials.get({
-      publicKey: {
-        challenge,
-        allowCredentials: [{ id: b64ToBuf(credId), type:'public-key' }],
-        userVerification: 'required',
-        timeout: 60000
-      }
-    });
-    return !!assertion;
-  }catch(err){
-    console.error('WebAuthn login failed', err);
-    return false;
-  }
-}
 function accountsWithFingerprint(){
   return Object.keys(data.auth || {}).filter(u => data.auth[u] && data.auth[u].webauthnId);
 }
@@ -3080,17 +3034,6 @@ document.getElementById('settingsDrawerBackdrop').addEventListener('click', clos
 function pinKey(username){ return 'sandoogh-pin-' + username; }
 function hasPinSetup(username){
   try{ return !!localStorage.getItem(pinKey(username)); }catch(e){ return false; }
-}
-async function setupPinLock(username, pin){
-  const salt = randomSaltHex();
-  const hash = await sha256Hex(salt + pin);
-  try{
-    localStorage.setItem(pinKey(username), JSON.stringify({ salt, hash }));
-    localStorage.setItem('sandoogh-last-user', username);
-  }catch(e){ alert('ذخیره‌سازی قفل سریع ممکن نشد.'); }
-}
-function removePinLock(username){
-  try{ localStorage.removeItem(pinKey(username)); }catch(e){}
 }
 async function verifyPin(username, pin){
   try{
@@ -5735,16 +5678,6 @@ function render(){
   renderChequeAlerts();
 }
 
-function computeThisMonthTotals(){
-  const range = getPeriodRange('monthly', todayIso());
-  let income = 0, expense = 0;
-  data.transactions.forEach(t => {
-    if(t.date < range.start || t.date > range.end) return;
-    if(t.type === 'income') income += (t.amount || 0);
-    else if(t.type === 'expense') expense += (t.amount || 0);
-  });
-  return { income, expense, net: income - expense };
-}
 function computeHomeAlerts(){
   const alerts = [];
   (data.cheques || []).filter(c => c.status === 'pending').forEach(c => {
@@ -6183,31 +6116,6 @@ function deleteTransactionWithUndo(id){
     logActivity('undo_delete_tx', `${tx.desc}`);
     await saveData();
     render();
-  });
-}
-
-function wireSwipeGestures(){
-  document.querySelectorAll('.tx-row').forEach(row => {
-    const inner = row.querySelector('.tx-row-inner');
-    const id = row.dataset.id;
-    let startX = 0, curX = 0, dragging = false;
-    row.addEventListener('touchstart', (e) => {
-      startX = e.touches[0].clientX; dragging = true; inner.style.transition = 'none';
-    }, { passive:true });
-    row.addEventListener('touchmove', (e) => {
-      if(!dragging) return;
-      curX = e.touches[0].clientX - startX;
-      curX = Math.max(-90, Math.min(90, curX));
-      inner.style.transform = `translateX(${curX}px)`;
-    }, { passive:true });
-    row.addEventListener('touchend', () => {
-      dragging = false;
-      inner.style.transition = 'transform .18s ease';
-      if(curX < -60){ inner.style.transform = 'translateX(0)'; deleteTransactionWithUndo(id); }
-      else if(curX > 60){ inner.style.transform = 'translateX(0)'; startEditTransaction(id); }
-      else { inner.style.transform = 'translateX(0)'; }
-      curX = 0;
-    });
   });
 }
 

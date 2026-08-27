@@ -1188,10 +1188,6 @@ body.offline-mode{ padding-top:38px; }
           <label id="accountFieldLbl">از حساب کدام‌یک</label>
           <select id="accountSelect"></select>
         </div>
-        <div class="field">
-          <label id="walletFieldLbl">از/به کدام حساب مالی</label>
-          <select id="walletSelect"></select>
-        </div>
         <div class="field" id="categoryFieldWrap">
           <label>دسته‌بندی</label>
           <select id="categorySelect"></select>
@@ -2128,7 +2124,14 @@ function logActivity(action, details){
 function fmt(n){ n = Math.round(n); return n.toLocaleString('en-US'); }
 
 /* ---------- live amount formatting (comma grouping + Persian words) ---------- */
-function stripCommaDigits(str){ return (str || '').replace(/[^\d]/g, ''); }
+// Normalizes Persian (۰-۹) and Arabic-Indic (٠-٩) numerals to ASCII digits, since many
+// mobile keyboards insert these by default and native/live-formatted amount fields
+// only recognize ASCII 0-9 — without this, a typed amount can silently come out empty.
+function toEnglishDigits(str){
+  const faAr = '۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩';
+  return (str || '').replace(/[۰-۹٠-٩]/g, (d) => String(faAr.indexOf(d) % 10));
+}
+function stripCommaDigits(str){ return toEnglishDigits(str).replace(/[^\d]/g, ''); }
 function formatThousandsRaw(digitsStr){
   if(!digitsStr) return '';
   return Number(digitsStr).toLocaleString('en-US');
@@ -4971,17 +4974,9 @@ function populateAccountSelect(){
   if(stillValid) sel.value = prevVal;
   else sel.value = owners.some(p => p.id === currentUserId) ? currentUserId : (owners[0] ? owners[0].id : '');
 }
-function populateWalletSelect(){
-  const sel = document.getElementById('walletSelect');
-  if(!sel) return;
-  const wallets = activeWallets();
-  const lbl = document.getElementById('walletFieldLbl');
-  if(lbl) lbl.textContent = currentType === 'income' ? 'واریز به کدام حساب مالی' : 'از کدام حساب مالی کسر بشه';
-  const prevVal = sel.value;
-  sel.innerHTML = wallets.map(w => `<option value="${w.id}">${walletIcon(w)} ${escapeHtml(w.name)}</option>`).join('');
-  const stillValid = wallets.some(w => w.id === prevVal);
-  if(stillValid) sel.value = prevVal;
-  else sel.value = wallets[0] ? wallets[0].id : '';
+function defaultActiveWalletId(){
+  const w = activeWallets()[0];
+  return w ? w.id : null;
 }
 function populateCategorySelect(){
   const sel = document.getElementById('categorySelect');
@@ -5251,7 +5246,6 @@ function render(){
 
   populatePersonSelect();
   populateAccountSelect();
-  populateWalletSelect();
 
   populateCategorySelect();
 
@@ -5449,8 +5443,6 @@ function startEditTransaction(id){
   document.getElementById('personSelect').value = tx.personId;
   populateAccountSelect();
   document.getElementById('accountSelect').value = tx.accountId || accountOwnerFallback(tx);
-  populateWalletSelect();
-  if(tx.walletId) document.getElementById('walletSelect').value = tx.walletId;
   populateCategorySelect();
   document.getElementById('categorySelect').value = tx.category || '';
   document.getElementById('descInput').value = tx.desc;
@@ -6130,7 +6122,7 @@ async function init(){
     const date = document.getElementById('dateInput').value;
     const personId = document.getElementById('personSelect').value;
     const accountId = document.getElementById('accountSelect').value;
-    const walletId = document.getElementById('walletSelect').value;
+    const walletId = defaultActiveWalletId();
     const splitOn = currentType === 'expense' && !editingTxId && document.getElementById('splitModeCheckbox').checked;
 
     if(splitOn){

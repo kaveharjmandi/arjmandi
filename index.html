@@ -423,15 +423,21 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 @keyframes tabFade{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
 
 /* ================= FAB (quick-add) ================= */
+/* pointer-events:none is essential here: this is a position:fixed flex column whose
+   layout box always reserves space for the menu items (opacity/pointer-events toggle,
+   not display:none), so without this the invisible box sits on top of anything else in
+   that screen region — e.g. the left-aligned edit/delete buttons in RTL rows — and
+   swallows their clicks even while the menu is closed. Children opt back in below. */
 .fab-wrap{
   position:fixed; left:20px; bottom:calc(90px + env(safe-area-inset-bottom)); z-index:120;
   display:flex; flex-direction:column; align-items:flex-start; gap:12px;
+  pointer-events:none;
 }
 .fab-main-btn{
   width:56px; height:56px; border-radius:50%; border:none; background:var(--accent); color:#fff;
   font-size:26px; line-height:1; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,0.28);
   display:flex; align-items:center; justify-content:center; transition:transform .18s ease;
-  font-family:inherit;
+  font-family:inherit; pointer-events:auto;
 }
 .fab-main-btn.open{ transform:rotate(45deg); }
 .fab-menu{

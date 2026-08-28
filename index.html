@@ -429,7 +429,7 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
    that screen region — e.g. the left-aligned edit/delete buttons in RTL rows — and
    swallows their clicks even while the menu is closed. Children opt back in below. */
 .fab-wrap{
-  position:fixed; left:20px; bottom:calc(90px + env(safe-area-inset-bottom)); z-index:120;
+  position:fixed; left:12px; bottom:calc(90px + env(safe-area-inset-bottom)); z-index:120;
   display:flex; flex-direction:column; align-items:flex-start; gap:12px;
   pointer-events:none;
 }
@@ -1630,9 +1630,6 @@ function migrateWalletsIfNeeded(){
 }
 function activeWallets(){
   return (data.wallets || []).filter(w => w.active !== false);
-}
-function walletById(id){
-  return (data.wallets || []).find(w => w.id === id);
 }
 function walletIcon(w){
   return w.icon || walletTypeMeta(w.type).icon;

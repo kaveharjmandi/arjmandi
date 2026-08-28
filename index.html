@@ -1152,6 +1152,17 @@ body.offline-mode{ padding-top:38px; }
     <div class="card">
       <div class="section-title">موجودی حساب هرکدوم</div>
       <div id="accountBalancesBox" class="person-breakdown"></div>
+      <button type="button" id="openTransferBtn" class="ghost-btn" style="width:100%; margin-top:10px;">🔁 جابجایی بین حساب‌ها</button>
+      <div id="newTransferForm" style="display:none; margin-top:12px; border-top:1px dashed var(--line); padding-top:12px;">
+        <div class="row2">
+          <div class="field"><label>از حساب</label><select id="transferFromSelect"></select></div>
+          <div class="field"><label>به حساب</label><select id="transferToSelect"></select></div>
+        </div>
+        <div class="field"><label>مبلغ</label><input type="number" id="newTransferAmount" min="1"></div>
+        <div class="login-field"><label>یادداشت (اختیاری)</label><input type="text" id="newTransferNote" placeholder="مثلاً: بابت خرید مشترک"></div>
+        <button type="button" id="createTransferBtn" class="submit-btn">ثبت جابجایی</button>
+      </div>
+      <div id="transfersList"></div>
     </div>
     <div class="card">
       <div class="stat-row">
@@ -1556,7 +1567,11 @@ function defaultData(){
     wallets: [], // real financial accounts (cash/bank/card/savings/...), separate from the
                  // existing per-person "accountId" concept used on transactions
     transfers: [], // money moved between wallets — never counted as income/expense
-    debts: [] // debt/credit tracking: money owed to us ("credit") or money we owe ("debt")
+    debts: [], // debt/credit tracking: money owed to us ("credit") or money we owe ("debt")
+    personTransfers: [] // manual balance moves between family members' personal accounts
+                         // (e.g. kaveh <-> hadiseh) — like `transfers` but for the accountId
+                         // concept rather than wallets. Never counted as income/expense; only
+                         // shifts each person's balance in computeAccountBalances().
   };
 }
 
@@ -1662,6 +1677,7 @@ function mergeDefaults(){
   if(!Array.isArray(data.wallets)) data.wallets = [];
   if(!Array.isArray(data.transfers)) data.transfers = [];
   if(!Array.isArray(data.debts)) data.debts = [];
+  if(!Array.isArray(data.personTransfers)) data.personTransfers = [];
   migrateWalletsIfNeeded();
   migrateRialToTomanIfNeeded();
   // migrate old scheme where the auth key WAS the personId (no explicit personId field yet)
@@ -1719,6 +1735,13 @@ function computeAccountBalances(){
     else result[accId].expense += Number(tx.amount)||0;
   });
   owners.forEach(p => { result[p.id].balance = result[p.id].income - result[p.id].expense; });
+  // manual person-to-person transfers shift balance only — they are intentionally
+  // NOT added to income/expense so they never show up in reports/charts.
+  (data.personTransfers || []).forEach(t => {
+    const amt = Number(t.amount) || 0;
+    if(result[t.fromPersonId]) result[t.fromPersonId].balance -= amt;
+    if(result[t.toPersonId]) result[t.toPersonId].balance += amt;
+  });
   return result;
 }
 
@@ -2025,6 +2048,7 @@ async function mergeWithServerBeforeSave(){
     data.wallets = mergeArraysSafely('wallets', data.wallets, serverData.wallets, data.tombstones);
     data.transfers = mergeArraysSafely('transfers', data.transfers, serverData.transfers, data.tombstones);
     data.debts = mergeArraysSafely('debts', data.debts, serverData.debts, data.tombstones);
+    data.personTransfers = mergeArraysSafely('personTransfers', data.personTransfers, serverData.personTransfers, data.tombstones);
     if(Array.isArray(serverData.activityLog) || Array.isArray(data.activityLog)){
       data.activityLog = mergeArraysSafely('activityLog', data.activityLog, serverData.activityLog, null)
         .sort((a,b) => (b.at||0) - (a.at||0)).slice(0, 300);
@@ -2223,7 +2247,7 @@ function wireAmountField(inputEl){
   });
 }
 function wireAllAmountFields(){
-  ['amountInput','chAmount','newGoalTarget','newLoanTotal','newLoanInstallment','newRecAmount','newDebtTotal']
+  ['amountInput','chAmount','newGoalTarget','newLoanTotal','newLoanInstallment','newRecAmount','newDebtTotal','newTransferAmount']
     .forEach(id => wireAmountField(document.getElementById(id)));
   document.querySelectorAll('.budget-input, .split-amt').forEach(wireAmountField);
 }
@@ -2270,6 +2294,97 @@ function renderAccountBalances(){
       <div class="person-line net"><span>موجودی</span><span class="v">${hidden?dots:((b.balance<0?'−':'')+fmt(Math.abs(b.balance)))}</span></div>
     </div>`;
   }).join('');
+}
+
+/* ---------- person-to-person balance transfers (جابجایی بین حساب‌ها) ----------
+   A manual move of money between two family members' personal accounts
+   (data.people with canLogin). Deliberately never touches data.transactions,
+   so it never appears as income/expense in reports/charts — it only shifts
+   the two accounts' balances (see computeAccountBalances()). */
+function populateTransferSelects(){
+  const fromSel = document.getElementById('transferFromSelect');
+  const toSel = document.getElementById('transferToSelect');
+  if(!fromSel || !toSel) return;
+  const owners = data.people.filter(p => p.canLogin);
+  const optionsHtml = owners.map(p => `<option value="${p.id}">${p.avatar||'👤'} ${escapeHtml(p.name)}</option>`).join('');
+  fromSel.innerHTML = optionsHtml;
+  toSel.innerHTML = optionsHtml;
+  const defaultFrom = owners.some(p => p.id === currentUserId) ? currentUserId : (owners[0] ? owners[0].id : '');
+  const otherOwner = owners.find(p => p.id !== defaultFrom);
+  fromSel.value = defaultFrom;
+  toSel.value = otherOwner ? otherOwner.id : defaultFrom;
+}
+document.getElementById('openTransferBtn').addEventListener('click', () => {
+  const f = document.getElementById('newTransferForm');
+  const opening = f.style.display === 'none';
+  f.style.display = opening ? 'block' : 'none';
+  if(opening) populateTransferSelects();
+});
+document.getElementById('transferFromSelect').addEventListener('change', () => {
+  const fromSel = document.getElementById('transferFromSelect');
+  const toSel = document.getElementById('transferToSelect');
+  if(fromSel.value === toSel.value){
+    const owners = data.people.filter(p => p.canLogin);
+    const other = owners.find(p => p.id !== fromSel.value);
+    if(other) toSel.value = other.id;
+  }
+});
+document.getElementById('transferToSelect').addEventListener('change', () => {
+  const fromSel = document.getElementById('transferFromSelect');
+  const toSel = document.getElementById('transferToSelect');
+  if(fromSel.value === toSel.value){
+    const owners = data.people.filter(p => p.canLogin);
+    const other = owners.find(p => p.id !== toSel.value);
+    if(other) fromSel.value = other.id;
+  }
+});
+document.getElementById('createTransferBtn').addEventListener('click', async () => {
+  const fromPersonId = document.getElementById('transferFromSelect').value;
+  const toPersonId = document.getElementById('transferToSelect').value;
+  const amount = parseAmountValue(document.getElementById('newTransferAmount').value);
+  const note = document.getElementById('newTransferNote').value.trim();
+  if(!fromPersonId || !toPersonId || fromPersonId === toPersonId){ alert('مبدا و مقصد باید دو نفر متفاوت باشن.'); return; }
+  if(!amount || amount <= 0){ alert('مبلغ رو درست وارد کن.'); return; }
+  data.personTransfers.push({
+    id: newId('pt'), fromPersonId, toPersonId, amount, note,
+    enteredById: currentUserId, createdAt: Date.now()
+  });
+  logActivity('add_transfer', `${fmt(amount)} ${data.currency} از حساب ${personName(fromPersonId)} به حساب ${personName(toPersonId)}${note ? ' - ' + note : ''}`);
+  await saveData();
+  clearAmountField('newTransferAmount');
+  document.getElementById('newTransferNote').value = '';
+  document.getElementById('newTransferForm').style.display = 'none';
+  render();
+  renderTransfersList();
+  showSuccessToast('جابجایی ثبت شد');
+});
+async function deletePersonTransfer(id){
+  const t = (data.personTransfers || []).find(x => x.id === id);
+  if(!t) return;
+  if(!(await confirmAsync(`جابجایی ${fmt(t.amount)} ${data.currency} از ${personName(t.fromPersonId)} به ${personName(t.toPersonId)} حذف بشه؟`))) return;
+  data.personTransfers = data.personTransfers.filter(x => x.id !== id);
+  markDeleted('personTransfers', id);
+  await saveData();
+  render();
+  renderTransfersList();
+}
+function renderTransfersList(){
+  const box = document.getElementById('transfersList');
+  if(!box) return;
+  const list = (data.personTransfers || []).slice().sort((a,b) => (b.createdAt||0) - (a.createdAt||0)).slice(0, 10);
+  if(list.length === 0){ box.innerHTML = ''; return; }
+  box.innerHTML = `<div style="font-size:11.5px; color:var(--ink-soft); margin:10px 0 6px;">آخرین جابجایی‌ها</div>` + list.map(t => `
+    <div class="tx-row" style="align-items:flex-start;">
+      <div class="tx-main">
+        <div class="tx-desc">🔁 ${personName(t.fromPersonId)} ← ${personName(t.toPersonId)}</div>
+        ${t.note ? `<div class="tx-meta">${escapeHtml(t.note)}</div>` : ''}
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:13px;">${fmt(t.amount)}</span>
+        <button type="button" class="mini-del" data-del-transfer="${t.id}" title="حذف" aria-label="حذف جابجایی">✕</button>
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('[data-del-transfer]').forEach(btn => btn.addEventListener('click', (e) => deletePersonTransfer(e.target.dataset.delTransfer)));
 }
 function applyBalanceVisibility(){
   const hidden = isBalanceHidden();
@@ -5308,6 +5423,7 @@ function render(){
   document.getElementById('bankCardDate').textContent = formatJalaliShort(todayIso());
   applyBalanceVisibility();
   renderAccountBalances();
+  renderTransfersList();
   renderBudgetProgress();
   renderInsights(totalIncome, totalExpense, balance);
   renderStreak();

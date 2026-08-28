@@ -1152,7 +1152,10 @@ body.offline-mode{ padding-top:38px; }
     <div class="card">
       <div class="section-title">موجودی حساب هرکدوم</div>
       <div id="accountBalancesBox" class="person-breakdown"></div>
-      <button type="button" id="openTransferBtn" class="ghost-btn" style="width:100%; margin-top:10px;">🔁 جابجایی بین حساب‌ها</button>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button type="button" id="openTransferBtn" class="ghost-btn" style="flex:1;">🔁 جابجایی بین حساب‌ها</button>
+        <button type="button" id="toggleTransfersListBtn" class="ghost-btn" style="width:auto; padding:0 14px;" title="لیست جابجایی‌ها" aria-label="نمایش یا پنهان‌کردن لیست جابجایی‌ها">🧾</button>
+      </div>
       <div id="newTransferForm" style="display:none; margin-top:12px; border-top:1px dashed var(--line); padding-top:12px;">
         <div class="row2">
           <div class="field"><label>از حساب</label><select id="transferFromSelect"></select></div>
@@ -1162,7 +1165,7 @@ body.offline-mode{ padding-top:38px; }
         <div class="login-field"><label>یادداشت (اختیاری)</label><input type="text" id="newTransferNote" placeholder="مثلاً: بابت خرید مشترک"></div>
         <button type="button" id="createTransferBtn" class="submit-btn">ثبت جابجایی</button>
       </div>
-      <div id="transfersList"></div>
+      <div id="transfersList" style="display:none; margin-top:10px;"></div>
     </div>
     <div class="card">
       <div class="stat-row">
@@ -2320,6 +2323,12 @@ document.getElementById('openTransferBtn').addEventListener('click', () => {
   f.style.display = opening ? 'block' : 'none';
   if(opening) populateTransferSelects();
 });
+document.getElementById('toggleTransfersListBtn').addEventListener('click', () => {
+  const box = document.getElementById('transfersList');
+  const opening = box.style.display === 'none';
+  box.style.display = opening ? 'block' : 'none';
+  if(opening) renderTransfersList();
+});
 document.getElementById('transferFromSelect').addEventListener('change', () => {
   const fromSel = document.getElementById('transferFromSelect');
   const toSel = document.getElementById('transferToSelect');
@@ -2372,8 +2381,8 @@ function renderTransfersList(){
   const box = document.getElementById('transfersList');
   if(!box) return;
   const list = (data.personTransfers || []).slice().sort((a,b) => (b.createdAt||0) - (a.createdAt||0)).slice(0, 10);
-  if(list.length === 0){ box.innerHTML = ''; return; }
-  box.innerHTML = `<div style="font-size:11.5px; color:var(--ink-soft); margin:10px 0 6px;">آخرین جابجایی‌ها</div>` + list.map(t => `
+  if(list.length === 0){ box.innerHTML = '<div class="empty-state" style="padding:10px 0;"><span class="empty-state-icon">🔁</span>هنوز جابجایی‌ای ثبت نشده.</div>'; return; }
+  box.innerHTML = list.map(t => `
     <div class="tx-row" style="align-items:flex-start;">
       <div class="tx-main">
         <div class="tx-desc">🔁 ${personName(t.fromPersonId)} ← ${personName(t.toPersonId)}</div>

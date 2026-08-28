@@ -2716,6 +2716,11 @@ function makeDatePicker(ids){
     const iso = todayIso(); setSelected(iso);
     const [jy,jm] = isoToJalali(iso); state.jy = jy; state.jm = jm;
   }
+  function clear(){
+    state.selectedIso = null;
+    document.getElementById(ids.input).value = '';
+    document.getElementById(ids.display).value = '';
+  }
   function open(){
     const iso = state.selectedIso || todayIso();
     const [jy,jm] = isoToJalali(iso); state.jy = jy; state.jm = jm;
@@ -2755,7 +2760,7 @@ function makeDatePicker(ids){
     pop.querySelector('.cal-nav-next').addEventListener('click', () => { state.jm++; if(state.jm>12){state.jm=1;state.jy++;} render(); });
     pop.querySelector('.cal-nav-today').addEventListener('click', () => { resetToToday(); render(); });
   }
-  return { state, setSelected, resetToToday, open, close, render };
+  return { state, setSelected, resetToToday, clear, open, close, render };
 }
 const txDatePicker = makeDatePicker({ display:'dateDisplay', input:'dateInput', popup:'calendarPopup' });
 const chDatePicker = makeDatePicker({ display:'chDateDisplay', input:'chDateInput', popup:'chCalendarPopup' });
@@ -4791,6 +4796,7 @@ document.getElementById('createDebtBtn').addEventListener('click', async () => {
   document.getElementById('newDebtNote').value = '';
   document.getElementById('newDebtDueInput').value = '';
   document.getElementById('newDebtDueDisplay').value = '';
+  newDebtDueDatePicker.clear();
   document.getElementById('newDebtForm').style.display = 'none';
   renderDebtsList();
   showSuccessToast('ثبت شد');

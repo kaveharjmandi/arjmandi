@@ -2777,14 +2777,54 @@ function showScreen(id){
     document.getElementById(s).style.display = (s === id) ? '' : 'none';
   });
 }
-function openSettingsDrawer(){
+function _openSettingsDrawerDom(){
   document.getElementById('settingsScreen').classList.add('open');
   document.getElementById('settingsDrawerBackdrop').classList.add('show');
 }
-function closeSettingsDrawer(){
+function _closeSettingsDrawerDom(){
   document.getElementById('settingsScreen').classList.remove('open');
   document.getElementById('settingsDrawerBackdrop').classList.remove('show');
 }
+
+/* ---------- panel navigation synced with the phone/browser back button ----------
+   States: null (everything closed) -> 'main' (settings list) -> {cat} (a settings
+   category) -> 'admin' (admin full screen, reached from the "مدیریت" category).
+   Opening a panel pushes a history entry; closing/going back consumes it via
+   history.back()/history.go(), so the hardware back button always steps back one
+   level instead of exiting the app or leaving the drawer in a stale state. */
+let panelNavDepth = 0;
+function pushPanelState(panel){
+  panelNavDepth++;
+  history.pushState({ panel, panelDepth: panelNavDepth }, '');
+  applyPanelState(panel);
+}
+function closeAllPanels(){
+  if(panelNavDepth > 0){ history.go(-panelNavDepth); }
+  else { applyPanelState(null); }
+}
+function applyPanelState(panel){
+  const wasOnAdmin = document.getElementById('adminScreen').style.display !== 'none';
+  if(panel === 'admin'){
+    _closeSettingsDrawerDom();
+    showScreen('adminScreen');
+    return;
+  }
+  if(wasOnAdmin){ showScreen('app'); render(); }
+  if(!panel){ _closeSettingsDrawerDom(); return; }
+  _openSettingsDrawerDom();
+  if(panel === 'main') showSettingsMain();
+  else if(panel.cat) showSettingsCat(panel.cat);
+}
+window.addEventListener('popstate', (e) => {
+  const st = e.state || {};
+  const panel = st.panel || null;
+  panelNavDepth = panel ? (st.panelDepth || 0) : 0;
+  applyPanelState(panel);
+});
+/* kept as the entry point used when first opening settings from the header button */
+function openSettingsDrawer(){ pushPanelState('main'); }
+/* kept as the "fully close, however deep we are" helper used by the backdrop and logout */
+function closeSettingsDrawer(){ closeAllPanels(); }
 document.getElementById('settingsDrawerBackdrop').addEventListener('click', closeSettingsDrawer);
 
 /* ---------- quick PIN lock (per device) ---------- */
@@ -3338,10 +3378,10 @@ function showSettingsCat(cat){
   if(panel) panel.style.display = 'block';
 }
 document.querySelectorAll('#settingsMainList [data-cat]').forEach(row => {
-  row.addEventListener('click', () => showSettingsCat(row.getAttribute('data-cat')));
+  row.addEventListener('click', () => pushPanelState({ cat: row.getAttribute('data-cat') }));
 });
 document.querySelectorAll('.cat-back-btn').forEach(btn => {
-  btn.addEventListener('click', showSettingsMain);
+  btn.addEventListener('click', () => history.back());
 });
 document.getElementById('settingsBtn').addEventListener('click', () => {
   const isAdm = isCurrentAdmin();
@@ -3351,7 +3391,6 @@ document.getElementById('settingsBtn').addEventListener('click', () => {
   document.getElementById('autoLockSelect').value = String(data.autoLockMinutes || 15);
   document.getElementById('captchaToggleRow').style.display = isAdm ? 'flex' : 'none';
   document.getElementById('captchaToggleInput').checked = !!data.captchaEnabled;
-  showSettingsMain();
   openSettingsDrawer();
 });
 document.getElementById('captchaToggleInput').addEventListener('change', async (e) => {
@@ -3771,10 +3810,9 @@ document.getElementById('fabMenu').addEventListener('click', (e) => {
 document.getElementById('adminPanelBtn').addEventListener('click', () => {
   document.getElementById('adminWhoName').textContent = personName(currentUserId);
   renderAdminPanel();
-  closeSettingsDrawer();
-  showScreen('adminScreen');
+  pushPanelState('admin');
 });
-document.getElementById('adminBackBtn').addEventListener('click', () => { showScreen('app'); render(); openSettingsDrawer(); });
+document.getElementById('adminBackBtn').addEventListener('click', () => history.back());
 
 /* admin panel sections are static markup (never re-rendered via innerHTML), so a one-time
    listener per toggle button is safe here — no risk of the duplicate-listener bug. */

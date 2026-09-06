@@ -1689,15 +1689,6 @@ function mergeDefaults(){
       data.auth[key].personId = key;
     }
   });
-  // seed the fixed admin account (username: kaveh) if no account exists for it yet
-  if(!data.auth['kaveh']){
-    data.auth['kaveh'] = {
-      salt: 'a9cbdd3e80b73d428cc9a31809860475',
-      hash: '4d300fc5ac8cafa44a82cfc7cfd0793fe935e927d54e3d5aebe118362fdf70bc',
-      personId: 'kaveh'
-    };
-  }
-
   ['income','expense'].forEach(cat => {
     d.categories[cat].forEach(c => {
       if(!data.categories[cat].includes(c)) data.categories[cat].push(c);
@@ -2035,6 +2026,25 @@ function mergeArraysSafely(type, localArr, serverArr, tombstones){
   }
   return Array.from(map.values());
 }
+/* Same tombstone idea as mergeArraysSafely, but for plain key->value objects
+   (data.budgets, data.categoryIcons) that have no per-entry timestamp.
+   Local values always win when a key exists on both sides (last local edit
+   wins). A key that only exists on the server gets dropped if this device
+   has a tombstone recorded for it (i.e. we deleted it locally and haven't
+   re-added it) - otherwise a stale server copy of a deleted budget/icon can
+   silently reappear after a sync, the same resurrection bug tombstones
+   already prevent for transactions/goals/loans/etc. */
+function mergeKeyedObjectSafely(type, localObj, serverObj, tombstones){
+  localObj = (localObj && typeof localObj === 'object') ? localObj : {};
+  serverObj = (serverObj && typeof serverObj === 'object') ? serverObj : {};
+  tombstones = tombstones || {};
+  const merged = Object.assign({}, serverObj, localObj);
+  Object.keys(merged).forEach(k => {
+    if(Object.prototype.hasOwnProperty.call(localObj, k)) return; // local has it - keep local's value
+    if(tombstones[type + ':' + k] != null) delete merged[k]; // server-only + locally deleted - drop it
+  });
+  return merged;
+}
 async function mergeWithServerBeforeSave(){
   if(!sb) return true; // no cross-device sync configured - nothing to merge against, safe to save
   try{
@@ -2057,8 +2067,8 @@ async function mergeWithServerBeforeSave(){
         .sort((a,b) => (b.at||0) - (a.at||0)).slice(0, 300);
     }
     data.auth = Object.assign({}, serverData.auth || {}, data.auth || {});
-    if(serverData.budgets) data.budgets = Object.assign({}, serverData.budgets, data.budgets || {});
-    if(serverData.categoryIcons) data.categoryIcons = Object.assign({}, serverData.categoryIcons, data.categoryIcons || {});
+    data.budgets = mergeKeyedObjectSafely('budgets', data.budgets, serverData.budgets, data.tombstones);
+    data.categoryIcons = mergeKeyedObjectSafely('categoryIcons', data.categoryIcons, serverData.categoryIcons, data.tombstones);
     if(serverData.categories){
       // NOTE: category order matters (drag-to-reorder in admin panel), so this merge must
       // preserve the LOCAL order as the source of truth and only append names that exist on
@@ -3270,17 +3280,37 @@ function maybeAutoBackupLocally(){
 function mergeImportedData(imported){
   if(!Array.isArray(imported.transactions)) return false;
   const existingIds = new Set(data.transactions.map(t => t.id));
-  let added = 0;
-  imported.transactions.forEach(t => {
-    if(t && t.id && !existingIds.has(t.id)){ data.transactions.push(t); existingIds.add(t.id); added++; }
-  });
-  (imported.people||[]).forEach(p => { if(p && p.id && !data.people.some(x=>x.id===p.id)) data.people.push(p); });
+
+  // Reuse the same union+tombstone merge already trusted for cross-device sync,
+  // so restoring an old backup behaves consistently with normal syncing instead
+  // of silently dropping every data type except transactions/people/auth/categories.
+  data.tombstones = mergeTombstones(data.tombstones, imported.tombstones);
+  data.transactions = mergeArraysSafely('transactions', data.transactions, imported.transactions, data.tombstones);
+  data.cheques = mergeArraysSafely('cheques', data.cheques, imported.cheques, data.tombstones);
+  data.goals = mergeArraysSafely('goals', data.goals, imported.goals, data.tombstones);
+  data.loans = mergeArraysSafely('loans', data.loans, imported.loans, data.tombstones);
+  data.people = mergeArraysSafely('people', data.people, imported.people, data.tombstones);
+  data.wallets = mergeArraysSafely('wallets', data.wallets, imported.wallets, data.tombstones);
+  data.transfers = mergeArraysSafely('transfers', data.transfers, imported.transfers, data.tombstones);
+  data.debts = mergeArraysSafely('debts', data.debts, imported.debts, data.tombstones);
+  data.personTransfers = mergeArraysSafely('personTransfers', data.personTransfers, imported.personTransfers, data.tombstones);
+  data.recurring = mergeArraysSafely('recurring', data.recurring, imported.recurring, data.tombstones);
+  if(Array.isArray(imported.activityLog) || Array.isArray(data.activityLog)){
+    data.activityLog = mergeArraysSafely('activityLog', data.activityLog, imported.activityLog, null)
+      .sort((a,b) => (b.at||0) - (a.at||0)).slice(0, 300);
+  }
+  data.budgets = mergeKeyedObjectSafely('budgets', data.budgets, imported.budgets, data.tombstones);
+  data.categoryIcons = mergeKeyedObjectSafely('categoryIcons', data.categoryIcons, imported.categoryIcons, data.tombstones);
+
   Object.keys(imported.auth||{}).forEach(id => { if(!data.auth[id]) data.auth[id] = imported.auth[id]; });
   if(imported.categories){
     ['income','expense'].forEach(cat => {
       (imported.categories[cat]||[]).forEach(c => { if(!data.categories[cat].includes(c)) data.categories[cat].push(c); });
     });
   }
+
+  // added-transactions count for the confirmation message shown to the user
+  const added = data.transactions.filter(t => t && t.id && !existingIds.has(t.id)).length;
   return added;
 }
 document.getElementById('backupBtn').addEventListener('click', exportBackup);
@@ -3994,6 +4024,8 @@ function renderCatList(containerId, catType){
       if(newName !== oldName && data.categoryIcons && data.categoryIcons[oldName]){
         data.categoryIcons[newName] = data.categoryIcons[oldName];
         delete data.categoryIcons[oldName];
+        markDeleted('categoryIcons', oldName);
+        unmarkDeleted('categoryIcons', newName);
       }
       await saveData(); render();
     });
@@ -4005,7 +4037,7 @@ function renderCatList(containerId, catType){
       const catName = data.categories[t][idx];
       if(!(await confirmAsync(`دسته‌بندی «${catName}» حذف بشه؟`))) return;
       data.categories[t].splice(idx, 1);
-      if(data.categoryIcons && data.categoryIcons[catName]) delete data.categoryIcons[catName];
+      if(data.categoryIcons && data.categoryIcons[catName]){ delete data.categoryIcons[catName]; markDeleted('categoryIcons', catName); }
       await saveData(); renderAdminPanel(); render();
       showSuccessToast('دسته‌بندی حذف شد');
     });
@@ -4438,7 +4470,8 @@ function renderBudgetsList(){
     inp.addEventListener('change', async (e) => {
       const cat = e.target.dataset.cat;
       const val = parseAmountValue(e.target.value);
-      if(val > 0) data.budgets[cat] = val; else delete data.budgets[cat];
+      if(val > 0){ data.budgets[cat] = val; unmarkDeleted('budgets', cat); }
+      else { delete data.budgets[cat]; markDeleted('budgets', cat); }
       await saveData();
       render();
     });

@@ -1039,6 +1039,15 @@ body.offline-mode{ padding-top:38px; }
         <div class="settings-chevron">‹</div>
       </div>
 
+      <div class="settings-item" style="align-items:center;">
+        <div class="settings-icon">🚨</div>
+        <div class="settings-text">
+          <div class="settings-title">هشدار کمبود موجودی حساب</div>
+          <div class="settings-sub">وقتی موجودی کسی از این عدد کمتر بشه هشدار بده (خالی = غیرفعال)</div>
+        </div>
+        <input type="text" id="lowBalanceThresholdInput" placeholder="غیرفعال" inputmode="decimal" style="width:110px; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:6px 8px; font-family:'Vazirmatn',sans-serif; font-size:12px; color:var(--ink); text-align:center;">
+      </div>
+
       <div class="settings-item" id="activityLogBtn">
         <div class="settings-icon">🕒</div>
         <div class="settings-text">
@@ -1564,6 +1573,7 @@ function defaultData(){
     streak: { count: 0, lastDateIso: null, longest: 0 },
     badges: [],
     autoLockMinutes: 15,
+    lowBalanceThreshold: null,
     captchaEnabled: true,
     tombstones: {},
     categoryIcons: {}, // user-chosen emoji overrides for custom categories, keyed by category name
@@ -2378,11 +2388,13 @@ document.getElementById('createTransferBtn').addEventListener('click', async () 
   const note = document.getElementById('newTransferNote').value.trim();
   if(!fromPersonId || !toPersonId || fromPersonId === toPersonId){ alert('مبدا و مقصد باید دو نفر متفاوت باشن.'); return; }
   if(!amount || amount <= 0){ alert('مبلغ رو درست وارد کن.'); return; }
+  const prevFromBalance = (computeAccountBalances()[fromPersonId] || {}).balance;
   data.personTransfers.push({
     id: newId('pt'), fromPersonId, toPersonId, amount, note,
     enteredById: currentUserId, createdAt: Date.now()
   });
   logActivity('add_transfer', `${fmt(amount)} ${data.currency} از حساب ${personName(fromPersonId)} به حساب ${personName(toPersonId)}${note ? ' - ' + note : ''}`);
+  checkLowBalanceWarning(fromPersonId, prevFromBalance);
   await saveData();
   clearAmountField('newTransferAmount');
   document.getElementById('newTransferNote').value = '';
@@ -3567,6 +3579,7 @@ document.getElementById('settingsBtn').addEventListener('click', () => {
   document.getElementById('changePwCard').style.display = 'none';
   renderFingerprintSection();
   document.getElementById('autoLockSelect').value = String(data.autoLockMinutes || 15);
+  document.getElementById('lowBalanceThresholdInput').value = data.lowBalanceThreshold ? String(data.lowBalanceThreshold) : '';
   document.getElementById('captchaToggleRow').style.display = isAdm ? 'flex' : 'none';
   document.getElementById('captchaToggleInput').checked = !!data.captchaEnabled;
   openSettingsDrawer();
@@ -3581,6 +3594,12 @@ document.getElementById('autoLockSelect').addEventListener('change', async (e) =
   data.autoLockMinutes = Number(e.target.value) || 15;
   await saveData();
   showSuccessToast('زمان قفل خودکار ذخیره شد');
+});
+document.getElementById('lowBalanceThresholdInput').addEventListener('change', async (e) => {
+  const v = parseAmountValue(e.target.value);
+  data.lowBalanceThreshold = v > 0 ? v : null;
+  await saveData();
+  showSuccessToast(data.lowBalanceThreshold ? 'حد هشدار موجودی ذخیره شد' : 'هشدار کمبود موجودی غیرفعال شد');
 });
 
 function renderFingerprintSection(){
@@ -4517,6 +4536,22 @@ function checkBudgetWarning(category){
     alert(`نزدیک سقف بودجه دسته «${category}» هستید: ${fmt(spent)} از ${fmt(budget)} ${data.currency}`);
   }
 }
+// Alerts only the moment a person's account balance CROSSES below the configured threshold
+// (was at/above it before this change, now below) — not on every single transaction while
+// already under it, which would otherwise fire on every subsequent expense and get ignored.
+// prevBalance must be captured by the caller BEFORE the triggering transaction/transfer is
+// pushed into data, since computeAccountBalances() always reflects the current in-memory data.
+function checkLowBalanceWarning(accountId, prevBalance){
+  const threshold = Number(data.lowBalanceThreshold);
+  if(!threshold || threshold <= 0) return;
+  if(prevBalance === undefined || prevBalance === null) return;
+  const b = computeAccountBalances()[accountId];
+  if(!b) return;
+  if(b.balance < threshold && prevBalance >= threshold){
+    const owner = data.people.find(p => p.id === accountId);
+    alert(`🚨 موجودی حساب «${owner ? owner.name : ''}» از حد هشدار (${fmt(threshold)} ${data.currency}) کمتر شد.\nموجودی فعلی: ${((b.balance<0?'−':'')+fmt(Math.abs(b.balance)))} ${data.currency}`);
+  }
+}
 function renderBudgetProgress(){
   const box = document.getElementById('budgetProgressBox');
   if(!box) return;
@@ -5109,11 +5144,27 @@ function parseVoiceText(text){
   const match = normalized.match(/[\d,]+/);
   let amount = match ? Number(match[0].replace(/,/g,'')) : 0;
   if(/میلیون/.test(text)) amount *= 1000000;
-  else if(/(هزار تومان|هزار)/.test(text) && amount < 1000) amount *= 1000;
-  const isIncome = /(واریز|گرفتم|حقوق|دریافت|کارانه)/.test(text);
+  else if(/(هزار تومان|هزار تومن|هزار)/.test(text) && amount > 0 && amount < 1000) amount *= 1000;
+  const incomeWords = /(واریز شد|واریز کردم|گرفتم|حقوق|دریافت کردم|دریافت شد|کارانه|پاداش|عیدی گرفتم)/;
+  const expenseWords = /(خرج کردم|پرداخت کردم|برداشت کردم|برداشتم|دادم|خریدم|کم شد)/;
+  const isIncome = incomeWords.test(text) && !expenseWords.test(text);
   let desc = match ? normalized.replace(match[0], '').trim() : text.trim();
-  desc = desc.replace(/^(تومان|ریال|هزار تومان|میلیون تومان)\s*/,'').replace(/\s{2,}/g,' ').trim();
-  return { amount, desc: desc || text, type: isIncome ? 'income' : 'expense' };
+  desc = desc.replace(/^(تومان|ریال|هزار تومان|هزار تومن|میلیون تومان)\s*/,'').replace(/\s{2,}/g,' ').trim();
+  // Try to find a mentioned family member's name anywhere in the sentence, e.g.
+  // "۲۰۰ هزار تومان بابت نون از حساب علی" → matches the person named "علی".
+  // Picks the longest matching name so a full name doesn't lose to a shorter first-name substring.
+  let matchedPerson = null;
+  (data.people || []).forEach(p => {
+    const name = (p.name || '').trim();
+    if(name.length >= 2 && text.includes(name)){
+      if(!matchedPerson || name.length > matchedPerson.name.length) matchedPerson = p;
+    }
+  });
+  if(matchedPerson){
+    desc = desc.replace(matchedPerson.name, '').replace(/\s{2,}/g,' ').trim();
+    desc = desc.replace(/^(از حساب|از|به حساب|به|برای)\s*/,'').trim();
+  }
+  return { amount, desc: desc || text, type: isIncome ? 'income' : 'expense', personId: matchedPerson ? matchedPerson.id : null };
 }
 function startVoiceInput(){
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -5127,7 +5178,7 @@ function startVoiceInput(){
   recog.interimResults = false;
   recog.maxAlternatives = 1;
   hint.style.display = 'block';
-  hint.textContent = '🎙️ در حال شنیدن… مثلاً بگو «۲۰۰ هزار تومان خرج نون کردم»';
+  hint.textContent = '🎙️ در حال شنیدن… مثلاً بگو «۲۰۰ هزار تومان بابت نون از حساب علی»';
   document.getElementById('voiceInputBtn').style.background = 'var(--accent)';
   recog.onresult = (e) => {
     const text = e.results[0][0].transcript;
@@ -5135,7 +5186,30 @@ function startVoiceInput(){
     setType(parsed.type);
     document.getElementById('descInput').value = parsed.desc;
     if(parsed.amount > 0) setAmountFieldValue('amountInput', parsed.amount);
-    hint.textContent = `تشخیص داده شد: «${text}» — قبل از ثبت بررسی کن.`;
+
+    let personLabel = '';
+    if(parsed.personId){
+      const personSel = document.getElementById('personSelect');
+      if([...personSel.options].some(o => o.value === parsed.personId)){
+        personSel.value = parsed.personId;
+        personLabel = ' · ' + personName(parsed.personId);
+      }
+      const accSel = document.getElementById('accountSelect');
+      if([...accSel.options].some(o => o.value === parsed.personId)){
+        accSel.value = parsed.personId;
+      }
+    }
+
+    let categoryLabel = '';
+    const suggestion = suggestCategoryForDesc(parsed.desc);
+    const catSel = document.getElementById('categorySelect');
+    if(suggestion && [...catSel.options].some(o => o.value === suggestion)){
+      catSel.value = suggestion;
+      categoryManuallyPicked = false;
+      categoryLabel = ' · ' + suggestion;
+    }
+
+    hint.textContent = `تشخیص داده شد: «${text}» → ${parsed.amount > 0 ? fmt(parsed.amount) + ' ' + data.currency : 'بدون مبلغ'}${personLabel}${categoryLabel} — قبل از ثبت بررسی کن.`;
   };
   recog.onerror = () => {
     hint.textContent = 'متوجه نشدم، دوباره امتحان کن.';
@@ -6352,6 +6426,7 @@ async function init(){
     const personId = document.getElementById('personSelect').value;
     const accountId = document.getElementById('accountSelect').value;
     const walletId = defaultActiveWalletId();
+    const prevAccountBalance = (computeAccountBalances()[accountId] || {}).balance;
     const splitOn = currentType === 'expense' && !editingTxId && document.getElementById('splitModeCheckbox').checked;
 
     if(splitOn){
@@ -6370,6 +6445,7 @@ async function init(){
       rows.forEach(r => {
         if(data.budgets && data.budgets[r.category] > 0) checkBudgetWarning(r.category);
       });
+      checkLowBalanceWarning(accountId, prevAccountBalance);
       await saveData();
       document.getElementById('descInput').value = ''; categoryManuallyPicked = false;
       clearSplitRows();
@@ -6415,6 +6491,7 @@ async function init(){
     if(currentType === 'expense' && data.budgets && data.budgets[category] > 0){
       checkBudgetWarning(category);
     }
+    if(!wasEditSave) checkLowBalanceWarning(accountId, prevAccountBalance);
 
     document.getElementById('descInput').value = ''; categoryManuallyPicked = false;
     clearAmountField('amountInput');

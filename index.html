@@ -1784,9 +1784,14 @@ function sbSubscribeRealtime(){
       if(!payload.new || !payload.new.data) return;
       const incomingJson = JSON.stringify(payload.new.data);
       if(incomingJson === sbLastSavedJson) return; // our own write echoing back
-      data = payload.new.data;
+      // Merge (never overwrite outright): on a weak connection, this event can be a delayed
+      // echo of an OLDER save that raced a newer local change (e.g. a transaction you just
+      // added, still mid-upload). Replacing `data` wholesale would silently drop that change
+      // the moment this event lands. applyServerMerge keeps anything local that's newer,
+      // via the same tombstone/timestamp logic used before every save.
+      applyServerMerge(payload.new.data);
       mergeDefaults();
-      try{ localStorage.setItem(STORAGE_KEY, incomingJson); }catch(e){}
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
       storageMode = 'sync';
       updateStorageIndicator();
       if(document.getElementById('app').style.display !== 'none'){
@@ -2045,6 +2050,47 @@ function mergeKeyedObjectSafely(type, localObj, serverObj, tombstones){
   });
   return merged;
 }
+// Merges an incoming server snapshot into the in-memory `data`, field by field, using the
+// tombstone/timestamp-aware helpers above. Used both before our own saves (mergeWithServerBeforeSave)
+// AND when a realtime broadcast arrives (sbSubscribeRealtime) - in both cases we must never just
+// replace `data` wholesale, or a snapshot that's older than our latest local edit (e.g. a delayed
+// realtime event that raced a slow save on a weak connection) would silently erase that edit.
+function applyServerMerge(serverData){
+  if(!serverData || typeof serverData !== 'object') return;
+  data.tombstones = mergeTombstones(data.tombstones, serverData.tombstones);
+  data.transactions = mergeArraysSafely('transactions', data.transactions, serverData.transactions, data.tombstones);
+  data.cheques = mergeArraysSafely('cheques', data.cheques, serverData.cheques, data.tombstones);
+  data.goals = mergeArraysSafely('goals', data.goals, serverData.goals, data.tombstones);
+  data.loans = mergeArraysSafely('loans', data.loans, serverData.loans, data.tombstones);
+  data.people = mergeArraysSafely('people', data.people, serverData.people, data.tombstones);
+  data.wallets = mergeArraysSafely('wallets', data.wallets, serverData.wallets, data.tombstones);
+  data.transfers = mergeArraysSafely('transfers', data.transfers, serverData.transfers, data.tombstones);
+  data.debts = mergeArraysSafely('debts', data.debts, serverData.debts, data.tombstones);
+  data.personTransfers = mergeArraysSafely('personTransfers', data.personTransfers, serverData.personTransfers, data.tombstones);
+  if(Array.isArray(serverData.activityLog) || Array.isArray(data.activityLog)){
+    data.activityLog = mergeArraysSafely('activityLog', data.activityLog, serverData.activityLog, null)
+      .sort((a,b) => (b.at||0) - (a.at||0)).slice(0, 300);
+  }
+  data.auth = Object.assign({}, serverData.auth || {}, data.auth || {});
+  data.budgets = mergeKeyedObjectSafely('budgets', data.budgets, serverData.budgets, data.tombstones);
+  data.categoryIcons = mergeKeyedObjectSafely('categoryIcons', data.categoryIcons, serverData.categoryIcons, data.tombstones);
+  if(serverData.categories){
+    // NOTE: category order matters (drag-to-reorder in admin panel), so this merge must
+    // preserve the LOCAL order as the source of truth and only append names that exist on
+    // the server but not locally (e.g. a category added from another device). Previously
+    // this put serverData first into a Set, which silently discarded any local reordering
+    // on every save.
+    data.categories = data.categories || { income:[], expense:[] };
+    ['income','expense'].forEach(t => {
+      const local = Array.isArray(data.categories[t]) ? data.categories[t] : [];
+      const server = Array.isArray(serverData.categories[t]) ? serverData.categories[t] : [];
+      const localSet = new Set(local);
+      const merged = local.slice();
+      server.forEach(c => { if(!localSet.has(c)) merged.push(c); });
+      data.categories[t] = merged;
+    });
+  }
+}
 async function mergeWithServerBeforeSave(){
   if(!sb) return true; // no cross-device sync configured - nothing to merge against, safe to save
   try{
@@ -2052,39 +2098,7 @@ async function mergeWithServerBeforeSave(){
     if(serverData === null) return false; // real load failure (offline/network) - can't safely merge
     if(serverData === undefined) return true; // no row on server yet - nothing to lose, safe to save
     if(typeof serverData !== 'object') return true;
-    data.tombstones = mergeTombstones(data.tombstones, serverData.tombstones);
-    data.transactions = mergeArraysSafely('transactions', data.transactions, serverData.transactions, data.tombstones);
-    data.cheques = mergeArraysSafely('cheques', data.cheques, serverData.cheques, data.tombstones);
-    data.goals = mergeArraysSafely('goals', data.goals, serverData.goals, data.tombstones);
-    data.loans = mergeArraysSafely('loans', data.loans, serverData.loans, data.tombstones);
-    data.people = mergeArraysSafely('people', data.people, serverData.people, data.tombstones);
-    data.wallets = mergeArraysSafely('wallets', data.wallets, serverData.wallets, data.tombstones);
-    data.transfers = mergeArraysSafely('transfers', data.transfers, serverData.transfers, data.tombstones);
-    data.debts = mergeArraysSafely('debts', data.debts, serverData.debts, data.tombstones);
-    data.personTransfers = mergeArraysSafely('personTransfers', data.personTransfers, serverData.personTransfers, data.tombstones);
-    if(Array.isArray(serverData.activityLog) || Array.isArray(data.activityLog)){
-      data.activityLog = mergeArraysSafely('activityLog', data.activityLog, serverData.activityLog, null)
-        .sort((a,b) => (b.at||0) - (a.at||0)).slice(0, 300);
-    }
-    data.auth = Object.assign({}, serverData.auth || {}, data.auth || {});
-    data.budgets = mergeKeyedObjectSafely('budgets', data.budgets, serverData.budgets, data.tombstones);
-    data.categoryIcons = mergeKeyedObjectSafely('categoryIcons', data.categoryIcons, serverData.categoryIcons, data.tombstones);
-    if(serverData.categories){
-      // NOTE: category order matters (drag-to-reorder in admin panel), so this merge must
-      // preserve the LOCAL order as the source of truth and only append names that exist on
-      // the server but not locally (e.g. a category added from another device). Previously
-      // this put serverData first into a Set, which silently discarded any local reordering
-      // on every save.
-      data.categories = data.categories || { income:[], expense:[] };
-      ['income','expense'].forEach(t => {
-        const local = Array.isArray(data.categories[t]) ? data.categories[t] : [];
-        const server = Array.isArray(serverData.categories[t]) ? serverData.categories[t] : [];
-        const localSet = new Set(local);
-        const merged = local.slice();
-        server.forEach(c => { if(!localSet.has(c)) merged.push(c); });
-        data.categories[t] = merged;
-      });
-    }
+    applyServerMerge(serverData);
     return true;
   }catch(e){
     console.warn('Pre-save merge failed - will retry shortly instead of risking an overwrite', e);
@@ -2839,6 +2853,16 @@ const JALALI_DOW = ['ش','ی','د','س','چ','پ','ج'];
 function isoToJalali(iso){ const [gy,gm,gd] = iso.split('-').map(Number); return gregorianToJalali(gy, gm, gd); }
 function jalaliToIso(jy, jm, jd){ const [gy,gm,gd] = jalaliToGregorian(jy, jm, jd); return `${gy}-${String(gm).padStart(2,'0')}-${String(gd).padStart(2,'0')}`; }
 function faDigits(n){ const map=['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹']; return String(n).replace(/[0-9]/g, d => map[d]); }
+// Clock time (HH:MM) the transaction was actually entered, read from this device's own
+// local clock at the moment of createdAt — independent of network/server timing, so a slow
+// or delayed sync never changes what time is shown.
+function txTimeLabel(tx){
+  if(!tx || !tx.createdAt) return '';
+  const d = new Date(tx.createdAt);
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  return faDigits(hh) + ':' + faDigits(mm);
+}
 
 function todayIso(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function makeDatePicker(ids){
@@ -5611,7 +5635,7 @@ function renderTxList(){
         </div>
         <div class="tx-main">
           <div class="tx-desc">${escapeHtml(tx.desc)}${editedTag}</div>
-          <div class="tx-meta">${tx.category ? categoryChipHtml(tx.category) : ''} · ${escapeHtml(personName(tx.personId))}${accountMetaSuffix(tx)}</div>
+          <div class="tx-meta">${tx.category ? categoryChipHtml(tx.category) : ''} · ${escapeHtml(personName(tx.personId))}${accountMetaSuffix(tx)} · ${txTimeLabel(tx)}</div>
         </div>
         ${photoThumb}
         <div class="tx-amount ${tx.type}">${sign}${fmt(tx.amount)}</div>

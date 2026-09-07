@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sandoogh-khanevadeh-v71';
+const CACHE_NAME = 'sandoogh-khanevadeh-v72';
 const FILES_TO_CACHE = [
   './',
   './index.html',

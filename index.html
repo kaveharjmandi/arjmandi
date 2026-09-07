@@ -5011,13 +5011,15 @@ function loanStartIso(l){
 // date and today. Returns null when there's no due day configured - we can't say a loan is
 // overdue without knowing which day of the month it's due. Capped at installmentCount so a
 // very old loan never shows more overdue installments than it actually has.
+// The first installment is always due exactly one month after the loan is received - never
+// in the same month, regardless of which day of that month the loan was taken on.
 function expectedLoanInstallmentsSoFar(l){
   if(!l.dueDayOfMonth) return null;
-  const [sy,sm,sd] = isoToJalali(loanStartIso(l));
+  const [sy,sm] = isoToJalali(loanStartIso(l));
   const [ty,tm,td] = isoToJalali(todayIso());
-  let count = (ty - sy) * 12 + (tm - sm);
-  if(td >= l.dueDayOfMonth) count++;
-  if(sd > l.dueDayOfMonth) count--; // taken after this month's due day already passed - first installment isn't due until next month
+  const diffMonths = (ty - sy) * 12 + (tm - sm);
+  if(diffMonths < 1) return 0; // still within the first month - no installment due yet
+  const count = (diffMonths - 1) + (td >= l.dueDayOfMonth ? 1 : 0);
   return Math.max(0, Math.min(count, l.installmentCount));
 }
 function renderLoansList(){

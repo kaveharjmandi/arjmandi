@@ -23,7 +23,8 @@ body{ font-family:'Vazirmatn',sans-serif; min-height:100vh; }
 body[data-theme="light"]{
   --bg:#F7F5FA; --bg-deep:#ECE8F3; --line:#E1DCEC; --ink:#211C2E; --ink-soft:#655D78;
   --accent:#7A2E68; --accent-deep:#591F4B; --accent2:#2E7D5B; --accent2-deep:#1F5940;
-  --credit:#1E8F52; --debit:#C22C56; --card-bg:#FFFFFF;
+  --credit:#16A34A; --debit:#DC2626; --card-bg:#FFFFFF;
+  --asset:#2563EB; --liability:#EA580C; --investment:#7C3AED; --transfer:#64748B;
   --warn-bg:#FFF4E5; --warn-border:#F0B860; --warn-text:#8A5A00;
   background-color:var(--bg);
   background-image:
@@ -37,7 +38,8 @@ body[data-theme="dark"]{
      "lights out" approach used by Cash App / Twitter's AMOLED dark mode. */
   --bg:#000000; --bg-deep:#000000; --line:#2B2735; --ink:#F3F0F8; --ink-soft:#B0A8C0;
   --accent:#E27DC4; --accent-deep:#C25FA8; --accent2:#4FD69C; --accent2-deep:#34B384;
-  --credit:#4FD69C; --debit:#FF6B85; --card-bg:#151220;
+  --credit:#4ADE80; --debit:#F87171; --card-bg:#151220;
+  --asset:#60A5FA; --liability:#FB923C; --investment:#A78BFA; --transfer:#94A3B8;
   --warn-bg:#3A2D12; --warn-border:#B8863C; --warn-text:#F0C878;
   background-color:var(--bg);
   background-image: radial-gradient(circle at 15% -10%, rgba(226,125,196,0.10), transparent 50%);
@@ -2421,11 +2423,11 @@ function renderTransfersList(){
   box.innerHTML = list.map(t => `
     <div class="tx-row" style="align-items:flex-start;">
       <div class="tx-main">
-        <div class="tx-desc">🔁 ${personName(t.fromPersonId)} ← ${personName(t.toPersonId)}</div>
+        <div class="tx-desc" style="color:var(--transfer);">🔁 ${personName(t.fromPersonId)} ← ${personName(t.toPersonId)}</div>
         ${t.note ? `<div class="tx-meta">${escapeHtml(t.note)}</div>` : ''}
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:13px;">${fmt(t.amount)}</span>
+        <span style="font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:13px; color:var(--transfer);">${fmt(t.amount)}</span>
         <button type="button" class="mini-del" data-del-transfer="${t.id}" title="حذف" aria-label="حذف جابجایی">✕</button>
       </div>
     </div>`).join('');
@@ -5002,7 +5004,7 @@ function renderLoansList(){
         <button type="button" class="mini-del" data-del-loan="${l.id}" title="حذف" aria-label="حذف این وام">✕</button>
       </div>
       <div style="background:var(--card-bg); border-radius:6px; height:10px; overflow:hidden; margin-bottom:6px;">
-        <div style="width:${pct}%; height:100%; background:${done?'var(--credit)':'var(--accent2)'};"></div>
+        <div style="width:${pct}%; height:100%; background:${done?'var(--credit)':'var(--liability)'};"></div>
       </div>
       <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); margin-bottom:4px;">
         <span>${faDigits(l.paidCount)} از ${faDigits(l.installmentCount)} قسط پرداخت‌شده</span>
@@ -5101,11 +5103,11 @@ function renderDebtsList(){
     const pct = d.totalAmount > 0 ? Math.min(100, Math.round((paid / d.totalAmount) * 100)) : 0;
     const done = remaining <= 0;
     const isCredit = d.kind === 'credit';
-    const kindLabel = isCredit ? '🟢 طلب از' : '🔴 بدهی به';
-    const barColor = done ? 'var(--credit)' : (isCredit ? 'var(--credit)' : 'var(--debit)');
+    const kindLabel = isCredit ? '🔵 طلب از' : '🟠 بدهی به';
+    const barColor = done ? 'var(--credit)' : (isCredit ? 'var(--asset)' : 'var(--liability)');
     return `<div style="background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-        <span style="font-weight:700; font-size:13px;">${kindLabel} ${escapeHtml(d.person)}</span>
+        <span style="font-weight:700; font-size:13px; color:${done?'var(--credit)':(isCredit?'var(--asset)':'var(--liability)')};">${kindLabel} ${escapeHtml(d.person)}</span>
         <button type="button" class="mini-del" data-del-debt="${d.id}" title="حذف" aria-label="حذف">✕</button>
       </div>
       ${d.note ? `<div style="font-size:11.5px; color:var(--ink-soft); margin-bottom:6px;">${escapeHtml(d.note)}</div>` : ''}

@@ -1489,6 +1489,12 @@ body.offline-mode{ padding-top:38px; }
           <div class="field"><label>تعداد کل اقساط</label><input type="number" id="newLoanCount" min="1"></div>
           <div class="field"><label>اقساط پرداخت‌شده تا الان</label><input type="number" id="newLoanPaidCount" min="0" value="0"></div>
         </div>
+        <div class="field date-field loan-start-date-field">
+          <label>تاریخ دریافت وام</label>
+          <input type="text" id="newLoanStartDisplay" class="date-display" readonly placeholder="انتخاب تاریخ">
+          <input type="hidden" id="newLoanStartInput">
+          <div id="newLoanStartCalendarPopup" class="calendar-popup" style="display:none;"></div>
+        </div>
         <div class="field"><label>روز سررسید هر ماه (اختیاری)</label><input type="number" id="newLoanDueDay" min="1" max="30" placeholder="مثلاً ۱۵"></div>
         <div class="field"><label>پرداخت اقساط از کدام حساب مالی</label><select id="newLoanWallet"></select></div>
         <button type="button" id="createLoanBtn" class="submit-btn">ثبت وام</button>
@@ -2942,6 +2948,7 @@ const chDatePicker = makeDatePicker({ display:'chDateDisplay', input:'chDateInpu
 const reportsStartDatePicker = makeDatePicker({ display:'reportsStartDisplay', input:'reportsStartInput', popup:'reportsStartCalendarPopup' });
 const reportsEndDatePicker = makeDatePicker({ display:'reportsEndDisplay', input:'reportsEndInput', popup:'reportsEndCalendarPopup' });
 const newDebtDueDatePicker = makeDatePicker({ display:'newDebtDueDisplay', input:'newDebtDueInput', popup:'newDebtDueCalendarPopup' });
+const newLoanStartDatePicker = makeDatePicker({ display:'newLoanStartDisplay', input:'newLoanStartInput', popup:'newLoanStartCalendarPopup' });
 
 /* ---------- screens ---------- */
 function showScreen(id){
@@ -4935,7 +4942,9 @@ function renderGoalsList(){
 /* ---------- loans ---------- */
 document.getElementById('openNewLoanBtn').addEventListener('click', () => {
   const f = document.getElementById('newLoanForm');
-  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  const opening = f.style.display === 'none';
+  f.style.display = opening ? 'block' : 'none';
+  if(opening && !document.getElementById('newLoanStartInput').value) newLoanStartDatePicker.resetToToday();
 });
 document.getElementById('createLoanBtn').addEventListener('click', async () => {
   const name = document.getElementById('newLoanName').value.trim();
@@ -4943,13 +4952,14 @@ document.getElementById('createLoanBtn').addEventListener('click', async () => {
   const installmentAmount = parseAmountValue(document.getElementById('newLoanInstallment').value);
   const installmentCount = Number(document.getElementById('newLoanCount').value);
   const paidCount = Number(document.getElementById('newLoanPaidCount').value) || 0;
+  const startDate = document.getElementById('newLoanStartInput').value || todayIso();
   const dueDayRaw = Number(document.getElementById('newLoanDueDay').value);
   const dueDayOfMonth = (dueDayRaw >= 1 && dueDayRaw <= 30) ? dueDayRaw : null;
   const walletId = document.getElementById('newLoanWallet').value || null;
   if(!name || !totalAmount || !installmentAmount || !installmentCount){
     alert('همه فیلدهای وام رو درست پر کن.'); return;
   }
-  data.loans.push({ id: newId('l'), name, totalAmount, installmentAmount, installmentCount, paidCount, dueDayOfMonth, walletId, createdAt: Date.now() });
+  data.loans.push({ id: newId('l'), name, totalAmount, installmentAmount, installmentCount, paidCount, startDate, dueDayOfMonth, walletId, createdAt: Date.now() });
   logActivity('add_loan', `وام «${name}» ثبت شد`);
   await saveData();
   document.getElementById('newLoanName').value = '';
@@ -4957,6 +4967,9 @@ document.getElementById('createLoanBtn').addEventListener('click', async () => {
   document.getElementById('newLoanCount').value = '';
   document.getElementById('newLoanPaidCount').value = '0';
   document.getElementById('newLoanDueDay').value = '';
+  document.getElementById('newLoanStartInput').value = '';
+  document.getElementById('newLoanStartDisplay').value = '';
+  newLoanStartDatePicker.clear();
   document.getElementById('newLoanForm').style.display = 'none';
   renderGoalsAndLoans();
   showSuccessToast('وام ثبت شد');
@@ -4987,6 +5000,26 @@ async function deleteLoan(id){
   await saveData();
   renderGoalsAndLoans();
 }
+// Falls back to the loan's createdAt (converted to a plain calendar date) for loans saved
+// before the "تاریخ دریافت وام" field existed, so old loans still get an overdue estimate.
+function loanStartIso(l){
+  if(l.startDate) return l.startDate;
+  const d = new Date(l.createdAt || Date.now());
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+// How many monthly due-dates (dueDayOfMonth) have already passed between the loan's start
+// date and today. Returns null when there's no due day configured - we can't say a loan is
+// overdue without knowing which day of the month it's due. Capped at installmentCount so a
+// very old loan never shows more overdue installments than it actually has.
+function expectedLoanInstallmentsSoFar(l){
+  if(!l.dueDayOfMonth) return null;
+  const [sy,sm,sd] = isoToJalali(loanStartIso(l));
+  const [ty,tm,td] = isoToJalali(todayIso());
+  let count = (ty - sy) * 12 + (tm - sm);
+  if(td >= l.dueDayOfMonth) count++;
+  if(sd > l.dueDayOfMonth) count--; // taken after this month's due day already passed - first installment isn't due until next month
+  return Math.max(0, Math.min(count, l.installmentCount));
+}
 function renderLoansList(){
   const box = document.getElementById('loansList');
   if(!data.loans || data.loans.length === 0){
@@ -4998,11 +5031,14 @@ function renderLoansList(){
     const remainingCount = l.installmentCount - l.paidCount;
     const remainingAmount = Math.max(0, l.totalAmount - (l.paidCount * l.installmentAmount));
     const done = l.paidCount >= l.installmentCount;
-    return `<div style="background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px;">
+    const expected = expectedLoanInstallmentsSoFar(l);
+    const overdueCount = (!done && expected !== null) ? Math.max(0, expected - l.paidCount) : 0;
+    return `<div style="background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px; ${overdueCount>0 ? 'border:1.5px solid var(--debit);' : ''}">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
         <span style="font-weight:700; font-size:13px;">🏦 ${escapeHtml(l.name)}</span>
         <button type="button" class="mini-del" data-del-loan="${l.id}" title="حذف" aria-label="حذف این وام">✕</button>
       </div>
+      ${overdueCount > 0 ? `<div style="background:var(--debit); color:#fff; border-radius:6px; padding:6px 9px; font-size:11.5px; font-weight:700; margin-bottom:8px;">⚠️ ${faDigits(overdueCount)} قسط معوق — سررسید گذشته و پرداخت نشده</div>` : ''}
       <div style="background:var(--card-bg); border-radius:6px; height:10px; overflow:hidden; margin-bottom:6px;">
         <div style="width:${pct}%; height:100%; background:${done?'var(--credit)':'var(--liability)'};"></div>
       </div>
@@ -5014,8 +5050,9 @@ function renderLoansList(){
         <span>مانده بدهی</span>
         <b style="color:var(--ink); font-family:'IBM Plex Mono',monospace;">${fmt(remainingAmount)} ${data.currency}</b>
       </div>
+      <div style="font-size:11px; color:var(--ink-soft); margin-bottom:2px;">تاریخ دریافت: ${formatJalaliLong(loanStartIso(l))}</div>
       ${l.dueDayOfMonth ? `<div style="font-size:11px; color:var(--ink-soft); margin-bottom:8px;">سررسید: روز ${faDigits(l.dueDayOfMonth)} هر ماه شمسی</div>` : ''}
-      ${done ? '' : `<button type="button" class="ghost-btn" style="width:100%;" data-pay-loan="${l.id}">پرداخت قسط بعدی (${fmt(l.installmentAmount)} ${data.currency})</button>`}
+      ${done ? '' : `<button type="button" class="ghost-btn" style="width:100%; ${overdueCount>0 ? 'border-color:var(--debit); color:var(--debit);' : ''}" data-pay-loan="${l.id}">پرداخت قسط ${overdueCount>0?'معوق':'بعدی'} (${fmt(l.installmentAmount)} ${data.currency})</button>`}
     </div>`;
   }).join('');
   box.querySelectorAll('[data-del-loan]').forEach(btn => btn.addEventListener('click', (e) => deleteLoan(e.target.dataset.delLoan)));
@@ -6369,6 +6406,10 @@ async function init(){
     const pop = document.getElementById('newDebtDueCalendarPopup');
     if(pop.style.display === 'block') newDebtDueDatePicker.close(); else newDebtDueDatePicker.open();
   });
+  document.getElementById('newLoanStartDisplay').addEventListener('click', () => {
+    const pop = document.getElementById('newLoanStartCalendarPopup');
+    if(pop.style.display === 'block') newLoanStartDatePicker.close(); else newLoanStartDatePicker.open();
+  });
   document.getElementById('reportsStartCalendarPopup').addEventListener('click', (e) => {
     const cell = e.target.closest('.cal-day[data-iso]');
     if(!cell) return;
@@ -6393,6 +6434,8 @@ async function init(){
     if(rptEndField && !path.includes(rptEndField)) reportsEndDatePicker.close();
     const debtDueField = document.querySelector('.debt-due-date-field');
     if(debtDueField && !path.includes(debtDueField)) newDebtDueDatePicker.close();
+    const loanStartField = document.querySelector('.loan-start-date-field');
+    if(loanStartField && !path.includes(loanStartField)) newLoanStartDatePicker.close();
   });
   document.getElementById('reportsPeriodTypeSelect').addEventListener('change', (e) => {
     reportsPeriodType = e.target.value;

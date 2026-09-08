@@ -1502,6 +1502,31 @@ body.offline-mode{ padding-top:38px; }
     </div>
 
     <div class="card">
+      <div class="section-title">🏠 اجاره خانه</div>
+      <div id="leasesList"></div>
+      <button type="button" id="openNewLeaseBtn" class="ghost-btn" style="width:100%; margin-top:8px;">+ ثبت قرارداد اجاره جدید</button>
+      <div id="newLeaseForm" style="display:none; margin-top:12px; border-top:1px dashed var(--line); padding-top:12px;">
+        <div class="login-field"><label>عنوان (مثلاً: خانه فعلی)</label><input type="text" id="newLeaseName"></div>
+        <div class="row2">
+          <div class="field"><label>مبلغ ودیعه / پول پیش (اختیاری)</label><input type="number" id="newLeaseDeposit" min="0"></div>
+          <div class="field"><label>اجاره ماهانه</label><input type="number" id="newLeaseRent" min="1"></div>
+        </div>
+        <div class="field date-field lease-start-date-field">
+          <label>تاریخ شروع قرارداد</label>
+          <input type="text" id="newLeaseStartDisplay" class="date-display" readonly placeholder="انتخاب تاریخ">
+          <input type="hidden" id="newLeaseStartInput">
+          <div id="newLeaseStartCalendarPopup" class="calendar-popup" style="display:none;"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>روز سررسید اجاره هر ماه</label><input type="number" id="newLeaseDueDay" min="1" max="30" placeholder="مثلاً ۱"></div>
+          <div class="field"><label>ماه‌های پرداخت‌شده تا الان</label><input type="number" id="newLeasePaidMonths" min="0" value="0"></div>
+        </div>
+        <div class="field"><label>پرداخت از کدام حساب مالی</label><select id="newLeaseWallet"></select></div>
+        <button type="button" id="createLeaseBtn" class="submit-btn">ثبت قرارداد اجاره</button>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="section-title">🤝 بدهی و طلب</div>
       <div id="debtsList"></div>
       <button type="button" id="openNewDebtBtn" class="ghost-btn" style="width:100%; margin-top:8px;">+ ثبت بدهی/طلب جدید</button>
@@ -1578,6 +1603,7 @@ function defaultData(){
     activityLog: [],
     goals: [],
     loans: [],
+    leases: [],
     streak: { count: 0, lastDateIso: null, longest: 0 },
     badges: [],
     autoLockMinutes: 15,
@@ -1688,6 +1714,7 @@ function mergeDefaults(){
   if(!Array.isArray(data.activityLog)) data.activityLog = [];
   if(!Array.isArray(data.goals)) data.goals = [];
   if(!Array.isArray(data.loans)) data.loans = [];
+  if(!Array.isArray(data.leases)) data.leases = [];
   if(!data.streak) data.streak = { count: 0, lastDateIso: null, longest: 0 };
   if(!Array.isArray(data.badges)) data.badges = [];
   if(!data.auth) data.auth = {};
@@ -2080,6 +2107,7 @@ function applyServerMerge(serverData){
   data.cheques = mergeArraysSafely('cheques', data.cheques, serverData.cheques, data.tombstones);
   data.goals = mergeArraysSafely('goals', data.goals, serverData.goals, data.tombstones);
   data.loans = mergeArraysSafely('loans', data.loans, serverData.loans, data.tombstones);
+  data.leases = mergeArraysSafely('leases', data.leases, serverData.leases, data.tombstones);
   data.people = mergeArraysSafely('people', data.people, serverData.people, data.tombstones);
   data.wallets = mergeArraysSafely('wallets', data.wallets, serverData.wallets, data.tombstones);
   data.transfers = mergeArraysSafely('transfers', data.transfers, serverData.transfers, data.tombstones);
@@ -2292,7 +2320,7 @@ function wireAmountField(inputEl){
   });
 }
 function wireAllAmountFields(){
-  ['amountInput','chAmount','newGoalTarget','newLoanTotal','newLoanInstallment','newRecAmount','newDebtTotal','newTransferAmount']
+  ['amountInput','chAmount','newGoalTarget','newLoanTotal','newLoanInstallment','newRecAmount','newDebtTotal','newTransferAmount','newLeaseDeposit','newLeaseRent']
     .forEach(id => wireAmountField(document.getElementById(id)));
   document.querySelectorAll('.budget-input, .split-amt').forEach(wireAmountField);
 }
@@ -2949,6 +2977,7 @@ const reportsStartDatePicker = makeDatePicker({ display:'reportsStartDisplay', i
 const reportsEndDatePicker = makeDatePicker({ display:'reportsEndDisplay', input:'reportsEndInput', popup:'reportsEndCalendarPopup' });
 const newDebtDueDatePicker = makeDatePicker({ display:'newDebtDueDisplay', input:'newDebtDueInput', popup:'newDebtDueCalendarPopup' });
 const newLoanStartDatePicker = makeDatePicker({ display:'newLoanStartDisplay', input:'newLoanStartInput', popup:'newLoanStartCalendarPopup' });
+const newLeaseStartDatePicker = makeDatePicker({ display:'newLeaseStartDisplay', input:'newLeaseStartInput', popup:'newLeaseStartCalendarPopup' });
 
 /* ---------- screens ---------- */
 function showScreen(id){
@@ -3334,6 +3363,7 @@ function mergeImportedData(imported){
   data.cheques = mergeArraysSafely('cheques', data.cheques, imported.cheques, data.tombstones);
   data.goals = mergeArraysSafely('goals', data.goals, imported.goals, data.tombstones);
   data.loans = mergeArraysSafely('loans', data.loans, imported.loans, data.tombstones);
+  data.leases = mergeArraysSafely('leases', data.leases, imported.leases, data.tombstones);
   data.people = mergeArraysSafely('people', data.people, imported.people, data.tombstones);
   data.wallets = mergeArraysSafely('wallets', data.wallets, imported.wallets, data.tombstones);
   data.transfers = mergeArraysSafely('transfers', data.transfers, imported.transfers, data.tombstones);
@@ -4946,6 +4976,12 @@ document.getElementById('openNewLoanBtn').addEventListener('click', () => {
   f.style.display = opening ? 'block' : 'none';
   if(opening && !document.getElementById('newLoanStartInput').value) newLoanStartDatePicker.resetToToday();
 });
+document.getElementById('openNewLeaseBtn').addEventListener('click', () => {
+  const f = document.getElementById('newLeaseForm');
+  const opening = f.style.display === 'none';
+  f.style.display = opening ? 'block' : 'none';
+  if(opening && !document.getElementById('newLeaseStartInput').value) newLeaseStartDatePicker.resetToToday();
+});
 document.getElementById('createLoanBtn').addEventListener('click', async () => {
   const name = document.getElementById('newLoanName').value.trim();
   const totalAmount = parseAmountValue(document.getElementById('newLoanTotal').value);
@@ -4974,6 +5010,32 @@ document.getElementById('createLoanBtn').addEventListener('click', async () => {
   renderGoalsAndLoans();
   showSuccessToast('وام ثبت شد');
 });
+document.getElementById('createLeaseBtn').addEventListener('click', async () => {
+  const name = document.getElementById('newLeaseName').value.trim();
+  const depositAmount = parseAmountValue(document.getElementById('newLeaseDeposit').value);
+  const monthlyRent = parseAmountValue(document.getElementById('newLeaseRent').value);
+  const startDate = document.getElementById('newLeaseStartInput').value || todayIso();
+  const dueDayRaw = Number(document.getElementById('newLeaseDueDay').value);
+  const dueDayOfMonth = (dueDayRaw >= 1 && dueDayRaw <= 30) ? dueDayRaw : null;
+  const paidMonths = Number(document.getElementById('newLeasePaidMonths').value) || 0;
+  const walletId = document.getElementById('newLeaseWallet').value || null;
+  if(!name || !monthlyRent){
+    alert('عنوان و مبلغ اجاره ماهانه رو درست پر کن.'); return;
+  }
+  data.leases.push({ id: newId('ls'), name, depositAmount, depositReturned:false, monthlyRent, startDate, dueDayOfMonth, paidMonths, walletId, active:true, createdAt: Date.now() });
+  logActivity('add_lease', `قرارداد اجاره «${name}» ثبت شد`);
+  await saveData();
+  document.getElementById('newLeaseName').value = '';
+  clearAmountField('newLeaseDeposit'); clearAmountField('newLeaseRent');
+  document.getElementById('newLeaseDueDay').value = '';
+  document.getElementById('newLeasePaidMonths').value = '0';
+  document.getElementById('newLeaseStartInput').value = '';
+  document.getElementById('newLeaseStartDisplay').value = '';
+  newLeaseStartDatePicker.clear();
+  document.getElementById('newLeaseForm').style.display = 'none';
+  renderGoalsAndLoans();
+  showSuccessToast('قرارداد اجاره ثبت شد');
+});
 async function payLoanInstallment(id){
   const loan = data.loans.find(l => l.id === id);
   if(!loan) return;
@@ -4999,6 +5061,101 @@ async function deleteLoan(id){
   markDeleted('loans', id);
   await saveData();
   renderGoalsAndLoans();
+}
+// How many monthly rent due-dates have passed since the lease started. Unlike loan
+// installments (which start a full month after the money is received), rent is due starting
+// the very first month you move in - so if the move-in day is already on/before the due day,
+// that same month's rent counts too. No upper cap: a lease runs until you end it, not until a
+// fixed number of payments.
+function expectedRentMonthsSoFar(lease){
+  if(!lease.dueDayOfMonth) return null;
+  const [sy,sm,sd] = isoToJalali(lease.startDate || todayIso());
+  const [ty,tm,td] = isoToJalali(todayIso());
+  let count = (ty - sy) * 12 + (tm - sm);
+  if(td >= lease.dueDayOfMonth) count++;
+  if(sd > lease.dueDayOfMonth) count--;
+  return Math.max(0, count);
+}
+async function payLeaseRent(id){
+  const lease = data.leases.find(l => l.id === id);
+  if(!lease || lease.active === false) return;
+  if(!(await confirmAsync(`اجاره این ماه (${fmt(lease.monthlyRent)} ${data.currency}) برای «${lease.name}» پرداخت و ثبت بشه؟`))) return;
+  const prevBalance = (computeAccountBalances()[currentUserId] || {}).balance;
+  lease.paidMonths = (lease.paidMonths || 0) + 1;
+  data.transactions.push({
+    id: newId('t'), type:'expense', desc:`اجاره ماهانه: ${lease.name}`, amount: lease.monthlyRent, date: todayIso(),
+    personId: currentUserId, accountId: currentUserId, walletId: lease.walletId || null, category:'خانه و اجاره', leaseId: lease.id,
+    enteredById: currentUserId, createdAt: Date.now()
+  });
+  logActivity('lease_rent', `اجاره «${lease.name}» پرداخت شد (ماه ${faDigits(lease.paidMonths)})`);
+  checkLowBalanceWarning(currentUserId, prevBalance);
+  await saveData();
+  renderGoalsAndLoans();
+  render();
+  showSuccessToast('اجاره ثبت شد');
+}
+async function endLeaseAndReturnDeposit(id){
+  const lease = data.leases.find(l => l.id === id);
+  if(!lease) return;
+  const hasDeposit = lease.depositAmount > 0 && !lease.depositReturned;
+  const msg = hasDeposit
+    ? `قرارداد «${lease.name}» تموم بشه و ودیعه‌ی ${fmt(lease.depositAmount)} ${data.currency} به‌عنوان درآمد ثبت بشه؟`
+    : `قرارداد «${lease.name}» تموم بشه؟`;
+  if(!(await confirmAsync(msg))) return;
+  lease.active = false;
+  if(hasDeposit){
+    lease.depositReturned = true;
+    data.transactions.push({
+      id: newId('t'), type:'income', desc:`دریافت ودیعه: ${lease.name}`, amount: lease.depositAmount, date: todayIso(),
+      personId: currentUserId, accountId: currentUserId, walletId: lease.walletId || null, category:'سایر درآمد', leaseId: lease.id,
+      enteredById: currentUserId, createdAt: Date.now()
+    });
+  }
+  logActivity('lease_end', `قرارداد اجاره «${lease.name}» پایان یافت`);
+  await saveData();
+  renderGoalsAndLoans();
+  render();
+  showSuccessToast('قرارداد اجاره تموم شد');
+}
+async function deleteLease(id){
+  const lease = data.leases.find(l => l.id === id);
+  if(!lease) return;
+  if(!(await confirmAsync(`قرارداد اجاره «${lease.name}» حذف بشه؟`))) return;
+  data.leases = data.leases.filter(l => l.id !== id);
+  markDeleted('leases', id);
+  await saveData();
+  renderGoalsAndLoans();
+}
+function renderLeasesList(){
+  const box = document.getElementById('leasesList');
+  if(!box) return;
+  if(!data.leases || data.leases.length === 0){
+    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🏠</span>هنوز قرارداد اجاره‌ای ثبت نشده.</div>';
+    return;
+  }
+  box.innerHTML = data.leases.map(l => {
+    const expected = expectedRentMonthsSoFar(l);
+    const overdueCount = (l.active !== false && expected !== null) ? Math.max(0, expected - (l.paidMonths || 0)) : 0;
+    return `<div style="background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px; ${overdueCount>0 ? 'border:1.5px solid var(--debit);' : ''} ${l.active===false ? 'opacity:0.65;' : ''}">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <span style="font-weight:700; font-size:13px;">🏠 ${escapeHtml(l.name)}${l.active===false ? ' (پایان‌یافته)' : ''}</span>
+        <button type="button" class="mini-del" data-del-lease="${l.id}" title="حذف" aria-label="حذف این قرارداد">✕</button>
+      </div>
+      ${overdueCount > 0 ? `<div style="background:var(--debit); color:#fff; border-radius:6px; padding:6px 9px; font-size:11.5px; font-weight:700; margin-bottom:8px;">⚠️ ${faDigits(overdueCount)} ماه اجاره معوق — سررسید گذشته و پرداخت نشده</div>` : ''}
+      ${l.depositAmount > 0 ? `<div style="font-size:12px; color:var(--asset); font-weight:600; margin-bottom:4px;">💰 ودیعه: ${fmt(l.depositAmount)} ${data.currency}${l.depositReturned ? ' (دریافت شد)' : ' — قابل استرداد در پایان قرارداد'}</div>` : ''}
+      <div style="font-size:12px; color:var(--ink-soft); margin-bottom:2px;">اجاره ماهانه: ${fmt(l.monthlyRent)} ${data.currency}</div>
+      <div style="font-size:11px; color:var(--ink-soft); margin-bottom:2px;">تاریخ شروع: ${formatJalaliLong(l.startDate || todayIso())}</div>
+      ${l.dueDayOfMonth ? `<div style="font-size:11px; color:var(--ink-soft); margin-bottom:8px;">سررسید: روز ${faDigits(l.dueDayOfMonth)} هر ماه شمسی</div>` : ''}
+      <div style="font-size:12px; color:var(--ink-soft); margin-bottom:8px;">${faDigits(l.paidMonths || 0)} ماه اجاره پرداخت‌شده</div>
+      ${l.active === false ? '' : `
+      <button type="button" class="ghost-btn" style="width:100%; margin-bottom:6px; ${overdueCount>0 ? 'border-color:var(--debit); color:var(--debit);' : ''}" data-pay-lease="${l.id}">پرداخت اجاره ${overdueCount>0?'معوق':'این ماه'} (${fmt(l.monthlyRent)} ${data.currency})</button>
+      <button type="button" class="ghost-btn" style="width:100%;" data-end-lease="${l.id}">پایان قرارداد${(l.depositAmount>0 && !l.depositReturned) ? ' و دریافت ودیعه' : ''}</button>
+      `}
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-del-lease]').forEach(btn => btn.addEventListener('click', (e) => deleteLease(e.target.dataset.delLease)));
+  box.querySelectorAll('[data-pay-lease]').forEach(btn => btn.addEventListener('click', (e) => payLeaseRent(e.target.dataset.payLease)));
+  box.querySelectorAll('[data-end-lease]').forEach(btn => btn.addEventListener('click', (e) => endLeaseAndReturnDeposit(e.target.dataset.endLease)));
 }
 // Falls back to the loan's createdAt (converted to a plain calendar date) for loans saved
 // before the "تاریخ دریافت وام" field existed, so old loans still get an overdue estimate.
@@ -5174,7 +5331,12 @@ function renderGoalsAndLoans(){
   if(walletSel){
     walletSel.innerHTML = activeWallets().map(w => `<option value="${w.id}">${walletIcon(w)} ${escapeHtml(w.name)}</option>`).join('');
   }
+  const leaseWalletSel = document.getElementById('newLeaseWallet');
+  if(leaseWalletSel){
+    leaseWalletSel.innerHTML = activeWallets().map(w => `<option value="${w.id}">${walletIcon(w)} ${escapeHtml(w.name)}</option>`).join('');
+  }
   renderLoansList();
+  renderLeasesList();
   renderDebtsList();
 }
 
@@ -6412,6 +6574,10 @@ async function init(){
     const pop = document.getElementById('newLoanStartCalendarPopup');
     if(pop.style.display === 'block') newLoanStartDatePicker.close(); else newLoanStartDatePicker.open();
   });
+  document.getElementById('newLeaseStartDisplay').addEventListener('click', () => {
+    const pop = document.getElementById('newLeaseStartCalendarPopup');
+    if(pop.style.display === 'block') newLeaseStartDatePicker.close(); else newLeaseStartDatePicker.open();
+  });
   document.getElementById('reportsStartCalendarPopup').addEventListener('click', (e) => {
     const cell = e.target.closest('.cal-day[data-iso]');
     if(!cell) return;
@@ -6438,6 +6604,8 @@ async function init(){
     if(debtDueField && !path.includes(debtDueField)) newDebtDueDatePicker.close();
     const loanStartField = document.querySelector('.loan-start-date-field');
     if(loanStartField && !path.includes(loanStartField)) newLoanStartDatePicker.close();
+    const leaseStartField = document.querySelector('.lease-start-date-field');
+    if(leaseStartField && !path.includes(leaseStartField)) newLeaseStartDatePicker.close();
   });
   document.getElementById('reportsPeriodTypeSelect').addEventListener('change', (e) => {
     reportsPeriodType = e.target.value;

@@ -1528,6 +1528,15 @@ body.offline-mode{ padding-top:38px; }
 
     <div class="card">
       <div class="section-title">🤝 بدهی و طلب</div>
+      <div id="goldPriceBox" style="display:none; background:var(--bg); border-radius:8px; padding:10px; margin-bottom:10px; font-size:12px;">
+        <div style="margin-bottom:6px; font-weight:700;">🥇 قیمت هر گرم طلای ۱۸ عیار امروز</div>
+        <div style="display:flex; gap:6px;">
+          <input type="number" id="goldManualPriceInput" min="0" placeholder="مثلاً 6500000" style="flex:1; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); padding:7px 9px; font-size:12px;">
+          <button type="button" id="saveGoldPriceSettingsBtn" class="ghost-btn" style="width:auto; padding:0 14px;">ثبت</button>
+        </div>
+        <div id="goldPriceDisplay" style="font-weight:700; font-family:'IBM Plex Mono',monospace; font-size:14px; margin-top:6px;"></div>
+        <div id="goldPriceMeta" style="color:var(--ink-soft); font-size:10.5px; margin-top:2px;"></div>
+      </div>
       <div id="debtsList"></div>
       <button type="button" id="openNewDebtBtn" class="ghost-btn" style="width:100%; margin-top:8px;">+ ثبت بدهی/طلب جدید</button>
       <div id="newDebtForm" style="display:none; margin-top:12px; border-top:1px dashed var(--line); padding-top:12px;">
@@ -1535,8 +1544,12 @@ body.offline-mode{ padding-top:38px; }
           <div class="type-btn income active" data-debtkind="credit" id="debtKindCreditBtn">طلب (کسی به ما بدهکاره)</div>
           <div class="type-btn expense" data-debtkind="debt" id="debtKindDebtBtn">بدهی (ما بدهکاریم)</div>
         </div>
+        <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; margin:8px 0; cursor:pointer;">
+          <input type="checkbox" id="newDebtIsGold" style="width:auto;"> این مقدار به گرم طلاست (نه تومان)
+        </label>
         <div class="login-field"><label>اسم شخص</label><input type="text" id="newDebtPerson"></div>
-        <div class="field"><label>مبلغ کل</label><input type="number" id="newDebtTotal" min="1"></div>
+        <div class="field" id="newDebtTotalTomanField"><label>مبلغ کل</label><input type="number" id="newDebtTotal" min="1"></div>
+        <div class="field" id="newDebtTotalGoldField" style="display:none;"><label>مقدار کل (گرم طلای ۱۸ عیار)</label><input type="number" id="newDebtTotalGold" min="0" step="0.001" placeholder="مثلاً 5.5"></div>
         <div class="field date-field debt-due-date-field">
           <label>سررسید (اختیاری)</label>
           <input type="text" id="newDebtDueDisplay" class="date-display" readonly placeholder="بدون سررسید">
@@ -1608,6 +1621,7 @@ function defaultData(){
     badges: [],
     autoLockMinutes: 15,
     lowBalanceThreshold: null,
+    goldPriceCache: null,
     captchaEnabled: true,
     tombstones: {},
     categoryIcons: {}, // user-chosen emoji overrides for custom categories, keyed by category name
@@ -5234,20 +5248,29 @@ document.getElementById('debtKindDebtBtn').addEventListener('click', () => {
   document.getElementById('debtKindDebtBtn').classList.add('active');
   document.getElementById('debtKindCreditBtn').classList.remove('active');
 });
+document.getElementById('newDebtIsGold').addEventListener('change', (e) => {
+  document.getElementById('newDebtTotalTomanField').style.display = e.target.checked ? 'none' : '';
+  document.getElementById('newDebtTotalGoldField').style.display = e.target.checked ? '' : 'none';
+});
 document.getElementById('createDebtBtn').addEventListener('click', async () => {
   const person = document.getElementById('newDebtPerson').value.trim();
-  const totalAmount = parseAmountValue(document.getElementById('newDebtTotal').value);
+  const isGold = document.getElementById('newDebtIsGold').checked;
+  const totalAmount = isGold ? (parseFloat(document.getElementById('newDebtTotalGold').value) || 0) : parseAmountValue(document.getElementById('newDebtTotal').value);
   const dueDate = document.getElementById('newDebtDueInput').value || null;
   const note = document.getElementById('newDebtNote').value.trim();
-  if(!person || !totalAmount){ alert('اسم شخص و مبلغ کل رو درست پر کن.'); return; }
+  if(!person || !totalAmount){ alert('اسم شخص و مقدار کل رو درست پر کن.'); return; }
   data.debts.push({
-    id: newId('d'), kind: newDebtKind, person, totalAmount, dueDate, note,
+    id: newId('d'), kind: newDebtKind, unit: isGold ? 'gold' : 'toman', person, totalAmount, dueDate, note,
     payments: [], createdAt: Date.now()
   });
-  logActivity('add_debt', `${newDebtKind==='credit'?'طلب از':'بدهی به'} «${person}» ثبت شد: ${fmt(totalAmount)} ${data.currency}`);
+  logActivity('add_debt', `${newDebtKind==='credit'?'طلب از':'بدهی به'} «${person}» ثبت شد: ${isGold ? faDigits(totalAmount)+' گرم طلا' : fmt(totalAmount)+' '+data.currency}`);
   await saveData();
   document.getElementById('newDebtPerson').value = '';
   clearAmountField('newDebtTotal');
+  document.getElementById('newDebtTotalGold').value = '';
+  document.getElementById('newDebtIsGold').checked = false;
+  document.getElementById('newDebtTotalTomanField').style.display = '';
+  document.getElementById('newDebtTotalGoldField').style.display = 'none';
   document.getElementById('newDebtNote').value = '';
   document.getElementById('newDebtDueInput').value = '';
   document.getElementById('newDebtDueDisplay').value = '';
@@ -5261,17 +5284,19 @@ function debtRemaining(d){ return Math.max(0, (d.totalAmount || 0) - debtPaidAmo
 async function payDebtInstallment(id){
   const d = data.debts.find(x => x.id === id);
   if(!d) return;
+  const isGold = d.unit === 'gold';
   const input = document.querySelector(`.debt-pay-input[data-debt-id="${CSS.escape(id)}"]`);
-  const amount = parseAmountValue(input ? input.value : '');
-  if(!amount || amount <= 0){ alert('مبلغ معتبر وارد کن.'); return; }
+  const amount = isGold ? (parseFloat(input ? input.value : '') || 0) : parseAmountValue(input ? input.value : '');
+  if(!amount || amount <= 0){ alert(isGold ? 'مقدار گرم معتبر وارد کن.' : 'مبلغ معتبر وارد کن.'); return; }
   const remaining = debtRemaining(d);
   const applyAmount = Math.min(amount, remaining);
   const verb = d.kind === 'credit' ? 'دریافت طلب' : 'پرداخت بدهی';
-  if(!(await confirmAsync(`${verb} ${fmt(applyAmount)} ${data.currency} برای «${d.person}» ثبت بشه؟`))) return;
+  const amountLabel = isGold ? `${faDigits(applyAmount)} گرم طلا` : `${fmt(applyAmount)} ${data.currency}`;
+  if(!(await confirmAsync(`${verb} ${amountLabel} برای «${d.person}» ثبت بشه؟`))) return;
   d.payments = d.payments || [];
-  d.payments.push({ id: newId('dp'), amount: applyAmount, date: todayIso(), createdAt: Date.now() });
+  d.payments.push({ id: newId('dp'), amount: applyAmount, goldPricePerGramAtPayment: isGold ? (data.goldPriceCache?.pricePerGram || null) : null, date: todayIso(), createdAt: Date.now() });
   d.editedAt = Date.now();
-  logActivity('debt_payment', `${verb} از/به «${d.person}»: ${fmt(applyAmount)} ${data.currency}`);
+  logActivity('debt_payment', `${verb} از/به «${d.person}»: ${amountLabel}`);
   await saveData();
   renderDebtsList();
   showSuccessToast('ثبت شد');
@@ -5289,11 +5314,16 @@ function renderDebtsList(){
   const box = document.getElementById('debtsList');
   if(!box) return;
   const debts = data.debts || [];
+  const hasGoldDebt = debts.some(d => d.unit === 'gold');
+  document.getElementById('goldPriceBox').style.display = hasGoldDebt ? 'block' : 'none';
+  if(hasGoldDebt) renderGoldPriceBox();
   if(debts.length === 0){
     box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🤝</span>هنوز بدهی یا طلبی ثبت نشده.</div>';
     return;
   }
+  const goldPrice = data.goldPriceCache?.pricePerGram || null;
   box.innerHTML = debts.map(d => {
+    const isGold = d.unit === 'gold';
     const paid = debtPaidAmount(d);
     const remaining = debtRemaining(d);
     const pct = d.totalAmount > 0 ? Math.min(100, Math.round((paid / d.totalAmount) * 100)) : 0;
@@ -5301,22 +5331,27 @@ function renderDebtsList(){
     const isCredit = d.kind === 'credit';
     const kindLabel = isCredit ? '🔵 طلب از' : '🟠 بدهی به';
     const barColor = done ? 'var(--credit)' : (isCredit ? 'var(--asset)' : 'var(--liability)');
+    const paidLabel = isGold ? `${faDigits(paid)} گرم` : `${fmt(paid)} ${data.currency}`;
+    const totalLabel = isGold ? `${faDigits(d.totalAmount)} گرم طلا` : `${fmt(d.totalAmount)} ${data.currency}`;
+    const remainingLabel = isGold ? `${faDigits(remaining)} گرم مونده` : `${fmt(remaining)} مونده`;
+    const goldTomanEquivalent = (isGold && goldPrice) ? `<div style="font-size:11.5px; color:var(--ink-soft); margin-bottom:6px;">≈ ${fmt(Math.round(remaining * goldPrice))} ${data.currency} به قیمت امروز</div>` : (isGold ? `<div style="font-size:11px; color:var(--debit); margin-bottom:6px;">قیمت طلا تنظیم نشده — از بخش بالا وارد کن</div>` : '');
     return `<div style="background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-        <span style="font-weight:700; font-size:13px; color:${done?'var(--credit)':(isCredit?'var(--asset)':'var(--liability)')};">${kindLabel} ${escapeHtml(d.person)}</span>
+        <span style="font-weight:700; font-size:13px; color:${done?'var(--credit)':(isCredit?'var(--asset)':'var(--liability)')};">${kindLabel} ${escapeHtml(d.person)}${isGold ? ' 🥇' : ''}</span>
         <button type="button" class="mini-del" data-del-debt="${d.id}" title="حذف" aria-label="حذف">✕</button>
       </div>
       ${d.note ? `<div style="font-size:11.5px; color:var(--ink-soft); margin-bottom:6px;">${escapeHtml(d.note)}</div>` : ''}
       <div style="background:var(--card-bg); border-radius:6px; height:10px; overflow:hidden; margin-bottom:6px;">
         <div style="width:${pct}%; height:100%; background:${barColor};"></div>
       </div>
-      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); margin-bottom:8px;">
-        <span>${fmt(paid)} از ${fmt(d.totalAmount)} ${data.currency}</span>
-        <span>${done ? '✓ تسویه شد' : `${fmt(remaining)} مونده`}</span>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); margin-bottom:${isGold?'2px':'8px'};">
+        <span>${paidLabel} از ${totalLabel}</span>
+        <span>${done ? '✓ تسویه شد' : remainingLabel}</span>
       </div>
+      ${goldTomanEquivalent}
       ${d.dueDate ? `<div style="font-size:11px; color:var(--ink-soft); margin-bottom:8px;">سررسید: ${formatDate(d.dueDate)}</div>` : ''}
       ${done ? '' : `<div style="display:flex; gap:6px;">
-        <input type="number" class="debt-pay-input" data-debt-id="${d.id}" placeholder="مبلغ پرداخت" min="1" style="flex:1; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); padding:7px 9px; font-size:12px;">
+        <input type="number" class="${isGold ? 'debt-pay-input-gold' : 'debt-pay-input'}" data-debt-id="${d.id}" placeholder="${isGold ? 'مقدار گرم' : 'مبلغ پرداخت'}" min="0" ${isGold ? 'step="0.001"' : 'step="1"'} style="flex:1; border:1px solid var(--line); border-radius:6px; background:var(--card-bg); padding:7px 9px; font-size:12px;">
         <button type="button" class="ghost-btn" data-pay-debt="${d.id}" style="width:auto; padding:0 14px;">ثبت</button>
       </div>`}
     </div>`;
@@ -5325,6 +5360,28 @@ function renderDebtsList(){
   box.querySelectorAll('[data-pay-debt]').forEach(btn => btn.addEventListener('click', (e) => payDebtInstallment(e.target.dataset.payDebt)));
   box.querySelectorAll('.debt-pay-input').forEach(wireAmountField);
 }
+function renderGoldPriceBox(){
+  const disp = document.getElementById('goldPriceDisplay');
+  const meta = document.getElementById('goldPriceMeta');
+  if(!disp) return;
+  if(data.goldPriceCache && data.goldPriceCache.pricePerGram){
+    disp.textContent = `${fmt(data.goldPriceCache.pricePerGram)} ${data.currency}`;
+    meta.textContent = `آخرین ثبت: ${formatJalaliLong(data.goldPriceCache.dateIso)}`;
+  } else {
+    disp.textContent = 'هنوز قیمتی ثبت نشده';
+    meta.textContent = 'قیمت امروز رو بالا وارد کن و بزن «ثبت».';
+  }
+}
+document.getElementById('saveGoldPriceSettingsBtn').addEventListener('click', async () => {
+  const manualPrice = Number(document.getElementById('goldManualPriceInput').value);
+  if(!(manualPrice > 0)){ alert('قیمت رو درست وارد کن.'); return; }
+  data.goldPriceCache = { pricePerGram: manualPrice, dateIso: todayIso(), source: 'manual' };
+  await saveData();
+  document.getElementById('goldManualPriceInput').value = '';
+  renderGoldPriceBox();
+  renderDebtsList();
+  showSuccessToast('قیمت طلا ثبت شد');
+});
 function renderGoalsAndLoans(){
   renderGoalsList();
   const walletSel = document.getElementById('newLoanWallet');

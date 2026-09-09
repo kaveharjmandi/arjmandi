@@ -2839,7 +2839,21 @@ async function registerFingerprint(username){
     return true;
   }catch(err){
     console.error('WebAuthn register failed', err);
-    alert('فعال‌سازی اثر انگشت ناموفق بود. ممکن است گوشی شما قفل اثرانگشت یا تشخیص چهره نداشته باشد یا اجازه لازم داده نشده باشد.');
+    let msg = 'فعال‌سازی اثر انگشت ناموفق بود.';
+    if(err.name === 'NotAllowedError'){
+      msg += ' یا خودت لغوش کردی، یا این گوشی قفل اثرانگشت/فیس‌ست‌شده نداره — اول از تنظیمات خودِ گوشی (نه اپ) یه قفل بیومتریک تنظیم کن، بعد دوباره امتحان کن.';
+    } else if(err.name === 'NotSupportedError'){
+      msg += ' این گوشی یا مرورگر از این نوع قفل پشتیبانی نمی‌کنه.';
+    } else if(err.name === 'SecurityError'){
+      msg += ' مشکل مربوط به آدرس سایته — مطمئن شو همیشه از همون آدرس ثابت (HTTPS) وارد اپ می‌شی، نه یه آدرس یا IP متفاوت.';
+    } else if(err.name === 'AbortError'){
+      msg += ' زمان زیادی طول کشید و لغو شد — دوباره امتحان کن و سریع‌تر تاییدش کن.';
+    } else if(err.name === 'InvalidStateError'){
+      msg += ' این گوشی از قبل برای یه حساب دیگه ثبت شده.';
+    } else {
+      msg += ` (کد خطا: ${err.name || err.message || 'نامشخص'})`;
+    }
+    alert(msg);
     return false;
   }
 }
@@ -3714,7 +3728,7 @@ document.getElementById('lowBalanceThresholdInput').addEventListener('change', a
   showSuccessToast(data.lowBalanceThreshold ? 'حد هشدار موجودی ذخیره شد' : 'هشدار کمبود موجودی غیرفعال شد');
 });
 
-function renderFingerprintSection(){
+async function renderFingerprintSection(){
   const row = document.getElementById('fpToggleRow');
   if(!webauthnSupported()){
     row.style.display = 'none';
@@ -3722,11 +3736,25 @@ function renderFingerprintSection(){
   }
   row.style.display = 'flex';
   const enabled = !!(data.auth[currentUsername] && data.auth[currentUsername].webauthnId);
+  const input = document.getElementById('fpToggleInput');
+  input.checked = enabled;
+  input.disabled = false;
   document.getElementById('fpStatusText').textContent = enabled
     ? 'روی این گوشی فعاله — دفعه‌ی بعد می‌تونی با اثر انگشت وارد بشی.'
     : 'به‌جای تایپ رمز، با اثر انگشت یا فیس همین گوشی وارد شو.';
-  const input = document.getElementById('fpToggleInput');
-  input.checked = enabled;
+  // Checks whether the device actually has a biometric/platform lock set up BEFORE letting
+  // the user try to enable it. Without this, tapping the toggle on a device with no
+  // fingerprint/face configured just fails with a generic error after the fact - this
+  // catches that case upfront with a clear, actionable message instead.
+  if(!enabled && window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable){
+    try{
+      const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      if(!available){
+        document.getElementById('fpStatusText').textContent = 'این گوشی قفل اثرانگشت/فیس فعال‌شده‌ای نداره. اول از تنظیمات خودِ گوشی (نه اپ) یه قفل بیومتریک تنظیم کن، بعد اینجا برگرد.';
+        input.disabled = true;
+      }
+    }catch(e){ /* detection unsupported - let the actual attempt decide */ }
+  }
   input.onchange = async () => {
     if(input.checked){
       const ok = await registerFingerprint(currentUsername);

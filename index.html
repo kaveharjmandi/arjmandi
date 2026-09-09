@@ -2860,10 +2860,12 @@ async function registerFingerprint(username){
 function accountsWithFingerprint(){
   return Object.keys(data.auth || {}).filter(u => data.auth[u] && data.auth[u].webauthnId);
 }
+let lastFpLoginError = null;
 async function loginWithFingerprintAny(){
   if(!webauthnSupported()) return null;
   const usernames = accountsWithFingerprint();
   if(!usernames.length) return null;
+  lastFpLoginError = null;
   try{
     const challenge = crypto.getRandomValues(new Uint8Array(32));
     const allowCredentials = usernames.map(u => ({ id: b64ToBuf(data.auth[u].webauthnId), type:'public-key' }));
@@ -2876,6 +2878,7 @@ async function loginWithFingerprintAny(){
     return matchedUsername || null;
   }catch(err){
     console.error('WebAuthn login failed', err);
+    lastFpLoginError = err;
     return null;
   }
 }
@@ -3213,7 +3216,11 @@ document.getElementById('fpLoginBtn').addEventListener('click', async () => {
     try{ localStorage.setItem('sandoogh-last-user', uname); }catch(e){}
     enterApp();
   } else {
-    errBox.textContent = 'ورود با اثر انگشت ناموفق بود. با رمز عبور وارد شو.';
+    let msg = 'ورود با اثر انگشت ناموفق بود. با رمز عبور وارد شو.';
+    if(lastFpLoginError && lastFpLoginError.name){
+      msg += ` (کد خطا: ${lastFpLoginError.name})`;
+    }
+    errBox.textContent = msg;
   }
 });
 /* ---------- login lockout (anti brute-force, per device) ---------- */

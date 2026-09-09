@@ -1008,6 +1008,9 @@ body.offline-mode{ padding-top:38px; }
         <div class="settings-chevron">‹</div>
         <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
       </div>
+      <div style="background:var(--bg); border-radius:8px; padding:10px; margin-top:10px; font-size:11.5px; color:var(--ink-soft); line-height:1.9;">
+        ⚠️ اگه از تنظیمات گوشی گزینه‌ی «Clear storage» یا «Clear site data» رو برای این اپ بزنی (نه صرفاً Clear cache)، اطلاعاتی که هنوز با سرور سینک نشدن (مثلاً چون موقع ثبتشون نت قطع بوده) برای همیشه پاک می‌شن. قبل از این کار حتماً از دکمه‌ی «پشتیبان‌گیری» بالا یه فایل تازه بگیر.
+      </div>
       </div>
     </div>
 
@@ -6649,6 +6652,14 @@ function checkDuplicateTransaction(desc, amount, personId){
 }
 
 async function init(){
+  // Asks the browser to mark this site's local storage as "persistent" so the OS/browser
+  // won't silently evict it under storage pressure (this is a real, separate risk from the
+  // user manually clearing site data - Android/Chrome can auto-clear "non-persistent" site
+  // storage for rarely-used sites when the device is low on space). Doesn't protect against
+  // a manual "clear site data" action - only backups protect against that.
+  if(navigator.storage && navigator.storage.persist){
+    navigator.storage.persist().catch(() => {});
+  }
   await loadData();
   applyTheme();
   updateThemeToggleIcon();

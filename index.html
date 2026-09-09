@@ -3598,7 +3598,8 @@ document.getElementById('changePwForm').addEventListener('submit', async (e) => 
   if(n1 !== n2){ msg.textContent = 'تکرار رمز جدید مطابقت نداره.'; msg.className = 'pw-msg err'; return; }
   const salt = randomSaltHex();
   const hash = await sha256Hex(salt + n1);
-  data.auth[currentUsername] = { salt, hash, personId: currentUserId };
+  data.auth[currentUsername].salt = salt;
+  data.auth[currentUsername].hash = hash;
   await saveData();
   msg.textContent = 'رمز عبور با موفقیت تغییر کرد.'; msg.className = 'pw-msg ok';
 });

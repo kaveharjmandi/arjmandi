@@ -2828,7 +2828,7 @@ async function registerFingerprint(username){
         rp: { name: 'گردش مالی خانواده' },
         user: { id: userId, name: username, displayName },
         pubKeyCredParams: [{ type:'public-key', alg:-7 }, { type:'public-key', alg:-257 }],
-        authenticatorSelection: { authenticatorAttachment:'platform', userVerification:'required' },
+        authenticatorSelection: { authenticatorAttachment:'platform', userVerification:'required', residentKey:'required', requireResidentKey:true },
         timeout: 60000
       }
     });

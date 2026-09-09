@@ -1812,10 +1812,37 @@ try{
   }
 }catch(e){ console.warn('Supabase init failed', e); }
 
+// Races a promise against a plain timer so a stalled network request (common on a weak,
+// not-fully-dead connection: the request neither succeeds nor fails quickly, it just hangs)
+// can't block the caller forever. Resolves with {timedOut:true} instead of leaving the app
+// stuck on its loading screen indefinitely.
+function withTimeout(promise, ms){
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => { if(!settled){ settled = true; resolve({ timedOut:true }); } }, ms);
+    Promise.resolve(promise).then(
+      (value) => { if(!settled){ settled = true; clearTimeout(timer); resolve({ timedOut:false, value }); } },
+      (error) => { if(!settled){ settled = true; clearTimeout(timer); resolve({ timedOut:false, error }); } }
+    );
+  });
+}
 async function sbLoad(){
   if(!sb) return null;
   try{
-    const { data: row, error } = await sb.from('app_state').select('data').eq('id', SUPABASE_ROW_ID).maybeSingle();
+    // 8s cap: on a weak (not fully offline) connection this request can otherwise hang far
+    // longer than any user will wait, silently blocking the whole app boot. Past this point
+    // we just fall back to the local cache like a normal offline start - the background retry
+    // logic elsewhere still picks the connection back up once it stabilizes.
+    const result = await withTimeout(
+      sb.from('app_state').select('data').eq('id', SUPABASE_ROW_ID).maybeSingle(),
+      8000
+    );
+    if(result.timedOut){
+      console.warn('Supabase load timed out (weak connection) - falling back to local cache');
+      return null;
+    }
+    if(result.error) throw result.error;
+    const { data: row, error } = result.value;
     if(error) throw error;
     return row ? row.data : undefined; // undefined = no row yet
   }catch(e){
@@ -1828,7 +1855,16 @@ async function sbSave(obj){
   try{
     const jsonStr = JSON.stringify(obj);
     sbLastSavedJson = jsonStr;
-    const { error } = await sb.from('app_state').upsert({ id: SUPABASE_ROW_ID, data: obj, updated_at: new Date().toISOString() });
+    const result = await withTimeout(
+      sb.from('app_state').upsert({ id: SUPABASE_ROW_ID, data: obj, updated_at: new Date().toISOString() }),
+      8000
+    );
+    if(result.timedOut){
+      console.warn('Supabase save timed out (weak connection) - staying in local mode, will retry');
+      return false;
+    }
+    if(result.error) throw result.error;
+    const { error } = result.value;
     if(error) throw error;
     return true;
   }catch(e){
@@ -3341,12 +3377,32 @@ function enterApp(){
 document.getElementById('logoutBtn').addEventListener('click', () => { closeSettingsDrawer(); stopPresenceHeartbeat(); currentUserId = null; currentUsername = null; clearSession(); renderLoginScreen(); showSuccessToast('با موفقیت خارج شدید'); });
 
 /* ---------- backup / restore ---------- */
-function exportBackup(){
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+// preferShare=true (manual button tap, has real user-gesture) tries the native share sheet
+// first, so the backup file can go straight to Bluetooth, a domestic app (Bale/Eitaa/...), or
+// any other channel that still works when international internet is down - no need to dig it
+// out of the Downloads folder. preferShare=false (the silent automatic daily backup) always
+// just downloads, since navigator.share() requires a user gesture and would fail/misbehave
+// if triggered without one.
+async function exportBackup(preferShare){
+  const filename = `sandoogh-khanevadeh-${todayIso()}.json`;
+  const jsonStr = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonStr], { type:'application/json' });
+  if(preferShare && navigator.canShare && navigator.share){
+    try{
+      const file = new File([blob], filename, { type:'application/json' });
+      if(navigator.canShare({ files:[file] })){
+        await navigator.share({ files:[file], title:'پشتیبان صندوق خانواده', text:'فایل پشتیبان گردش مالی خانواده' });
+        return;
+      }
+    }catch(e){
+      if(e && e.name === 'AbortError') return; // user closed the share sheet - not an error
+      // any other failure: fall through to a plain download below
+    }
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `sandoogh-khanevadeh-${todayIso()}.json`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -3360,7 +3416,7 @@ function maybeAutoBackupLocally(){
     const dueMs = AUTO_BACKUP_INTERVAL_DAYS * 24 * 60 * 60 * 1000;
     if(Date.now() - last < dueMs) return;
     if(!data.transactions || !data.transactions.length) return; // nothing worth backing up yet
-    exportBackup();
+    exportBackup(false);
     localStorage.setItem('sandoogh-last-auto-backup', String(Date.now()));
     showSuccessToast('پشتیبان امروز خودکار دانلود شد 📥');
   }catch(e){ console.warn('Auto backup failed', e); }
@@ -3402,7 +3458,7 @@ function mergeImportedData(imported){
   const added = data.transactions.filter(t => t && t.id && !existingIds.has(t.id)).length;
   return added;
 }
-document.getElementById('backupBtn').addEventListener('click', exportBackup);
+document.getElementById('backupBtn').addEventListener('click', () => exportBackup(true));
 document.getElementById('restoreBtn').addEventListener('click', () => {
   document.getElementById('restoreFileInput').click();
 });

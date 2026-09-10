@@ -1282,6 +1282,15 @@ body.offline-mode{ padding-top:38px; }
       <div class="section-title">فهرست تراکنش‌ها</div>
       <div class="row2" style="margin-bottom:10px;">
         <input type="text" id="txSearchInput" placeholder="جست‌وجو در توضیح یا دسته‌بندی…" style="flex:2; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:9px 10px; font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink);">
+        <select id="txAccountQuickFilterSelect" style="flex:1; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:9px 10px; font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink);">
+          <option value="all">همه حساب‌ها</option>
+          <option value="kaveh-income">واریز کاوه</option>
+          <option value="kaveh-expense">برداشت کاوه</option>
+          <option value="hadiseh-income">واریز حدیثه</option>
+          <option value="hadiseh-expense">برداشت حدیثه</option>
+        </select>
+      </div>
+      <div class="row2" style="margin-bottom:10px;">
         <select id="txPersonFilterSelect" style="flex:1; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:9px 10px; font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink);">
           <option value="all">همه افراد</option>
         </select>
@@ -1290,12 +1299,6 @@ body.offline-mode{ padding-top:38px; }
         <div class="filter-btn tx-filter-btn active" data-filter="all">همه</div>
         <div class="filter-btn tx-filter-btn" data-filter="income">واریزها</div>
         <div class="filter-btn tx-filter-btn" data-filter="expense">برداشت‌ها</div>
-      </div>
-      <div class="filter-row" id="txQuickPersonFilterRow" style="margin-top:6px;">
-        <div class="filter-btn tx-quick-filter-btn" data-person="kaveh" data-type="income">واریز کاوه</div>
-        <div class="filter-btn tx-quick-filter-btn" data-person="kaveh" data-type="expense">برداشت کاوه</div>
-        <div class="filter-btn tx-quick-filter-btn" data-person="hadiseh" data-type="income">واریز حدیثه</div>
-        <div class="filter-btn tx-quick-filter-btn" data-person="hadiseh" data-type="expense">برداشت حدیثه</div>
       </div>
       <div class="tx-list" id="txList"></div>
     </div>
@@ -5747,33 +5750,27 @@ document.querySelectorAll('.tx-filter-btn').forEach(btn => {
     currentFilter = btn.dataset.filter;
     document.querySelectorAll('.tx-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
     currentAccountFilter = 'all';
-    document.querySelectorAll('.tx-quick-filter-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('txAccountQuickFilterSelect').value = 'all';
     renderTxList();
   });
 });
-document.querySelectorAll('.tx-quick-filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const accountId = btn.dataset.person;
-    const type = btn.dataset.type;
-    const alreadyActive = btn.classList.contains('active');
-    document.querySelectorAll('.tx-quick-filter-btn').forEach(b => b.classList.remove('active'));
-    if(alreadyActive){
-      // toggle off: go back to "all"
-      currentFilter = 'all';
-      currentAccountFilter = 'all';
-      document.querySelectorAll('.tx-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
-    } else {
-      btn.classList.add('active');
-      currentFilter = type;
-      currentAccountFilter = accountId;
-      document.querySelectorAll('.tx-filter-btn').forEach(b => b.classList.remove('active'));
-    }
-    renderTxList();
-  });
+document.getElementById('txAccountQuickFilterSelect').addEventListener('change', (e) => {
+  const val = e.target.value;
+  if(val === 'all'){
+    currentFilter = 'all';
+    currentAccountFilter = 'all';
+    document.querySelectorAll('.tx-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+  } else {
+    const [accountId, type] = val.split('-');
+    currentFilter = type;
+    currentAccountFilter = accountId;
+    document.querySelectorAll('.tx-filter-btn').forEach(b => b.classList.remove('active'));
+  }
+  renderTxList();
 });
 document.getElementById('txSearchInput').addEventListener('input', renderTxList);
 document.getElementById('txPersonFilterSelect').addEventListener('change', () => {
-  document.querySelectorAll('.tx-quick-filter-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('txAccountQuickFilterSelect').value = 'all';
   currentAccountFilter = 'all';
   renderTxList();
 });

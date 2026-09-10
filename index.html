@@ -1587,6 +1587,7 @@ let currentUsername = null;
 let captchaCode = '';
 let currentType = 'income';
 let currentFilter = 'all';
+let currentAccountFilter = 'all'; // filters by which account (kaveh/hadiseh) the money actually moved through, independent of personId (who the transaction is attributed to)
 let breakdownPeriodType = 'daily';
 let breakdownPersonId = null;
 let breakdownAnchorIso = null;
@@ -5745,26 +5746,26 @@ document.querySelectorAll('.tx-filter-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     currentFilter = btn.dataset.filter;
     document.querySelectorAll('.tx-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+    currentAccountFilter = 'all';
     document.querySelectorAll('.tx-quick-filter-btn').forEach(b => b.classList.remove('active'));
     renderTxList();
   });
 });
 document.querySelectorAll('.tx-quick-filter-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    const personId = btn.dataset.person;
+    const accountId = btn.dataset.person;
     const type = btn.dataset.type;
     const alreadyActive = btn.classList.contains('active');
     document.querySelectorAll('.tx-quick-filter-btn').forEach(b => b.classList.remove('active'));
-    const personSel = document.getElementById('txPersonFilterSelect');
     if(alreadyActive){
-      // toggle off: go back to "all" for both filters
+      // toggle off: go back to "all"
       currentFilter = 'all';
-      personSel.value = 'all';
+      currentAccountFilter = 'all';
       document.querySelectorAll('.tx-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
     } else {
       btn.classList.add('active');
       currentFilter = type;
-      personSel.value = data.people.some(p => p.id === personId) ? personId : 'all';
+      currentAccountFilter = accountId;
       document.querySelectorAll('.tx-filter-btn').forEach(b => b.classList.remove('active'));
     }
     renderTxList();
@@ -5773,6 +5774,7 @@ document.querySelectorAll('.tx-quick-filter-btn').forEach(btn => {
 document.getElementById('txSearchInput').addEventListener('input', renderTxList);
 document.getElementById('txPersonFilterSelect').addEventListener('change', () => {
   document.querySelectorAll('.tx-quick-filter-btn').forEach(b => b.classList.remove('active'));
+  currentAccountFilter = 'all';
   renderTxList();
 });
 function populateTxPersonFilter(){
@@ -6057,6 +6059,7 @@ function renderTxList(){
   }
   const personFilterVal = document.getElementById('txPersonFilterSelect')?.value || 'all';
   if(personFilterVal !== 'all') txs = txs.filter(t => t.personId === personFilterVal);
+  if(currentAccountFilter !== 'all') txs = txs.filter(t => (t.accountId || accountOwnerFallback(t)) === currentAccountFilter);
 
   txs.sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.createdAt||0) - (a.createdAt||0));
 

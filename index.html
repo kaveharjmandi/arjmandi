@@ -341,6 +341,15 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
   border-bottom:1px solid var(--line);
 }
 .tx-date-header:first-child{ padding-top:2px; }
+.tx-search-summary{
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;
+  padding:9px 12px; margin-bottom:8px; border-radius:8px;
+  background:var(--bg); border:1px solid var(--line);
+  font-size:12.5px; color:var(--ink-soft);
+}
+.tx-search-summary b{ color:var(--ink); font-family:'IBM Plex Mono',monospace; }
+.tx-search-summary .income{ color:var(--credit); }
+.tx-search-summary .expense{ color:var(--debit); }
 .tx-date-net{ font-family:'IBM Plex Mono',monospace; font-size:12px; }
 .tx-date-net.income{ color:var(--credit); }
 .tx-date-net.expense{ color:var(--debit); }
@@ -1300,6 +1309,7 @@ body.offline-mode{ padding-top:38px; }
         <div class="filter-btn tx-filter-btn" data-filter="income">واریزها</div>
         <div class="filter-btn tx-filter-btn" data-filter="expense">برداشت‌ها</div>
       </div>
+      <div class="tx-search-summary" id="txSearchSummary" style="display:none;"></div>
       <div class="tx-list" id="txList"></div>
     </div>
     </div>
@@ -6057,6 +6067,24 @@ function renderTxList(){
   const personFilterVal = document.getElementById('txPersonFilterSelect')?.value || 'all';
   if(personFilterVal !== 'all') txs = txs.filter(t => t.personId === personFilterVal);
   if(currentAccountFilter !== 'all') txs = txs.filter(t => (t.accountId || accountOwnerFallback(t)) === currentAccountFilter);
+
+  const summaryBox = document.getElementById('txSearchSummary');
+  if(searchVal){
+    const incomeSum = txs.filter(t => t.type === 'income').reduce((s,t) => s + t.amount, 0);
+    const expenseSum = txs.filter(t => t.type === 'expense').reduce((s,t) => s + t.amount, 0);
+    const countLabel = `${faDigits(txs.length)} مورد`;
+    let sumsHtml = '';
+    if(incomeSum > 0) sumsHtml += `<span class="income">واریز: <b>${fmt(incomeSum)}</b></span>`;
+    if(expenseSum > 0) sumsHtml += `<span class="expense">برداشت: <b>${fmt(expenseSum)}</b></span>`;
+    if(incomeSum > 0 && expenseSum > 0){
+      const net = incomeSum - expenseSum;
+      sumsHtml += `<span>خالص: <b class="${net >= 0 ? 'income' : 'expense'}">${net >= 0 ? '+' : '−'}${fmt(Math.abs(net))}</b></span>`;
+    }
+    summaryBox.innerHTML = `<span>${countLabel}</span>${sumsHtml}`;
+    summaryBox.style.display = txs.length ? 'flex' : 'none';
+  } else {
+    summaryBox.style.display = 'none';
+  }
 
   txs.sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.createdAt||0) - (a.createdAt||0));
 

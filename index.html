@@ -2839,13 +2839,13 @@ async function registerFingerprint(username){
   if(!webauthnSupported()){ alert('این گوشی یا مرورگر از ورود با اثر انگشت پشتیبانی نمی‌کنه.'); return false; }
   try{
     const acc = data.auth[username];
-    const displayName = acc ? personName(acc.personId) : username;
+    const displayName = username; // ASCII-safe: avoid Persian text in WebAuthn user.displayName, which some Android devices mishandle
     const challenge = crypto.getRandomValues(new Uint8Array(32));
     const userId = crypto.getRandomValues(new Uint8Array(16));
     const cred = await navigator.credentials.create({
       publicKey: {
         challenge,
-        rp: { name: 'گردش مالی خانواده' },
+        rp: { name: 'Family Fund' },
         user: { id: userId, name: username, displayName },
         pubKeyCredParams: [{ type:'public-key', alg:-7 }, { type:'public-key', alg:-257 }],
         authenticatorSelection: { authenticatorAttachment:'platform', userVerification:'required', residentKey:'required', requireResidentKey:true },

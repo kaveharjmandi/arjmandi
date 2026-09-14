@@ -2842,11 +2842,16 @@ async function registerFingerprint(username){
     const displayName = username; // ASCII-safe: avoid Persian text in WebAuthn user.displayName, which some Android devices mishandle
     const challenge = crypto.getRandomValues(new Uint8Array(32));
     const userId = crypto.getRandomValues(new Uint8Array(16));
+    // Use a unique, randomized WebAuthn user.name (not the literal login username) to avoid any
+    // hidden per-(origin, username) dedup/state on the platform side from earlier registration
+    // attempts. Our own app never reads this field back - it identifies accounts purely by the
+    // returned credential id (webauthnId), so this is safe.
+    const webauthnUserName = `${username}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`;
     const cred = await navigator.credentials.create({
       publicKey: {
         challenge,
         rp: { name: 'Family Fund' },
-        user: { id: userId, name: username, displayName },
+        user: { id: userId, name: webauthnUserName, displayName },
         pubKeyCredParams: [{ type:'public-key', alg:-7 }, { type:'public-key', alg:-257 }],
         authenticatorSelection: { authenticatorAttachment:'platform', userVerification:'required', residentKey:'required', requireResidentKey:true },
         timeout: 60000

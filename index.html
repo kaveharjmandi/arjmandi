@@ -2893,9 +2893,14 @@ async function loginWithFingerprintAny(){
   lastFpLoginError = null;
   try{
     const challenge = crypto.getRandomValues(new Uint8Array(32));
-    const allowCredentials = usernames.map(u => ({ id: b64ToBuf(data.auth[u].webauthnId), type:'public-key' }));
+    // Use an empty allowCredentials list (discoverable/resident credential flow) instead of
+    // listing every fingerprint-enabled account's id explicitly. Since registration creates
+    // resident (discoverable) credentials, the platform can look up whichever credential(s)
+    // actually exist on THIS device on its own. Sending a fixed multi-id allowCredentials list
+    // (including ids that only exist on other family members' devices) triggers a broken/error
+    // path on some Android Chrome versions.
     const assertion = await navigator.credentials.get({
-      publicKey: { challenge, allowCredentials, userVerification: 'required', timeout: 60000 }
+      publicKey: { challenge, allowCredentials: [], userVerification: 'required', timeout: 60000 }
     });
     if(!assertion) return null;
     const matchedId = bufToB64(assertion.rawId);

@@ -2891,24 +2891,38 @@ async function loginWithFingerprintAny(){
   const usernames = accountsWithFingerprint();
   if(!usernames.length) return null;
   lastFpLoginError = null;
+  const challenge = crypto.getRandomValues(new Uint8Array(32));
+  const allowCredentials = usernames.map(u => ({ id: b64ToBuf(data.auth[u].webauthnId), type:'public-key' }));
+  // Some Android/Chrome versions fail to resolve a discoverable-credential request (empty
+  // allowCredentials) even when a matching resident credential genuinely exists on the device.
+  // Try the explicit allowCredentials list first (lets the platform filter to whichever of these
+  // ids actually exist locally); if that's rejected, fall back to the discoverable-credential
+  // flow in case a different device/browser combination needs that instead.
   try{
-    const challenge = crypto.getRandomValues(new Uint8Array(32));
-    // Use an empty allowCredentials list (discoverable/resident credential flow) instead of
-    // listing every fingerprint-enabled account's id explicitly. Since registration creates
-    // resident (discoverable) credentials, the platform can look up whichever credential(s)
-    // actually exist on THIS device on its own. Sending a fixed multi-id allowCredentials list
-    // (including ids that only exist on other family members' devices) triggers a broken/error
-    // path on some Android Chrome versions.
     const assertion = await navigator.credentials.get({
-      publicKey: { challenge, allowCredentials: [], userVerification: 'required', timeout: 60000 }
+      publicKey: { challenge, allowCredentials, userVerification: 'required', timeout: 60000 }
     });
-    if(!assertion) return null;
+    if(!assertion) throw new Error('empty assertion');
     const matchedId = bufToB64(assertion.rawId);
     const matchedUsername = usernames.find(u => data.auth[u].webauthnId === matchedId);
-    return matchedUsername || null;
+    if(matchedUsername) return matchedUsername;
   }catch(err){
-    console.error('WebAuthn login failed', err);
+    console.error('WebAuthn login (explicit allowCredentials) failed', err);
     lastFpLoginError = err;
+  }
+  try{
+    const challenge2 = crypto.getRandomValues(new Uint8Array(32));
+    const assertion2 = await navigator.credentials.get({
+      publicKey: { challenge: challenge2, allowCredentials: [], userVerification: 'required', timeout: 60000 }
+    });
+    if(!assertion2) return null;
+    const matchedId2 = bufToB64(assertion2.rawId);
+    const matchedUsername2 = usernames.find(u => data.auth[u].webauthnId === matchedId2);
+    if(matchedUsername2){ lastFpLoginError = null; return matchedUsername2; }
+    return null;
+  }catch(err2){
+    console.error('WebAuthn login (discoverable) failed', err2);
+    lastFpLoginError = err2;
     return null;
   }
 }

@@ -2891,38 +2891,18 @@ async function loginWithFingerprintAny(){
   const usernames = accountsWithFingerprint();
   if(!usernames.length) return null;
   lastFpLoginError = null;
-  const challenge = crypto.getRandomValues(new Uint8Array(32));
-  const allowCredentials = usernames.map(u => ({ id: b64ToBuf(data.auth[u].webauthnId), type:'public-key' }));
-  // Some Android/Chrome versions fail to resolve a discoverable-credential request (empty
-  // allowCredentials) even when a matching resident credential genuinely exists on the device.
-  // Try the explicit allowCredentials list first (lets the platform filter to whichever of these
-  // ids actually exist locally); if that's rejected, fall back to the discoverable-credential
-  // flow in case a different device/browser combination needs that instead.
   try{
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
     const assertion = await navigator.credentials.get({
-      publicKey: { challenge, allowCredentials, userVerification: 'required', timeout: 60000 }
+      publicKey: { challenge, allowCredentials: [], userVerification: 'required', timeout: 60000 }
     });
-    if(!assertion) throw new Error('empty assertion');
+    if(!assertion) return null;
     const matchedId = bufToB64(assertion.rawId);
     const matchedUsername = usernames.find(u => data.auth[u].webauthnId === matchedId);
-    if(matchedUsername) return matchedUsername;
+    return matchedUsername || null;
   }catch(err){
-    console.error('WebAuthn login (explicit allowCredentials) failed', err);
+    console.error('WebAuthn login failed', err);
     lastFpLoginError = err;
-  }
-  try{
-    const challenge2 = crypto.getRandomValues(new Uint8Array(32));
-    const assertion2 = await navigator.credentials.get({
-      publicKey: { challenge: challenge2, allowCredentials: [], userVerification: 'required', timeout: 60000 }
-    });
-    if(!assertion2) return null;
-    const matchedId2 = bufToB64(assertion2.rawId);
-    const matchedUsername2 = usernames.find(u => data.auth[u].webauthnId === matchedId2);
-    if(matchedUsername2){ lastFpLoginError = null; return matchedUsername2; }
-    return null;
-  }catch(err2){
-    console.error('WebAuthn login (discoverable) failed', err2);
-    lastFpLoginError = err2;
     return null;
   }
 }

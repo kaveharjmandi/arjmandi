@@ -2196,16 +2196,21 @@ function applyServerMerge(serverData){
   if(serverData.categories){
     // NOTE: category order matters (drag-to-reorder in admin panel), so this merge must
     // preserve the LOCAL order as the source of truth and only append names that exist on
-    // the server but not locally (e.g. a category added from another device). Previously
-    // this put serverData first into a Set, which silently discarded any local reordering
-    // on every save.
+    // the server but not locally (e.g. a category added from another device). A tombstone
+    // check is required here too - otherwise a category deleted locally but still present
+    // in a stale server snapshot gets silently re-appended on every save (looks like
+    // "deleting a category just moves it to the end of the list").
     data.categories = data.categories || { income:[], expense:[] };
     ['income','expense'].forEach(t => {
       const local = Array.isArray(data.categories[t]) ? data.categories[t] : [];
       const server = Array.isArray(serverData.categories[t]) ? serverData.categories[t] : [];
       const localSet = new Set(local);
       const merged = local.slice();
-      server.forEach(c => { if(!localSet.has(c)) merged.push(c); });
+      server.forEach(c => {
+        if(localSet.has(c)) return;
+        if(data.tombstones && data.tombstones['category:' + t + ':' + c] != null) return;
+        merged.push(c);
+      });
       data.categories[t] = merged;
     });
   }
@@ -4237,6 +4242,10 @@ function renderCatList(containerId, catType){
       const oldName = data.categories[t][idx];
       const newName = e.target.value.trim() || oldName;
       data.categories[t][idx] = newName;
+      if(newName !== oldName){
+        markDeleted('category', t + ':' + oldName);
+        unmarkDeleted('category', t + ':' + newName);
+      }
       // carry over a user-chosen emoji to the renamed category so it doesn't fall back to a generic icon
       if(newName !== oldName && data.categoryIcons && data.categoryIcons[oldName]){
         data.categoryIcons[newName] = data.categoryIcons[oldName];
@@ -4254,6 +4263,7 @@ function renderCatList(containerId, catType){
       const catName = data.categories[t][idx];
       if(!(await confirmAsync(`دسته‌بندی «${catName}» حذف بشه؟`))) return;
       data.categories[t].splice(idx, 1);
+      markDeleted('category', t + ':' + catName);
       if(data.categoryIcons && data.categoryIcons[catName]){ delete data.categoryIcons[catName]; markDeleted('categoryIcons', catName); }
       await saveData(); renderAdminPanel(); render();
       showSuccessToast('دسته‌بندی حذف شد');
@@ -4548,6 +4558,7 @@ function renderAdminPanel(){
     const emojiBtn = document.getElementById('newIncomeCatEmojiBtn');
     if(emojiBtn.dataset.emoji) data.categoryIcons[v] = emojiBtn.dataset.emoji;
     data.categories.income.push(v); inp.value='';
+    unmarkDeleted('category', 'income:' + v);
     delete emojiBtn.dataset.emoji; emojiBtn.textContent = '🏷️';
     await saveData(); renderAdminPanel(); render();
   };
@@ -4557,6 +4568,7 @@ function renderAdminPanel(){
     const emojiBtn = document.getElementById('newExpenseCatEmojiBtn');
     if(emojiBtn.dataset.emoji) data.categoryIcons[v] = emojiBtn.dataset.emoji;
     data.categories.expense.push(v); inp.value='';
+    unmarkDeleted('category', 'expense:' + v);
     delete emojiBtn.dataset.emoji; emojiBtn.textContent = '🏷️';
     await saveData(); renderAdminPanel(); render();
   };

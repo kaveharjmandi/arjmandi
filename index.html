@@ -1480,6 +1480,11 @@ body.offline-mode{ padding-top:38px; }
         <span><span style="display:inline-block; width:10px; height:10px; background:var(--debit); border-radius:2px;"></span> برداشت</span>
       </div>
     </div>
+    <div class="card">
+      <div class="section-title" id="personCompareTitle">مقایسه اعضای خانواده</div>
+      <div id="personCompareBox"></div>
+      <div id="personCompareLegend" style="margin-top:10px;"></div>
+    </div>
     </div>
 
     <div class="sub-tab-panel" data-reportsubtab="goals" style="display:none;">
@@ -4951,6 +4956,63 @@ function renderCharts(){
 
   renderPieChart(range);
   renderBarChart();
+  renderPersonCompareChart(range);
+}
+
+/* per-person income/expense comparison for the selected report period, grouped by the
+   person the transaction is attributed to (personId) - same attribution used by the pie/bar
+   charts above, not the account the money actually moved through (accountId can differ). */
+function renderPersonCompareChart(range){
+  const totalsByPerson = {};
+  data.transactions.forEach(t => {
+    if(t.date < range.start || t.date > range.end) return;
+    const pid = t.personId || 'family';
+    if(!totalsByPerson[pid]) totalsByPerson[pid] = { income:0, expense:0 };
+    if(t.type === 'income') totalsByPerson[pid].income += (Number(t.amount) || 0);
+    else if(t.type === 'expense') totalsByPerson[pid].expense += (Number(t.amount) || 0);
+  });
+  const entries = Object.keys(totalsByPerson)
+    .map(pid => ({ pid, ...totalsByPerson[pid] }))
+    .filter(e => e.income > 0 || e.expense > 0)
+    .sort((a,b) => (b.income+b.expense) - (a.income+a.expense));
+
+  const box = document.getElementById('personCompareBox');
+  const legend = document.getElementById('personCompareLegend');
+  if(!box) return;
+  if(entries.length === 0){
+    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">👨‍👩‍👧‍👦</span>توی این بازه تراکنشی برای مقایسه نیست.</div>';
+    if(legend) legend.innerHTML = '';
+    return;
+  }
+
+  const maxVal = Math.max(1, ...entries.map(e => Math.max(e.income, e.expense)));
+  const chartH = 140, barW = 18, gap = 16, groupW = barW*2 + 6;
+  const svgW = entries.length * (groupW + gap) + gap;
+  let bars = '';
+  entries.forEach((e, i) => {
+    const gx = gap + i * (groupW + gap);
+    const incH = Math.round((e.income / maxVal) * chartH);
+    const expH = Math.round((e.expense / maxVal) * chartH);
+    const p = getPerson(e.pid);
+    const avatar = (p && (p.avatar || p.emoji)) || '👤';
+    bars += `<rect x="${gx}" y="${chartH - incH + 20}" width="${barW}" height="${incH}" fill="var(--credit)" rx="2"/>`;
+    bars += `<rect x="${gx + barW + 4}" y="${chartH - expH + 20}" width="${barW}" height="${expH}" fill="var(--debit)" rx="2"/>`;
+    bars += `<text x="${gx + barW + 2}" y="${chartH + 36}" font-size="14" text-anchor="middle">${escapeHtml(avatar)}</text>`;
+  });
+  box.innerHTML =
+    `<svg viewBox="0 0 ${svgW} ${chartH + 40}" style="width:100%; max-width:480px; display:block; margin:0 auto;">${bars}</svg>`;
+
+  if(legend){
+    legend.innerHTML = entries.map(e => {
+      const net = e.income - e.expense;
+      return `<div style="display:flex; align-items:center; gap:8px; font-size:12px; padding:4px 0;">
+        <span style="flex:1;">${personEmoji(e.pid) !== '👤' ? personEmoji(e.pid) : (getPerson(e.pid)?.avatar || '👤')} ${escapeHtml(personName(e.pid))}</span>
+        <span style="color:var(--credit);">${fmt(e.income)}↓</span>
+        <span style="color:var(--debit);">${fmt(e.expense)}↑</span>
+        <span style="color:${net>=0?'var(--credit)':'var(--debit)'}; font-weight:700;">${net<0?'−':''}${fmt(Math.abs(net))}</span>
+      </div>`;
+    }).join('');
+  }
 }
 
 function renderPieChart(range){
@@ -6002,9 +6064,26 @@ function computeHomeAlerts(){
   const [, , jdToday] = isoToJalali(todayIso());
   (data.loans || []).forEach(l => {
     if(!l.dueDayOfMonth || l.paidCount >= l.installmentCount) return;
-    if(jdToday < l.dueDayOfMonth) return;
     const paidThisMonth = data.transactions.some(t => t.loanId === l.id && t.date >= monthRange.start && t.date <= monthRange.end);
-    if(!paidThisMonth) alerts.push({ level:'high', icon:'🏦', text:`قسط «${l.name}» عقب‌افتاده (سررسید روز ${faDigits(l.dueDayOfMonth)})` });
+    if(paidThisMonth) return;
+    const daysUntil = l.dueDayOfMonth - jdToday;
+    if(daysUntil < 0) alerts.push({ level:'high', icon:'🏦', text:`قسط «${l.name}» عقب‌افتاده (سررسید روز ${faDigits(l.dueDayOfMonth)})` });
+    else if(daysUntil === 0) alerts.push({ level:'high', icon:'🏦', text:`قسط «${l.name}» امروز سررسیده` });
+    else if(daysUntil <= 2) alerts.push({ level:'med', icon:'🏦', text:`قسط «${l.name}» ${faDigits(daysUntil)} روز دیگه سررسید می‌شه` });
+  });
+  (data.leases || []).forEach(l => {
+    if(!l.dueDayOfMonth || l.active === false) return;
+    const expected = expectedRentMonthsSoFar(l);
+    const overdueCount = expected !== null ? Math.max(0, expected - (l.paidMonths || 0)) : 0;
+    if(overdueCount > 0){
+      alerts.push({ level:'high', icon:'🏠', text:`${faDigits(overdueCount)} ماه اجاره «${l.name}» معوقه (سررسید روز ${faDigits(l.dueDayOfMonth)})` });
+      return;
+    }
+    const daysUntil = l.dueDayOfMonth - jdToday;
+    if(daysUntil >= 0 && daysUntil <= 2){
+      const when = daysUntil === 0 ? 'امروز' : (daysUntil === 1 ? 'فردا' : `${faDigits(daysUntil)} روز دیگه`);
+      alerts.push({ level:'med', icon:'🏠', text:`اجاره «${l.name}» سررسیدش ${when}` });
+    }
   });
   Object.keys(data.budgets || {}).forEach(cat => {
     const budget = data.budgets[cat];
@@ -6039,6 +6118,7 @@ function renderHomeDashboard(){
     alertsBox.innerHTML = `<div class="section-title">هشدارها</div>` +
       alerts.map(a => `<div class="home-alert-row ${a.level}"><span>${a.icon}</span><span>${escapeHtml(a.text)}</span></div>`).join('');
   }
+  notifyUpcomingLoansLeases();
 
   const recentBox = document.getElementById('homeRecentTxBox');
   if(recentBox){
@@ -6687,6 +6767,55 @@ function notifyUpcomingCheques(items){
   });
   try{ localStorage.setItem('chequeNotified', JSON.stringify(notified)); }catch(e){}
 }
+// Same best-effort local notification pattern as notifyUpcomingCheques, for loan installments
+// and lease rent that are due within 2 days or already overdue - these previously only ever
+// showed up as a banner on the home tab if you happened to open the app, with no proactive nudge.
+function notifyUpcomingLoansLeases(){
+  if(!notificationsSupported() || Notification.permission !== 'granted') return;
+  const todayStr = todayIso();
+  let notified = {};
+  try{ notified = JSON.parse(localStorage.getItem('loanLeaseNotified') || '{}'); }catch(e){}
+  const monthRange = getPeriodRange('monthly', todayIso());
+  const [, , jdToday] = isoToJalali(todayIso());
+
+  (data.loans || []).forEach(l => {
+    if(!l.dueDayOfMonth || l.paidCount >= l.installmentCount) return;
+    const key = 'loan:' + l.id;
+    if(notified[key] === todayStr) return;
+    const paidThisMonth = data.transactions.some(t => t.loanId === l.id && t.date >= monthRange.start && t.date <= monthRange.end);
+    if(paidThisMonth) return;
+    const daysUntil = l.dueDayOfMonth - jdToday;
+    if(daysUntil > 2) return;
+    const when = daysUntil < 0 ? 'گذشته' : (daysUntil === 0 ? 'امروزه' : (daysUntil === 1 ? 'فردا' : `${daysUntil} روز دیگه`));
+    try{
+      new Notification('یادآوری قسط — ' + data.title, {
+        body: `قسط «${l.name}» به مبلغ ${fmt(l.installmentAmount)} ${data.currency}، سررسیدش ${when}.`,
+        icon: 'icons/icon-192.png'
+      });
+    }catch(e){}
+    notified[key] = todayStr;
+  });
+
+  (data.leases || []).forEach(l => {
+    if(!l.dueDayOfMonth || l.active === false) return;
+    const key = 'lease:' + l.id;
+    if(notified[key] === todayStr) return;
+    const expected = expectedRentMonthsSoFar(l);
+    const overdueCount = expected !== null ? Math.max(0, expected - (l.paidMonths || 0)) : 0;
+    const daysUntil = l.dueDayOfMonth - jdToday;
+    if(overdueCount === 0 && (daysUntil < 0 || daysUntil > 2)) return;
+    const when = overdueCount > 0 ? 'گذشته' : (daysUntil === 0 ? 'امروزه' : (daysUntil === 1 ? 'فردا' : `${daysUntil} روز دیگه`));
+    try{
+      new Notification('یادآوری اجاره — ' + data.title, {
+        body: `اجاره «${l.name}» به مبلغ ${fmt(l.monthlyRent)} ${data.currency}، سررسیدش ${when}.`,
+        icon: 'icons/icon-192.png'
+      });
+    }catch(e){}
+    notified[key] = todayStr;
+  });
+
+  try{ localStorage.setItem('loanLeaseNotified', JSON.stringify(notified)); }catch(e){}
+}
 async function ensureChequeNotifyPermission(){
   if(!notificationsSupported()) return;
   if(Notification.permission === 'default'){
@@ -6786,6 +6915,7 @@ async function init(){
   setType('income');
   wireAllAmountFields();
   setInterval(() => { if(document.getElementById('app').style.display !== 'none') renderChequeAlerts(); }, 60*60*1000);
+  setInterval(() => { if(document.getElementById('app').style.display !== 'none') notifyUpcomingLoansLeases(); }, 60*60*1000);
 
   document.getElementById('dateDisplay').addEventListener('click', () => {
     const pop = document.getElementById('calendarPopup');

@@ -1480,11 +1480,6 @@ body.offline-mode{ padding-top:38px; }
         <span><span style="display:inline-block; width:10px; height:10px; background:var(--debit); border-radius:2px;"></span> برداشت</span>
       </div>
     </div>
-    <div class="card">
-      <div class="section-title" id="personCompareTitle">مقایسه اعضای خانواده</div>
-      <div id="personCompareBox"></div>
-      <div id="personCompareLegend" style="margin-top:10px;"></div>
-    </div>
     </div>
 
     <div class="sub-tab-panel" data-reportsubtab="goals" style="display:none;">
@@ -4956,63 +4951,6 @@ function renderCharts(){
 
   renderPieChart(range);
   renderBarChart();
-  renderPersonCompareChart(range);
-}
-
-/* per-person income/expense comparison for the selected report period, grouped by the
-   person the transaction is attributed to (personId) - same attribution used by the pie/bar
-   charts above, not the account the money actually moved through (accountId can differ). */
-function renderPersonCompareChart(range){
-  const totalsByPerson = {};
-  data.transactions.forEach(t => {
-    if(t.date < range.start || t.date > range.end) return;
-    const pid = t.personId || 'family';
-    if(!totalsByPerson[pid]) totalsByPerson[pid] = { income:0, expense:0 };
-    if(t.type === 'income') totalsByPerson[pid].income += (Number(t.amount) || 0);
-    else if(t.type === 'expense') totalsByPerson[pid].expense += (Number(t.amount) || 0);
-  });
-  const entries = Object.keys(totalsByPerson)
-    .map(pid => ({ pid, ...totalsByPerson[pid] }))
-    .filter(e => e.income > 0 || e.expense > 0)
-    .sort((a,b) => (b.income+b.expense) - (a.income+a.expense));
-
-  const box = document.getElementById('personCompareBox');
-  const legend = document.getElementById('personCompareLegend');
-  if(!box) return;
-  if(entries.length === 0){
-    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">👨‍👩‍👧‍👦</span>توی این بازه تراکنشی برای مقایسه نیست.</div>';
-    if(legend) legend.innerHTML = '';
-    return;
-  }
-
-  const maxVal = Math.max(1, ...entries.map(e => Math.max(e.income, e.expense)));
-  const chartH = 140, barW = 18, gap = 16, groupW = barW*2 + 6;
-  const svgW = entries.length * (groupW + gap) + gap;
-  let bars = '';
-  entries.forEach((e, i) => {
-    const gx = gap + i * (groupW + gap);
-    const incH = Math.round((e.income / maxVal) * chartH);
-    const expH = Math.round((e.expense / maxVal) * chartH);
-    const p = getPerson(e.pid);
-    const avatar = (p && (p.avatar || p.emoji)) || '👤';
-    bars += `<rect x="${gx}" y="${chartH - incH + 20}" width="${barW}" height="${incH}" fill="var(--credit)" rx="2"/>`;
-    bars += `<rect x="${gx + barW + 4}" y="${chartH - expH + 20}" width="${barW}" height="${expH}" fill="var(--debit)" rx="2"/>`;
-    bars += `<text x="${gx + barW + 2}" y="${chartH + 36}" font-size="14" text-anchor="middle">${escapeHtml(avatar)}</text>`;
-  });
-  box.innerHTML =
-    `<svg viewBox="0 0 ${svgW} ${chartH + 40}" style="width:100%; max-width:480px; display:block; margin:0 auto;">${bars}</svg>`;
-
-  if(legend){
-    legend.innerHTML = entries.map(e => {
-      const net = e.income - e.expense;
-      return `<div style="display:flex; align-items:center; gap:8px; font-size:12px; padding:4px 0;">
-        <span style="flex:1;">${personEmoji(e.pid) !== '👤' ? personEmoji(e.pid) : (getPerson(e.pid)?.avatar || '👤')} ${escapeHtml(personName(e.pid))}</span>
-        <span style="color:var(--credit);">${fmt(e.income)}↓</span>
-        <span style="color:var(--debit);">${fmt(e.expense)}↑</span>
-        <span style="color:${net>=0?'var(--credit)':'var(--debit)'}; font-weight:700;">${net<0?'−':''}${fmt(Math.abs(net))}</span>
-      </div>`;
-    }).join('');
-  }
 }
 
 function renderPieChart(range){
@@ -5249,14 +5187,15 @@ async function payLoanInstallment(id){
   const loan = data.loans.find(l => l.id === id);
   if(!loan) return;
   if(loan.paidCount >= loan.installmentCount){ alert('این وام قبلاً کامل تسویه شده.'); return; }
-  if(!(await confirmAsync(`قسط ${fmt(loan.installmentAmount)} ${data.currency} برای «${loan.name}» پرداخت و ثبت بشه؟`))) return;
-  loan.paidCount += 1;
+  const amount = await promptAmountAsync(`مبلغ پرداختی برای «${loan.name}» رو وارد کن (می‌تونی کمتر یا بیشتر از یک قسط هم بزنی)`, loan.installmentAmount);
+  if(!amount) return;
+  loan.paidCount += amount / loan.installmentAmount;
   data.transactions.push({
-    id: newId('t'), type:'expense', desc:`قسط وام: ${loan.name}`, amount: loan.installmentAmount, date: todayIso(),
+    id: newId('t'), type:'expense', desc:`قسط وام: ${loan.name}`, amount, date: todayIso(),
     personId: currentUserId, accountId: currentUserId, walletId: loan.walletId || null, category:'قسط وام', loanId: loan.id,
     enteredById: currentUserId, createdAt: Date.now()
   });
-  logActivity('loan_installment', `قسط «${loan.name}» پرداخت شد (${faDigits(loan.paidCount)}/${faDigits(loan.installmentCount)})`);
+  logActivity('loan_installment', `قسط «${loan.name}» به مبلغ ${fmt(amount)} پرداخت شد (${faDigits(Math.round(loan.paidCount * 100) / 100)}/${faDigits(loan.installmentCount)})`);
   await saveData();
   renderGoalsAndLoans();
   render();
@@ -5396,7 +5335,8 @@ function renderLoansList(){
   }
   box.innerHTML = data.loans.map(l => {
     const pct = Math.min(100, Math.round((l.paidCount / l.installmentCount) * 100));
-    const remainingCount = l.installmentCount - l.paidCount;
+    const paidCountDisplay = Math.round(l.paidCount * 100) / 100;
+    const remainingCount = Math.round((l.installmentCount - l.paidCount) * 100) / 100;
     const remainingAmount = Math.max(0, l.totalAmount - (l.paidCount * l.installmentAmount));
     const done = l.paidCount >= l.installmentCount;
     const expected = expectedLoanInstallmentsSoFar(l);
@@ -5411,7 +5351,7 @@ function renderLoansList(){
         <div style="width:${pct}%; height:100%; background:${done?'var(--credit)':'var(--liability)'};"></div>
       </div>
       <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); margin-bottom:4px;">
-        <span>${faDigits(l.paidCount)} از ${faDigits(l.installmentCount)} قسط پرداخت‌شده</span>
+        <span>${faDigits(paidCountDisplay)} از ${faDigits(l.installmentCount)} قسط پرداخت‌شده</span>
         <span>${done ? '✓ تسویه شد' : `${faDigits(remainingCount)} قسط مونده`}</span>
       </div>
       <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); margin-bottom:8px;">
@@ -5429,9 +5369,43 @@ function renderLoansList(){
 
 /* ---------- debts & credits (بدهی و طلب) ---------- */
 let newDebtKind = 'credit';
+let editingDebtId = null;
+function startEditDebt(id){
+  const d = data.debts.find(x => x.id === id);
+  if(!d) return;
+  editingDebtId = id;
+  newDebtKind = d.kind;
+  document.getElementById('debtKindCreditBtn').classList.toggle('active', d.kind === 'credit');
+  document.getElementById('debtKindDebtBtn').classList.toggle('active', d.kind === 'debt');
+  const isGold = d.unit === 'gold';
+  document.getElementById('newDebtIsGold').checked = isGold;
+  document.getElementById('newDebtTotalTomanField').style.display = isGold ? 'none' : '';
+  document.getElementById('newDebtTotalGoldField').style.display = isGold ? '' : 'none';
+  document.getElementById('newDebtPerson').value = d.person;
+  if(isGold) document.getElementById('newDebtTotalGold').value = d.totalAmount;
+  else document.getElementById('newDebtTotal').value = fmt(d.totalAmount);
+  document.getElementById('newDebtNote').value = d.note || '';
+  if(d.dueDate) newDebtDueDatePicker.setSelected(d.dueDate);
+  else newDebtDueDatePicker.clear();
+  document.getElementById('createDebtBtn').textContent = 'بروزرسانی';
+  const form = document.getElementById('newDebtForm');
+  form.style.display = '';
+  form.scrollIntoView({ behavior:'smooth', block:'center' });
+}
 document.getElementById('openNewDebtBtn').addEventListener('click', () => {
   const f = document.getElementById('newDebtForm');
-  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  const willShow = f.style.display === 'none';
+  f.style.display = willShow ? 'block' : 'none';
+  if(!willShow && editingDebtId){
+    // closing the form while mid-edit cancels the edit
+    editingDebtId = null;
+    document.getElementById('createDebtBtn').textContent = 'ثبت';
+    document.getElementById('newDebtPerson').value = '';
+    clearAmountField('newDebtTotal');
+    document.getElementById('newDebtTotalGold').value = '';
+    document.getElementById('newDebtNote').value = '';
+    newDebtDueDatePicker.clear();
+  }
 });
 document.getElementById('debtKindCreditBtn').addEventListener('click', () => {
   newDebtKind = 'credit';
@@ -5454,11 +5428,22 @@ document.getElementById('createDebtBtn').addEventListener('click', async () => {
   const dueDate = document.getElementById('newDebtDueInput').value || null;
   const note = document.getElementById('newDebtNote').value.trim();
   if(!person || !totalAmount){ alert('اسم شخص و مقدار کل رو درست پر کن.'); return; }
-  data.debts.push({
-    id: newId('d'), kind: newDebtKind, unit: isGold ? 'gold' : 'toman', person, totalAmount, dueDate, note,
-    payments: [], createdAt: Date.now()
-  });
-  logActivity('add_debt', `${newDebtKind==='credit'?'طلب از':'بدهی به'} «${person}» ثبت شد: ${isGold ? faDigits(totalAmount)+' گرم طلا' : fmt(totalAmount)+' '+data.currency}`);
+  if(editingDebtId){
+    const d = data.debts.find(x => x.id === editingDebtId);
+    if(d){
+      d.kind = newDebtKind; d.unit = isGold ? 'gold' : 'toman'; d.person = person;
+      d.totalAmount = totalAmount; d.dueDate = dueDate; d.note = note; d.editedAt = Date.now();
+      logActivity('add_debt', `${newDebtKind==='credit'?'طلب از':'بدهی به'} «${person}» ویرایش شد`);
+    }
+    editingDebtId = null;
+    document.getElementById('createDebtBtn').textContent = 'ثبت';
+  } else {
+    data.debts.push({
+      id: newId('d'), kind: newDebtKind, unit: isGold ? 'gold' : 'toman', person, totalAmount, dueDate, note,
+      payments: [], createdAt: Date.now()
+    });
+    logActivity('add_debt', `${newDebtKind==='credit'?'طلب از':'بدهی به'} «${person}» ثبت شد: ${isGold ? faDigits(totalAmount)+' گرم طلا' : fmt(totalAmount)+' '+data.currency}`);
+  }
   await saveData();
   document.getElementById('newDebtPerson').value = '';
   clearAmountField('newDebtTotal');
@@ -5533,7 +5518,10 @@ function renderDebtsList(){
     return `<div style="background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
         <span style="font-weight:700; font-size:13px; color:${done?'var(--credit)':(isCredit?'var(--asset)':'var(--liability)')};">${kindLabel} ${escapeHtml(d.person)}${isGold ? ' 🥇' : ''}</span>
+        <span style="display:flex; gap:4px;">
+        <button type="button" class="mini-del" data-edit-debt="${d.id}" title="ویرایش" aria-label="ویرایش">✏️</button>
         <button type="button" class="mini-del" data-del-debt="${d.id}" title="حذف" aria-label="حذف">✕</button>
+        </span>
       </div>
       ${d.note ? `<div style="font-size:11.5px; color:var(--ink-soft); margin-bottom:6px;">${escapeHtml(d.note)}</div>` : ''}
       <div style="background:var(--card-bg); border-radius:6px; height:10px; overflow:hidden; margin-bottom:6px;">
@@ -5552,6 +5540,7 @@ function renderDebtsList(){
     </div>`;
   }).join('');
   box.querySelectorAll('[data-del-debt]').forEach(btn => btn.addEventListener('click', (e) => deleteDebt(e.target.dataset.delDebt)));
+  box.querySelectorAll('[data-edit-debt]').forEach(btn => btn.addEventListener('click', (e) => startEditDebt(e.target.dataset.editDebt)));
   box.querySelectorAll('[data-pay-debt]').forEach(btn => btn.addEventListener('click', (e) => payDebtInstallment(e.target.dataset.payDebt)));
   box.querySelectorAll('.debt-pay-input').forEach(wireAmountField);
 }
@@ -6064,26 +6053,9 @@ function computeHomeAlerts(){
   const [, , jdToday] = isoToJalali(todayIso());
   (data.loans || []).forEach(l => {
     if(!l.dueDayOfMonth || l.paidCount >= l.installmentCount) return;
+    if(jdToday < l.dueDayOfMonth) return;
     const paidThisMonth = data.transactions.some(t => t.loanId === l.id && t.date >= monthRange.start && t.date <= monthRange.end);
-    if(paidThisMonth) return;
-    const daysUntil = l.dueDayOfMonth - jdToday;
-    if(daysUntil < 0) alerts.push({ level:'high', icon:'🏦', text:`قسط «${l.name}» عقب‌افتاده (سررسید روز ${faDigits(l.dueDayOfMonth)})` });
-    else if(daysUntil === 0) alerts.push({ level:'high', icon:'🏦', text:`قسط «${l.name}» امروز سررسیده` });
-    else if(daysUntil <= 2) alerts.push({ level:'med', icon:'🏦', text:`قسط «${l.name}» ${faDigits(daysUntil)} روز دیگه سررسید می‌شه` });
-  });
-  (data.leases || []).forEach(l => {
-    if(!l.dueDayOfMonth || l.active === false) return;
-    const expected = expectedRentMonthsSoFar(l);
-    const overdueCount = expected !== null ? Math.max(0, expected - (l.paidMonths || 0)) : 0;
-    if(overdueCount > 0){
-      alerts.push({ level:'high', icon:'🏠', text:`${faDigits(overdueCount)} ماه اجاره «${l.name}» معوقه (سررسید روز ${faDigits(l.dueDayOfMonth)})` });
-      return;
-    }
-    const daysUntil = l.dueDayOfMonth - jdToday;
-    if(daysUntil >= 0 && daysUntil <= 2){
-      const when = daysUntil === 0 ? 'امروز' : (daysUntil === 1 ? 'فردا' : `${faDigits(daysUntil)} روز دیگه`);
-      alerts.push({ level:'med', icon:'🏠', text:`اجاره «${l.name}» سررسیدش ${when}` });
-    }
+    if(!paidThisMonth) alerts.push({ level:'high', icon:'🏦', text:`قسط «${l.name}» عقب‌افتاده (سررسید روز ${faDigits(l.dueDayOfMonth)})` });
   });
   Object.keys(data.budgets || {}).forEach(cat => {
     const budget = data.budgets[cat];
@@ -6118,7 +6090,6 @@ function renderHomeDashboard(){
     alertsBox.innerHTML = `<div class="section-title">هشدارها</div>` +
       alerts.map(a => `<div class="home-alert-row ${a.level}"><span>${a.icon}</span><span>${escapeHtml(a.text)}</span></div>`).join('');
   }
-  notifyUpcomingLoansLeases();
 
   const recentBox = document.getElementById('homeRecentTxBox');
   if(recentBox){
@@ -6472,6 +6443,46 @@ function confirmAsync(message){
   });
 }
 
+/* Prompts for a custom amount (e.g. paying more/less than the fixed installment or debt
+   amount) using the same modal look as confirmThen, but with an editable number field
+   pre-filled with a default. Resolves to the entered amount, or null if cancelled/invalid. */
+function promptAmountAsync(message, defaultAmount){
+  return new Promise((resolve) => {
+    let overlay = document.getElementById('promptAmountModalOverlay');
+    if(!overlay){
+      overlay = document.createElement('div');
+      overlay.id = 'promptAmountModalOverlay';
+      overlay.className = 'confirm-modal-overlay';
+      overlay.innerHTML = `
+        <div class="confirm-modal-box">
+          <div class="confirm-modal-msg" id="promptAmountModalMsg"></div>
+          <input type="text" inputmode="numeric" id="promptAmountModalInput" style="width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:9px 10px; font-family:'IBM Plex Mono',monospace; font-size:15px; color:var(--ink); margin-bottom:14px; text-align:center;">
+          <div class="confirm-modal-actions">
+            <button type="button" class="confirm-modal-yes" id="promptAmountModalYes">تأیید</button>
+            <button type="button" class="confirm-modal-no" id="promptAmountModalNo">انصراف</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.classList.remove('show'); });
+    }
+    document.getElementById('promptAmountModalMsg').textContent = message;
+    const input = document.getElementById('promptAmountModalInput');
+    input.value = defaultAmount ? String(Math.round(defaultAmount)) : '';
+    overlay.classList.add('show');
+    setTimeout(() => { input.focus(); input.select(); }, 50);
+    const yesBtn = document.getElementById('promptAmountModalYes');
+    const noBtn = document.getElementById('promptAmountModalNo');
+    const submit = () => {
+      const val = parseAmountValue(input.value);
+      overlay.classList.remove('show');
+      resolve(val > 0 ? val : null);
+    };
+    yesBtn.onclick = submit;
+    input.onkeydown = (e) => { if(e.key === 'Enter') submit(); };
+    noBtn.onclick = () => { overlay.classList.remove('show'); resolve(null); };
+  });
+}
+
 /* ---------- success toast ---------- */
 let successToastTimer = null;
 function showSuccessToast(message){
@@ -6767,55 +6778,6 @@ function notifyUpcomingCheques(items){
   });
   try{ localStorage.setItem('chequeNotified', JSON.stringify(notified)); }catch(e){}
 }
-// Same best-effort local notification pattern as notifyUpcomingCheques, for loan installments
-// and lease rent that are due within 2 days or already overdue - these previously only ever
-// showed up as a banner on the home tab if you happened to open the app, with no proactive nudge.
-function notifyUpcomingLoansLeases(){
-  if(!notificationsSupported() || Notification.permission !== 'granted') return;
-  const todayStr = todayIso();
-  let notified = {};
-  try{ notified = JSON.parse(localStorage.getItem('loanLeaseNotified') || '{}'); }catch(e){}
-  const monthRange = getPeriodRange('monthly', todayIso());
-  const [, , jdToday] = isoToJalali(todayIso());
-
-  (data.loans || []).forEach(l => {
-    if(!l.dueDayOfMonth || l.paidCount >= l.installmentCount) return;
-    const key = 'loan:' + l.id;
-    if(notified[key] === todayStr) return;
-    const paidThisMonth = data.transactions.some(t => t.loanId === l.id && t.date >= monthRange.start && t.date <= monthRange.end);
-    if(paidThisMonth) return;
-    const daysUntil = l.dueDayOfMonth - jdToday;
-    if(daysUntil > 2) return;
-    const when = daysUntil < 0 ? 'گذشته' : (daysUntil === 0 ? 'امروزه' : (daysUntil === 1 ? 'فردا' : `${daysUntil} روز دیگه`));
-    try{
-      new Notification('یادآوری قسط — ' + data.title, {
-        body: `قسط «${l.name}» به مبلغ ${fmt(l.installmentAmount)} ${data.currency}، سررسیدش ${when}.`,
-        icon: 'icons/icon-192.png'
-      });
-    }catch(e){}
-    notified[key] = todayStr;
-  });
-
-  (data.leases || []).forEach(l => {
-    if(!l.dueDayOfMonth || l.active === false) return;
-    const key = 'lease:' + l.id;
-    if(notified[key] === todayStr) return;
-    const expected = expectedRentMonthsSoFar(l);
-    const overdueCount = expected !== null ? Math.max(0, expected - (l.paidMonths || 0)) : 0;
-    const daysUntil = l.dueDayOfMonth - jdToday;
-    if(overdueCount === 0 && (daysUntil < 0 || daysUntil > 2)) return;
-    const when = overdueCount > 0 ? 'گذشته' : (daysUntil === 0 ? 'امروزه' : (daysUntil === 1 ? 'فردا' : `${daysUntil} روز دیگه`));
-    try{
-      new Notification('یادآوری اجاره — ' + data.title, {
-        body: `اجاره «${l.name}» به مبلغ ${fmt(l.monthlyRent)} ${data.currency}، سررسیدش ${when}.`,
-        icon: 'icons/icon-192.png'
-      });
-    }catch(e){}
-    notified[key] = todayStr;
-  });
-
-  try{ localStorage.setItem('loanLeaseNotified', JSON.stringify(notified)); }catch(e){}
-}
 async function ensureChequeNotifyPermission(){
   if(!notificationsSupported()) return;
   if(Notification.permission === 'default'){
@@ -6915,7 +6877,6 @@ async function init(){
   setType('income');
   wireAllAmountFields();
   setInterval(() => { if(document.getElementById('app').style.display !== 'none') renderChequeAlerts(); }, 60*60*1000);
-  setInterval(() => { if(document.getElementById('app').style.display !== 'none') notifyUpcomingLoansLeases(); }, 60*60*1000);
 
   document.getElementById('dateDisplay').addEventListener('click', () => {
     const pop = document.getElementById('calendarPopup');

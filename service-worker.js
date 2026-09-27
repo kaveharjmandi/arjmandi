@@ -1,6 +1,3 @@
-// v97: added per-person income/expense comparison report; added upcoming/overdue
-// reminders (home banner + local notification) for loan installments and lease
-// rent, matching the existing cheque reminder pattern.
 const CACHE_NAME = 'sandoogh-khanevadeh-v97';
 const FILES_TO_CACHE = [
   './',

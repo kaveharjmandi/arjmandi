@@ -1480,6 +1480,14 @@ body.offline-mode{ padding-top:38px; }
         <span><span style="display:inline-block; width:10px; height:10px; background:var(--debit); border-radius:2px;"></span> برداشت</span>
       </div>
     </div>
+    <div class="card">
+      <div class="section-title" id="personChartTitle">مقایسه واریز و برداشت هر نفر</div>
+      <div id="personChartBox"></div>
+      <div style="display:flex; gap:14px; justify-content:center; margin-top:8px; font-size:11px; color:var(--ink-soft);">
+        <span><span style="display:inline-block; width:10px; height:10px; background:var(--credit); border-radius:2px;"></span> واریز</span>
+        <span><span style="display:inline-block; width:10px; height:10px; background:var(--debit); border-radius:2px;"></span> برداشت</span>
+      </div>
+    </div>
     </div>
 
     <div class="sub-tab-panel" data-reportsubtab="goals" style="display:none;">
@@ -2813,6 +2821,59 @@ function randomSaltHex(){
   crypto.getRandomValues(arr);
   return Array.from(arr).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
+function hexToBuf(hex){
+  const bytes = new Uint8Array(hex.length / 2);
+  for(let i=0;i<bytes.length;i++) bytes[i] = parseInt(hex.substr(i*2,2), 16);
+  return bytes;
+}
+/* ---------- password hashing (PBKDF2-HMAC-SHA256) ----------
+   Plain single-round SHA-256(salt+password) is fast to brute-force with a GPU - it was never
+   designed as a password hash. PBKDF2 with a high iteration count is deliberately slow, and
+   crypto.subtle supports it natively (no external library needed). Iteration count is stored
+   per-account so it can be raised later without breaking existing accounts.
+   Accounts created before this change only have {salt, hash} with no hashAlgo - verifyPassword
+   below still accepts the old single-round SHA-256 for those, and silently upgrades them to
+   PBKDF2 the next time that person logs in successfully (see upgradePasswordHashIfNeeded). */
+const PBKDF2_ITERATIONS = 210000; // OWASP 2023 minimum recommendation for PBKDF2-HMAC-SHA256
+async function pbkdf2Hex(password, saltHex, iterations){
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), { name:'PBKDF2' }, false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name:'PBKDF2', hash:'SHA-256', salt: hexToBuf(saltHex), iterations: iterations || PBKDF2_ITERATIONS },
+    keyMaterial, 256
+  );
+  return Array.from(new Uint8Array(bits)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+/* Builds a fresh {salt, hash, hashAlgo, iterations} set for a new or changed password. */
+async function hashNewPassword(password){
+  const salt = randomSaltHex();
+  const hash = await pbkdf2Hex(password, salt, PBKDF2_ITERATIONS);
+  return { salt, hash, hashAlgo:'pbkdf2', iterations: PBKDF2_ITERATIONS };
+}
+/* Verifies a password against a stored auth record, transparently supporting both the new
+   PBKDF2 records and legacy single-round SHA-256 ones. */
+async function verifyPassword(password, acc){
+  if(!acc) return false;
+  if(acc.hashAlgo === 'pbkdf2'){
+    const h = await pbkdf2Hex(password, acc.salt, acc.iterations || PBKDF2_ITERATIONS);
+    return h === acc.hash;
+  }
+  const h = await sha256Hex(acc.salt + password);
+  return h === acc.hash;
+}
+/* Called right after a successful login: if this account still uses the old legacy hash,
+   re-hash the just-verified password with PBKDF2 and save, so accounts upgrade themselves
+   one by one as people log in - no forced mass password reset needed. */
+async function upgradePasswordHashIfNeeded(username, password){
+  const acc = data.auth[username];
+  if(!acc || acc.hashAlgo === 'pbkdf2') return;
+  const fresh = await hashNewPassword(password);
+  data.auth[username].salt = fresh.salt;
+  data.auth[username].hash = fresh.hash;
+  data.auth[username].hashAlgo = fresh.hashAlgo;
+  data.auth[username].iterations = fresh.iterations;
+  await saveData();
+}
 function validatePassword(pwd){
   const rules = [
     { ok: pwd.length >= 8, msg: 'حداقل ۸ کاراکتر' },
@@ -3308,9 +3369,8 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     if(!check.valid){ errBox.textContent = check.message; return; }
     if(pwd1 !== pwd2){ errBox.textContent = 'تکرار رمز مطابقت نداره.'; return; }
     const adminPerson = data.people.find(p => p.isAdmin) || data.people[0];
-    const salt = randomSaltHex();
-    const hash = await sha256Hex(salt + pwd1);
-    data.auth['admin'] = { salt, hash, personId: adminPerson.id };
+    const fresh = await hashNewPassword(pwd1);
+    data.auth['admin'] = { salt: fresh.salt, hash: fresh.hash, hashAlgo: fresh.hashAlgo, iterations: fresh.iterations, personId: adminPerson.id };
     await saveData();
     currentUserId = adminPerson.id; currentUsername = 'admin';
     try{ localStorage.setItem('sandoogh-last-user', 'admin'); }catch(e){}
@@ -3329,11 +3389,12 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   }
   const pwd = document.getElementById('pwInput1').value;
   if(!pwd){ errBox.textContent = 'رمز عبور رو وارد کن.'; return; }
-  const hash = await sha256Hex(acc.salt + pwd);
-  if(hash === acc.hash){
+  const ok = await verifyPassword(pwd, acc);
+  if(ok){
     currentUserId = acc.personId; currentUsername = uname;
     try{ localStorage.setItem('sandoogh-last-user', uname); }catch(e){}
     clearLockout();
+    await upgradePasswordHashIfNeeded(uname, pwd);
     enterApp();
   } else {
     errBox.textContent = 'نام کاربری یا رمز عبور اشتباهه.';
@@ -3629,15 +3690,16 @@ document.getElementById('changePwForm').addEventListener('submit', async (e) => 
   const n2 = document.getElementById('newPwInput2').value;
   const msg = document.getElementById('changePwMsg');
   const a = data.auth[currentUsername];
-  const curHash = await sha256Hex(a.salt + cur);
-  if(curHash !== a.hash){ msg.textContent = 'رمز فعلی اشتباهه.'; msg.className = 'pw-msg err'; return; }
+  const curOk = await verifyPassword(cur, a);
+  if(!curOk){ msg.textContent = 'رمز فعلی اشتباهه.'; msg.className = 'pw-msg err'; return; }
   const check = validatePassword(n1);
   if(!check.valid){ msg.textContent = check.message; msg.className = 'pw-msg err'; return; }
   if(n1 !== n2){ msg.textContent = 'تکرار رمز جدید مطابقت نداره.'; msg.className = 'pw-msg err'; return; }
-  const salt = randomSaltHex();
-  const hash = await sha256Hex(salt + n1);
-  data.auth[currentUsername].salt = salt;
-  data.auth[currentUsername].hash = hash;
+  const fresh = await hashNewPassword(n1);
+  data.auth[currentUsername].salt = fresh.salt;
+  data.auth[currentUsername].hash = fresh.hash;
+  data.auth[currentUsername].hashAlgo = fresh.hashAlgo;
+  data.auth[currentUsername].iterations = fresh.iterations;
   await saveData();
   msg.textContent = 'رمز عبور با موفقیت تغییر کرد.'; msg.className = 'pw-msg ok';
 });
@@ -4495,10 +4557,11 @@ function renderAccountsList(){
         const pwd = input.value;
         const check = validatePassword(pwd);
         if(!check.valid){ msg.textContent = check.message; msg.className = 'pw-msg err'; return; }
-        const salt = randomSaltHex();
-        const hash = await sha256Hex(salt + pwd);
-        data.auth[u].salt = salt;
-        data.auth[u].hash = hash;
+        const fresh = await hashNewPassword(pwd);
+        data.auth[u].salt = fresh.salt;
+        data.auth[u].hash = fresh.hash;
+        data.auth[u].hashAlgo = fresh.hashAlgo;
+        data.auth[u].iterations = fresh.iterations;
         logActivity('reset_password', `رمز حساب «${u}» توسط مدیر عوض شد`);
         await saveData();
         input.value = '';
@@ -4530,9 +4593,8 @@ document.getElementById('addAccountBtn').addEventListener('click', async () => {
   if(!check.valid){ msg.textContent = check.message; msg.className = 'pw-msg err'; return; }
   if(pwd1 !== pwd2){ msg.textContent = 'تکرار رمز مطابقت نداره.'; msg.className = 'pw-msg err'; return; }
 
-  const salt = randomSaltHex();
-  const hash = await sha256Hex(salt + pwd1);
-  data.auth[username] = { salt, hash, personId };
+  const fresh = await hashNewPassword(pwd1);
+  data.auth[username] = { salt: fresh.salt, hash: fresh.hash, hashAlgo: fresh.hashAlgo, iterations: fresh.iterations, personId };
   logActivity('add_account', `حساب «${username}» برای ${personName(personId)} ساخته شد`);
   await saveData();
 
@@ -4948,9 +5010,51 @@ function renderCharts(){
 
   document.getElementById('pieChartTitle').textContent = `هزینه‌ها بر اساس دسته‌بندی (${range.label})`;
   document.getElementById('barChartTitle').textContent = `روند این بازه (${range.label})`;
+  document.getElementById('personChartTitle').textContent = `مقایسه واریز و برداشت هر نفر (${range.label})`;
 
   renderPieChart(range);
   renderBarChart();
+  renderPersonChart(range);
+}
+
+/* grouped bar chart comparing each person's income vs expense within the selected range */
+/* Shared SVG renderer for a grouped income/expense bar chart - used by both the period trend
+   chart (renderBarChart) and the per-person comparison chart (renderPersonChart) so the actual
+   drawing logic lives in one place instead of being duplicated between them. */
+function renderIncomeExpenseGroupedChart(boxId, rows, opts){
+  opts = opts || {};
+  const box = document.getElementById(boxId);
+  if(!box) return;
+  if(rows.length === 0){
+    box.innerHTML = `<div class="empty-state"><span class="empty-state-icon">${opts.emptyIcon || '📊'}</span>${opts.emptyText || 'داده‌ای برای نمایش نیست.'}</div>`;
+    return;
+  }
+  const maxVal = Math.max(1, ...rows.map(r => Math.max(r.income, r.expense)));
+  const chartH = 140, barW = opts.barW || 16, gap = opts.gap || 10, groupW = barW*2 + 6;
+  const svgW = rows.length * (groupW + gap) + gap;
+  let bars = '';
+  rows.forEach((r, i) => {
+    const gx = gap + i * (groupW + gap);
+    const incH = Math.round((r.income / maxVal) * chartH);
+    const expH = Math.round((r.expense / maxVal) * chartH);
+    bars += `<rect x="${gx}" y="${chartH - incH + 20}" width="${barW}" height="${incH}" fill="var(--credit)" rx="2"/>`;
+    bars += `<rect x="${gx + barW + 4}" y="${chartH - expH + 20}" width="${barW}" height="${expH}" fill="var(--debit)" rx="2"/>`;
+    bars += `<text x="${gx + barW + 2}" y="${chartH + 36}" font-size="10" fill="var(--ink-soft)" text-anchor="middle">${escapeHtml(r.label)}</text>`;
+  });
+  box.innerHTML =
+    `<svg viewBox="0 0 ${svgW} ${chartH + 40}" style="width:100%; max-width:480px; display:block; margin:0 auto;">${bars}</svg>`;
+}
+
+function renderPersonChart(range){
+  const rows = (data.people || []).map(p => {
+    let income = 0, expense = 0;
+    data.transactions.forEach(t => {
+      if(t.personId !== p.id || t.date < range.start || t.date > range.end) return;
+      if(t.type === 'income') income += Number(t.amount) || 0; else expense += Number(t.amount) || 0;
+    });
+    return { label: (personEmoji(p.id) || '👤') + ' ' + p.name, income, expense };
+  }).filter(r => r.income > 0 || r.expense > 0);
+  renderIncomeExpenseGroupedChart('personChartBox', rows, { barW:18, gap:14, emptyText:'توی این بازه تراکنشی برای مقایسه نیست.' });
 }
 
 function renderPieChart(range){
@@ -5006,32 +5110,14 @@ function renderPieChart(range){
 
 function renderBarChart(){
   const buckets = buildReportsTrendBuckets();
-  const segs = buckets.map(b => {
+  const rows = buckets.map(b => {
     const income = data.transactions.filter(t => t.type==='income' && t.date>=b.range.start && t.date<=b.range.end)
       .reduce((s,t)=>s+(Number(t.amount)||0),0);
     const expense = data.transactions.filter(t => t.type==='expense' && t.date>=b.range.start && t.date<=b.range.end)
       .reduce((s,t)=>s+(Number(t.amount)||0),0);
     return { label: b.label, income, expense };
   });
-  const box = document.getElementById('barChartBox');
-  if(segs.length === 0){
-    box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📊</span>داده‌ای برای نمایش نیست.</div>';
-    return;
-  }
-  const maxVal = Math.max(1, ...segs.map(m => Math.max(m.income, m.expense)));
-  const chartH = 140, barW = 16, gap = 10, groupW = barW*2 + 6;
-  const svgW = segs.length * (groupW + gap) + gap;
-  let bars = '';
-  segs.forEach((m, i) => {
-    const gx = gap + i * (groupW + gap);
-    const incH = Math.round((m.income / maxVal) * chartH);
-    const expH = Math.round((m.expense / maxVal) * chartH);
-    bars += `<rect x="${gx}" y="${chartH - incH + 20}" width="${barW}" height="${incH}" fill="var(--credit)" rx="2"/>`;
-    bars += `<rect x="${gx + barW + 4}" y="${chartH - expH + 20}" width="${barW}" height="${expH}" fill="var(--debit)" rx="2"/>`;
-    bars += `<text x="${gx + barW + 2}" y="${chartH + 36}" font-size="10" fill="var(--ink-soft)" text-anchor="middle">${escapeHtml(m.label)}</text>`;
-  });
-  box.innerHTML =
-    `<svg viewBox="0 0 ${svgW} ${chartH + 40}" style="width:100%; max-width:480px; display:block; margin:0 auto;">${bars}</svg>`;
+  renderIncomeExpenseGroupedChart('barChartBox', rows);
 }
 
 /* ---------- goals (savings pots) ---------- */
@@ -6053,9 +6139,30 @@ function computeHomeAlerts(){
   const [, , jdToday] = isoToJalali(todayIso());
   (data.loans || []).forEach(l => {
     if(!l.dueDayOfMonth || l.paidCount >= l.installmentCount) return;
-    if(jdToday < l.dueDayOfMonth) return;
     const paidThisMonth = data.transactions.some(t => t.loanId === l.id && t.date >= monthRange.start && t.date <= monthRange.end);
-    if(!paidThisMonth) alerts.push({ level:'high', icon:'🏦', text:`قسط «${l.name}» عقب‌افتاده (سررسید روز ${faDigits(l.dueDayOfMonth)})` });
+    if(paidThisMonth) return;
+    const daysUntilDue = l.dueDayOfMonth - jdToday;
+    if(daysUntilDue <= 0){
+      alerts.push({ level:'high', icon:'🏦', text:`قسط «${l.name}» عقب‌افتاده (سررسید روز ${faDigits(l.dueDayOfMonth)})` });
+    } else if(daysUntilDue <= 2){
+      const when = daysUntilDue === 1 ? 'فردا' : 'پس‌فردا';
+      alerts.push({ level:'med', icon:'🏦', text:`قسط «${l.name}» ${when} سررسید می‌شه (روز ${faDigits(l.dueDayOfMonth)})` });
+    }
+  });
+  (data.leases || []).forEach(l => {
+    if(l.active === false || !l.dueDayOfMonth) return;
+    const expected = expectedRentMonthsSoFar(l);
+    if(expected === null) return;
+    const overdueCount = Math.max(0, expected - (l.paidMonths || 0));
+    if(overdueCount > 0){
+      alerts.push({ level:'high', icon:'🏠', text:`اجاره «${l.name}» عقب‌افتاده (${faDigits(overdueCount)} ماه، سررسید روز ${faDigits(l.dueDayOfMonth)})` });
+      return;
+    }
+    const daysUntilDue = l.dueDayOfMonth - jdToday;
+    if(daysUntilDue >= 1 && daysUntilDue <= 2){
+      const when = daysUntilDue === 1 ? 'فردا' : 'پس‌فردا';
+      alerts.push({ level:'med', icon:'🏠', text:`اجاره «${l.name}» ${when} سررسید می‌شه (روز ${faDigits(l.dueDayOfMonth)})` });
+    }
   });
   Object.keys(data.budgets || {}).forEach(cat => {
     const budget = data.budgets[cat];

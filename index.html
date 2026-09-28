@@ -657,6 +657,16 @@ body.offline-mode{ padding-top:38px; }
   display:flex; align-items:center; justify-content:center;
 }
 .emoji-picker-pop button:active{ background:var(--bg-deep); }
+.rpt-delta{ font-size:11px; margin-top:4px; color:var(--ink-soft); }
+.rpt-insights{ margin-top:10px; display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--ink-soft); }
+.rpt-insights > div{ display:flex; justify-content:space-between; gap:8px; }
+.rpt-insights b{ color:var(--ink); }
+.chart-tip{ margin-top:8px; font-size:12px; text-align:center; color:var(--ink-soft); min-height:18px; }
+.pie-legend-row{ cursor:pointer; border-radius:6px; padding:4px; }
+.pie-legend-row.selected{ background:var(--bg-deep); }
+.pie-detail{ margin-top:10px; border-top:1px solid var(--line); padding-top:8px; font-size:12px; }
+.pie-detail-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:4px 0; }
+.pie-detail-row .meta{ color:var(--ink-soft); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
@@ -1293,10 +1303,6 @@ body.offline-mode{ padding-top:38px; }
         <input type="text" id="txSearchInput" placeholder="جست‌وجو در توضیح یا دسته‌بندی…" style="flex:2; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:9px 10px; font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink);">
         <select id="txAccountQuickFilterSelect" style="flex:1; border:1px solid var(--line); border-radius:6px; background:var(--bg); padding:9px 10px; font-family:'Vazirmatn',sans-serif; font-size:13px; color:var(--ink);">
           <option value="all">همه حساب‌ها</option>
-          <option value="kaveh-income">واریز کاوه</option>
-          <option value="kaveh-expense">برداشت کاوه</option>
-          <option value="hadiseh-income">واریز حدیثه</option>
-          <option value="hadiseh-expense">برداشت حدیثه</option>
         </select>
       </div>
       <div class="row2" style="margin-bottom:10px;">
@@ -1461,16 +1467,22 @@ body.offline-mode{ padding-top:38px; }
         </div>
       </div>
       <div class="stat-row" style="margin-top:14px;">
-        <div class="stat-tile income"><div class="val" id="rptIncomeVal">۰</div><div class="lbl">مجموع واریز</div></div>
-        <div class="stat-tile expense"><div class="val" id="rptExpenseVal">۰</div><div class="lbl">مجموع برداشت</div></div>
+        <div class="stat-tile income"><div class="val" id="rptIncomeVal">۰</div><div class="lbl">مجموع واریز</div><div class="rpt-delta" id="rptIncomeDelta"></div></div>
+        <div class="stat-tile expense"><div class="val" id="rptExpenseVal">۰</div><div class="lbl">مجموع برداشت</div><div class="rpt-delta" id="rptExpenseDelta"></div></div>
       </div>
       <div class="total-line"><span>خالص این بازه</span><b id="rptNetVal">۰</b></div>
+      <div class="rpt-insights" id="rptInsights"></div>
       <button type="button" id="reportsPeriodPdfBtn" class="ghost-btn" style="width:100%; margin-top:12px;">📄 دریافت گزارش PDF همین بازه</button>
     </div>
     <div class="card">
       <div class="section-title" id="pieChartTitle">هزینه‌ها بر اساس دسته‌بندی</div>
       <div id="pieChartBox"></div>
       <div id="pieChartLegend" style="margin-top:10px;"></div>
+      <div id="pieDetailBox"></div>
+    </div>
+    <div class="card" id="topExpensesCard" style="display:none;">
+      <div class="section-title">بزرگ‌ترین هزینه‌های این بازه</div>
+      <div id="topExpensesBox"></div>
     </div>
     <div class="card">
       <div class="section-title" id="barChartTitle">روند این بازه (واریز و برداشت)</div>
@@ -5075,9 +5087,92 @@ function renderCharts(){
   document.getElementById('barChartTitle').textContent = `روند این بازه (${range.label})`;
   document.getElementById('personChartTitle').textContent = `مقایسه واریز و برداشت هر نفر (${range.label})`;
 
-  renderPieChart(agg.byCategory);
+  const prevTotals = sumIncomeExpense(getPreviousReportsRange(range));
+  setReportDelta('rptIncomeDelta', income, prevTotals.income, true);
+  setReportDelta('rptExpenseDelta', expense, prevTotals.expense, false);
+  renderReportInsights(range, agg);
+  renderTopExpenses(agg.top);
+
+  renderPieChart(agg.byCategory, range);
   renderBarChart(agg.buckets);
   renderPersonChart(agg.byPerson);
+}
+
+/* ---- comparison with the previous period ---- */
+function getPreviousReportsRange(range){
+  if(reportsPeriodType === 'custom'){
+    const span = Math.round((new Date(range.end+'T00:00:00') - new Date(range.start+'T00:00:00')) / 86400000) + 1;
+    const end = addDaysIso(range.start, -1);
+    return { start: addDaysIso(end, -(span - 1)), end };
+  }
+  const a = reportsAnchorIso || todayIso();
+  const prevAnchor = reportsPeriodType === 'daily' ? addDaysIso(a, -1)
+    : reportsPeriodType === 'weekly' ? addDaysIso(a, -7)
+    : reportsPeriodType === 'yearly' ? addJalaliYears(a, -1)
+    : addJalaliMonths(a, -1);
+  return getPeriodRange(reportsPeriodType, prevAnchor);
+}
+function sumIncomeExpense(range){
+  let income = 0, expense = 0;
+  const txs = data.transactions;
+  for(let i = 0; i < txs.length; i++){
+    const t = txs[i];
+    if(t.date < range.start || t.date > range.end) continue;
+    if(t.type === 'income') income += Number(t.amount) || 0;
+    else if(t.type === 'expense') expense += Number(t.amount) || 0;
+  }
+  return { income, expense };
+}
+// upIsGood: for income a rise is good (green), for expense a rise is bad (red)
+function setReportDelta(id, cur, prev, upIsGood){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.style.color = 'var(--ink-soft)';
+  if(!prev){ el.textContent = cur ? 'دوره‌ی قبل داده‌ای نداشت' : ''; return; }
+  const pct = Math.round((cur - prev) / prev * 100);
+  if(pct === 0){ el.textContent = 'بدون تغییر نسبت به دوره‌ی قبل'; return; }
+  const up = pct > 0;
+  el.style.color = (up === upIsGood) ? 'var(--credit)' : 'var(--debit)';
+  el.textContent = `${up ? '▲' : '▼'} ${faDigits(Math.abs(pct))}٪ نسبت به دوره‌ی قبل`;
+}
+
+/* ---- savings rate / daily average / end-of-period forecast ---- */
+function renderReportInsights(range, agg){
+  const box = document.getElementById('rptInsights');
+  if(!box) return;
+  const rows = [];
+  if(agg.income > 0){
+    const rate = Math.round((agg.income - agg.expense) / agg.income * 100);
+    rows.push(['نرخ پس‌انداز', `${rate < 0 ? '−' : ''}${faDigits(Math.abs(rate))}٪ از درآمد`]);
+  }
+  const today = todayIso();
+  if(range.start <= today && agg.expense > 0){
+    const startD = new Date(range.start + 'T00:00:00');
+    const totalDays = Math.round((new Date(range.end + 'T00:00:00') - startD) / 86400000) + 1;
+    const elapsedEnd = today < range.end ? today : range.end;
+    const elapsed = Math.max(1, Math.round((new Date(elapsedEnd + 'T00:00:00') - startD) / 86400000) + 1);
+    if(totalDays > 1){
+      rows.push(['میانگین خرج روزانه', `${fmt(agg.expense / elapsed)} ${data.currency}`]);
+      // forecast only while the period is still running, and only once there are a few days of data
+      if(today < range.end && elapsed >= 3){
+        rows.push(['پیش‌بینی خرج تا پایان بازه', `≈ ${fmt(agg.expense / elapsed * totalDays)} ${data.currency}`]);
+      }
+    }
+  }
+  box.innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
+}
+
+/* ---- biggest expenses of the period ---- */
+function renderTopExpenses(top){
+  const card = document.getElementById('topExpensesCard');
+  const box = document.getElementById('topExpensesBox');
+  if(!card || !box) return;
+  if(!top || top.length === 0){ card.style.display = 'none'; return; }
+  card.style.display = '';
+  box.innerHTML = top.map(t => `<div class="pie-detail-row">
+      <span class="meta">${categoryEmoji(t.category)} ${escapeHtml(t.desc || t.category)} · ${formatJalaliShort(t.date)}</span>
+      <b>${fmt(t.amount)}</b>
+    </div>`).join('');
 }
 
 /* One pass over data.transactions that feeds every report widget at once (summary totals, pie by
@@ -5086,7 +5181,7 @@ function renderCharts(){
    single render meant dozens of full scans. Buckets are contiguous and sorted by start date, so each
    transaction is matched to its bucket with a binary search instead of testing every bucket. */
 function computeReportsAggregates(range, buckets){
-  const agg = { income:0, expense:0, byCategory:{}, byPerson:{},
+  const agg = { income:0, expense:0, byCategory:{}, byPerson:{}, top:[],
     buckets: buckets.map(b => ({ label:b.label, income:0, expense:0 })) };
   const starts = buckets.map(b => b.range.start), ends = buckets.map(b => b.range.end);
   const bucketIndex = d => {
@@ -5115,6 +5210,12 @@ function computeReportsAggregates(range, buckets){
       agg.expense += amt; pp.expense += amt;
       const cat = t.category || 'سایر';
       agg.byCategory[cat] = (agg.byCategory[cat] || 0) + amt;
+      const top = agg.top;
+      if(top.length < 5 || amt > top[top.length - 1].amount){
+        top.push({ desc: t.desc || '', category: cat, amount: amt, date: t.date });
+        top.sort((a, b) => b.amount - a.amount);
+        if(top.length > 5) top.pop();
+      }
     }
   }
   return agg;
@@ -5140,12 +5241,25 @@ function renderIncomeExpenseGroupedChart(boxId, rows, opts){
     const gx = gap + i * (groupW + gap);
     const incH = Math.round((r.income / maxVal) * chartH);
     const expH = Math.round((r.expense / maxVal) * chartH);
+    // each group is one tappable target; the transparent rect makes thin/zero-height bars easy to hit
+    bars += `<g data-i="${i}" style="cursor:pointer">`;
+    bars += `<rect x="${gx - gap/2}" y="0" width="${groupW + gap}" height="${chartH + 40}" fill="transparent"/>`;
     bars += `<rect x="${gx}" y="${chartH - incH + 20}" width="${barW}" height="${incH}" fill="var(--credit)" rx="2"/>`;
     bars += `<rect x="${gx + barW + 4}" y="${chartH - expH + 20}" width="${barW}" height="${expH}" fill="var(--debit)" rx="2"/>`;
     bars += `<text x="${gx + barW + 2}" y="${chartH + 36}" font-size="10" fill="var(--ink-soft)" text-anchor="middle">${escapeHtml(r.label)}</text>`;
+    bars += `</g>`;
   });
   box.innerHTML =
-    `<svg viewBox="0 0 ${svgW} ${chartH + 40}" style="width:100%; max-width:480px; display:block; margin:0 auto;">${bars}</svg>`;
+    `<svg viewBox="0 0 ${svgW} ${chartH + 40}" style="width:100%; max-width:480px; display:block; margin:0 auto;">${bars}</svg>` +
+    `<div class="chart-tip">برای دیدن مبلغ دقیق، روی هر ستون بزن</div>`;
+  const tip = box.querySelector('.chart-tip');
+  box.onclick = (e) => {
+    const g = e.target.closest('g[data-i]');
+    if(!g) return;
+    const r = rows[Number(g.dataset.i)];
+    box.querySelectorAll('g[data-i]').forEach(x => { x.style.opacity = (x === g) ? '1' : '0.45'; });
+    tip.innerHTML = `${escapeHtml(r.label)} — واریز: <b style="color:var(--credit)">${fmt(r.income)}</b> | برداشت: <b style="color:var(--debit)">${fmt(r.expense)}</b> ${escapeHtml(data.currency)}`;
+  };
 }
 
 function renderPersonChart(byPerson){
@@ -5156,49 +5270,81 @@ function renderPersonChart(byPerson){
   renderIncomeExpenseGroupedChart('personChartBox', rows, { barW:18, gap:14, emptyText:'توی این بازه تراکنشی برای مقایسه نیست.' });
 }
 
-function renderPieChart(totalsByCategory){
+let pieSelectedCat = null;   // category currently expanded under the donut (null = none)
+let pieLastTotals = {}, pieLastRange = null;
+function renderPieChart(totalsByCategory, range){
+  pieLastTotals = totalsByCategory; pieLastRange = range;
   const entries = Object.entries(totalsByCategory).sort((a,b) => b[1]-a[1]);
   const box = document.getElementById('pieChartBox');
   const legend = document.getElementById('pieChartLegend');
+  const detail = document.getElementById('pieDetailBox');
 
   if(entries.length === 0){
+    pieSelectedCat = null;
     box.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🎉</span>توی این بازه هنوز هزینه‌ای ثبت نشده — عالیه!</div>';
     legend.innerHTML = '';
+    detail.innerHTML = '';
     return;
   }
+  if(pieSelectedCat && !(pieSelectedCat in totalsByCategory)) pieSelectedCat = null;
 
   const total = entries.reduce((s,[,v]) => s+v, 0);
-  const cx = 110, cy = 110, r = 90;
+  const cx = 110, cy = 110, R = 90, r = 56;
+  const pt = (ang, rad) => [cx + rad * Math.cos(ang * Math.PI/180), cy + rad * Math.sin(ang * Math.PI/180)];
   let angleStart = -90;
   let paths = '';
-  entries.forEach(([cat,val], i) => {
-    const fraction = val / total;
-    const angleEnd = angleStart + fraction * 360;
-    const largeArc = (angleEnd - angleStart) > 180 ? 1 : 0;
-    const x1 = cx + r * Math.cos(angleStart * Math.PI/180);
-    const y1 = cy + r * Math.sin(angleStart * Math.PI/180);
-    const x2 = cx + r * Math.cos(angleEnd * Math.PI/180);
-    const y2 = cy + r * Math.sin(angleEnd * Math.PI/180);
+  entries.forEach(([cat, val]) => {
+    const angleEnd = angleStart + (val / total) * 360;
     const color = categoryColor(cat);
+    const attrs = `data-cat="${escapeHtml(cat)}" style="cursor:pointer" opacity="${pieSelectedCat && pieSelectedCat !== cat ? 0.35 : 1}"`;
     if(entries.length === 1){
-      paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/>`;
+      paths += `<circle cx="${cx}" cy="${cy}" r="${(R + r) / 2}" fill="none" stroke="${color}" stroke-width="${R - r}" ${attrs}/>`;
     } else {
-      paths += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2} Z" fill="${color}"/>`;
+      const [x1,y1] = pt(angleStart, R), [x2,y2] = pt(angleEnd, R), [x3,y3] = pt(angleEnd, r), [x4,y4] = pt(angleStart, r);
+      const large = (angleEnd - angleStart) > 180 ? 1 : 0;
+      paths += `<path d="M${x1},${y1} A${R},${R} 0 ${large} 1 ${x2},${y2} L${x3},${y3} A${r},${r} 0 ${large} 0 ${x4},${y4} Z" fill="${color}" stroke="var(--card-bg)" stroke-width="1" ${attrs}/>`;
     }
     angleStart = angleEnd;
   });
+  const centerLabel = pieSelectedCat ? (pieSelectedCat.length > 12 ? pieSelectedCat.slice(0, 11) + '…' : pieSelectedCat) : 'کل هزینه';
+  const centerValue = pieSelectedCat ? totalsByCategory[pieSelectedCat] : total;
+  paths += `<text x="${cx}" y="${cy - 4}" text-anchor="middle" font-size="10" fill="var(--ink-soft)" pointer-events="none">${escapeHtml(centerLabel)}</text>`;
+  paths += `<text x="${cx}" y="${cy + 14}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)" pointer-events="none">${fmt(centerValue)}</text>`;
   box.innerHTML = `<svg viewBox="0 0 220 220" style="max-width:240px; display:block; margin:0 auto;">${paths}</svg>`;
 
-  legend.innerHTML = entries.map(([cat,val], i) => {
+  legend.innerHTML = entries.map(([cat, val]) => {
     const pct = Math.round((val/total)*100);
     const color = categoryColor(cat);
-    return `<div style="display:flex; align-items:center; gap:8px; font-size:12px; padding:4px 0;">
+    return `<div class="pie-legend-row${pieSelectedCat === cat ? ' selected' : ''}" data-cat="${escapeHtml(cat)}" style="display:flex; align-items:center; gap:8px; font-size:12px;">
       <span style="width:10px; height:10px; border-radius:50%; background:${color}; flex-shrink:0;"></span>
       <span style="flex:1;">${categoryEmoji(cat)} ${escapeHtml(cat)}</span>
       <span style="color:var(--ink-soft);">${fmt(val)} (${faDigits(pct)}٪)</span>
     </div>`;
   }).join('');
+  renderPieDetail(detail);
 }
+// lists the transactions behind the selected category (drill-down), inside the same card
+function renderPieDetail(detail){
+  if(!pieSelectedCat || !pieLastRange){ detail.innerHTML = ''; return; }
+  const cat = pieSelectedCat, range = pieLastRange;
+  const list = data.transactions
+    .filter(t => t.type === 'expense' && (t.category || 'سایر') === cat && t.date >= range.start && t.date <= range.end)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const MAX = 30;
+  detail.innerHTML = `<div class="pie-detail"><div style="font-weight:700; margin-bottom:4px;">${categoryEmoji(cat)} ${escapeHtml(cat)} — ${faDigits(list.length)} تراکنش</div>` +
+    list.slice(0, MAX).map(t => `<div class="pie-detail-row"><span class="meta">${formatJalaliShort(t.date)} · ${escapeHtml(t.desc || '—')}</span><b>${fmt(Number(t.amount) || 0)}</b></div>`).join('') +
+    (list.length > MAX ? `<div class="pie-detail-row"><span class="meta">و ${faDigits(list.length - MAX)} تراکنش دیگه…</span></div>` : '') +
+    `</div>`;
+}
+function onPieCategoryClick(e){
+  const el = e.target.closest('[data-cat]');
+  if(!el) return;
+  const cat = el.dataset.cat;
+  pieSelectedCat = (pieSelectedCat === cat) ? null : cat;
+  renderPieChart(pieLastTotals, pieLastRange);
+}
+document.getElementById('pieChartBox').addEventListener('click', onPieCategoryClick);
+document.getElementById('pieChartLegend').addEventListener('click', onPieCategoryClick);
 
 function renderBarChart(rows){
   renderIncomeExpenseGroupedChart('barChartBox', rows);
@@ -6029,6 +6175,14 @@ function populateTxPersonFilter(){
   sel.innerHTML = '<option value="all">همه افراد</option>' +
     data.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
   sel.value = data.people.some(p => p.id === prev) ? prev : 'all';
+
+  // the "which account did the money move through" quick filter used to be hard-coded to two
+  // people; build it from data.people so every person (including later additions) is covered
+  const q = document.getElementById('txAccountQuickFilterSelect');
+  const qPrev = q.value;
+  q.innerHTML = '<option value="all">همه حساب‌ها</option>' +
+    data.people.map(p => `<option value="${p.id}-income">واریز ${escapeHtml(p.name)}</option><option value="${p.id}-expense">برداشت ${escapeHtml(p.name)}</option>`).join('');
+  q.value = Array.from(q.options).some(o => o.value === qPrev) ? qPrev : 'all';
 }
 
 /* ---------- calc ---------- */
@@ -6220,17 +6374,27 @@ function computeHomeAlerts(){
     alerts.push({ level: d < 0 ? 'high' : 'med', icon:'🧾', text:`چک ${dirLabel} ${chequePersonLabel(c)} — سررسید: ${when}` });
   });
   const monthRange = getPeriodRange('monthly', todayIso());
-  const [, , jdToday] = isoToJalali(todayIso());
+  const [jyToday, jmToday, jdToday] = isoToJalali(todayIso());
+  const monthLenToday = jalaliMonthLength(jyToday, jmToday);
   (data.loans || []).forEach(l => {
     if(!l.dueDayOfMonth || l.paidCount >= l.installmentCount) return;
     const paidThisMonth = data.transactions.some(t => t.loanId === l.id && t.date >= monthRange.start && t.date <= monthRange.end);
-    if(paidThisMonth) return;
-    const daysUntilDue = l.dueDayOfMonth - jdToday;
-    if(daysUntilDue <= 0){
-      alerts.push({ level:'high', icon:'🏦', text:`قسط «${l.name}» عقب‌افتاده (سررسید روز ${faDigits(l.dueDayOfMonth)})` });
-    } else if(daysUntilDue <= 2){
-      const when = daysUntilDue === 1 ? 'فردا' : 'پس‌فردا';
-      alerts.push({ level:'med', icon:'🏦', text:`قسط «${l.name}» ${when} سررسید می‌شه (روز ${faDigits(l.dueDayOfMonth)})` });
+    if(!paidThisMonth){
+      const daysUntilDue = l.dueDayOfMonth - jdToday;
+      if(daysUntilDue <= 0){
+        alerts.push({ level:'high', icon:'🏦', text:`قسط «${l.name}» عقب‌افتاده (سررسید روز ${faDigits(l.dueDayOfMonth)})` });
+      } else if(daysUntilDue <= 2){
+        const when = daysUntilDue === 1 ? 'فردا' : 'پس‌فردا';
+        alerts.push({ level:'med', icon:'🏦', text:`قسط «${l.name}» ${when} سررسید می‌شه (روز ${faDigits(l.dueDayOfMonth)})`, notifyKey:'loan:' + l.id });
+      }
+      return;
+    }
+    // this month's installment is already paid, so the next one falls in the NEXT month:
+    // warn 1-2 days ahead even when that crosses the month boundary (e.g. due on the 1st, today the 29th)
+    const nextIn = (monthLenToday - jdToday) + l.dueDayOfMonth;
+    if(nextIn >= 1 && nextIn <= 2){
+      const when = nextIn === 1 ? 'فردا' : 'پس‌فردا';
+      alerts.push({ level:'med', icon:'🏦', text:`قسط «${l.name}» ${when} سررسید می‌شه (روز ${faDigits(l.dueDayOfMonth)} ماه بعد)`, notifyKey:'loan:' + l.id });
     }
   });
   (data.leases || []).forEach(l => {
@@ -6242,10 +6406,14 @@ function computeHomeAlerts(){
       alerts.push({ level:'high', icon:'🏠', text:`اجاره «${l.name}» عقب‌افتاده (${faDigits(overdueCount)} ماه، سررسید روز ${faDigits(l.dueDayOfMonth)})` });
       return;
     }
-    const daysUntilDue = l.dueDayOfMonth - jdToday;
-    if(daysUntilDue >= 1 && daysUntilDue <= 2){
-      const when = daysUntilDue === 1 ? 'فردا' : 'پس‌فردا';
-      alerts.push({ level:'med', icon:'🏠', text:`اجاره «${l.name}» ${when} سررسید می‌شه (روز ${faDigits(l.dueDayOfMonth)})` });
+    if((l.paidMonths || 0) > expected) return; // already paid ahead - nothing coming up
+    // overdueCount is 0 here. If the due day is still ahead this month that's the next due date;
+    // otherwise this month's rent is covered and the next one is on that day next month.
+    const untilThisMonth = l.dueDayOfMonth - jdToday;
+    const nextIn = untilThisMonth >= 1 ? untilThisMonth : (monthLenToday - jdToday) + l.dueDayOfMonth;
+    if(nextIn >= 1 && nextIn <= 2){
+      const when = nextIn === 1 ? 'فردا' : 'پس‌فردا';
+      alerts.push({ level:'med', icon:'🏠', text:`اجاره «${l.name}» ${when} سررسید می‌شه (روز ${faDigits(l.dueDayOfMonth)}${untilThisMonth >= 1 ? '' : ' ماه بعد'})`, notifyKey:'lease:' + l.id });
     }
   });
   Object.keys(data.budgets || {}).forEach(cat => {
@@ -6274,6 +6442,7 @@ function renderHomeDashboard(){
   const dots = '******';
 
   const alerts = computeHomeAlerts();
+  notifyUpcomingObligations(alerts);
   if(alerts.length === 0){
     alertsCard.style.display = 'none';
   } else {
@@ -6968,6 +7137,23 @@ function notifyUpcomingCheques(items){
     notified[c.id] = todayStr;
   });
   try{ localStorage.setItem('chequeNotified', JSON.stringify(notified)); }catch(e){}
+}
+/* Same best-effort idea as cheques, for installments and rent: one system notification per item
+   per day, only while the app is open. (Pushes that reach a fully closed app are sent by the
+   server side, which currently only knows about cheques.) */
+function notifyUpcomingObligations(alerts){
+  if(!notificationsSupported() || Notification.permission !== 'granted') return;
+  const todayStr = todayIso();
+  let notified = {};
+  try{ notified = JSON.parse(localStorage.getItem('obligationNotified') || '{}'); }catch(e){}
+  alerts.filter(a => a.notifyKey).forEach(a => {
+    if(notified[a.notifyKey] === todayStr) return;
+    try{
+      new Notification('یادآوری سررسید — ' + data.title, { body: a.text, icon: 'icons/icon-192.png' });
+    }catch(e){}
+    notified[a.notifyKey] = todayStr;
+  });
+  try{ localStorage.setItem('obligationNotified', JSON.stringify(notified)); }catch(e){}
 }
 async function ensureChequeNotifyPermission(){
   if(!notificationsSupported()) return;

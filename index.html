@@ -2176,6 +2176,40 @@ function mergeKeyedObjectSafely(type, localObj, serverObj, tombstones){
   });
   return merged;
 }
+// Merges one auth[username] record field-group by field-group instead of picking one side's
+// whole object. Without this, a password change made on phone A and a fingerprint registered
+// on phone B around the same time would race: whichever side happened to be "local" in
+// Object.assign(server, local) would win in full, silently discarding the other device's
+// change. Each field group carries its own "*UpdatedAt" timestamp (set wherever that group is
+// written - see hashNewPassword/registerFingerprint/removeFingerprint) so the newer group wins
+// independently of the other group.
+function mergeAuthAccount(local, server){
+  if(!local) return server;
+  if(!server) return local;
+  const merged = { personId: local.personId || server.personId };
+  const pwSrc = (server.passwordUpdatedAt || 0) > (local.passwordUpdatedAt || 0) ? server : local;
+  merged.salt = pwSrc.salt; merged.hash = pwSrc.hash; merged.hashAlgo = pwSrc.hashAlgo;
+  merged.iterations = pwSrc.iterations; merged.passwordUpdatedAt = pwSrc.passwordUpdatedAt || 0;
+  const waSrc = (server.webauthnUpdatedAt || 0) > (local.webauthnUpdatedAt || 0) ? server : local;
+  merged.webauthnUpdatedAt = waSrc.webauthnUpdatedAt || 0;
+  if(waSrc.webauthnId) merged.webauthnId = waSrc.webauthnId;
+  return merged;
+}
+// Same tombstone idea as mergeKeyedObjectSafely (reuses the 'auth:<username>' tombstone written
+// by markDeleted in the account-delete handler), but merging each surviving account with
+// mergeAuthAccount above instead of a blind "local wins" per key.
+function mergeAuthSafely(localAuth, serverAuth, tombstones){
+  localAuth = (localAuth && typeof localAuth === 'object') ? localAuth : {};
+  serverAuth = (serverAuth && typeof serverAuth === 'object') ? serverAuth : {};
+  tombstones = tombstones || {};
+  const merged = {};
+  new Set([...Object.keys(localAuth), ...Object.keys(serverAuth)]).forEach(u => {
+    const hasLocal = Object.prototype.hasOwnProperty.call(localAuth, u);
+    if(!hasLocal && tombstones['auth:' + u] != null) return; // deleted locally - don't let a stale server copy bring it back
+    merged[u] = mergeAuthAccount(localAuth[u], serverAuth[u]);
+  });
+  return merged;
+}
 // Merges an incoming server snapshot into the in-memory `data`, field by field, using the
 // tombstone/timestamp-aware helpers above. Used both before our own saves (mergeWithServerBeforeSave)
 // AND when a realtime broadcast arrives (sbSubscribeRealtime) - in both cases we must never just
@@ -2198,7 +2232,7 @@ function applyServerMerge(serverData){
     data.activityLog = mergeArraysSafely('activityLog', data.activityLog, serverData.activityLog, null)
       .sort((a,b) => (b.at||0) - (a.at||0)).slice(0, 300);
   }
-  data.auth = Object.assign({}, serverData.auth || {}, data.auth || {});
+  data.auth = mergeAuthSafely(data.auth, serverData.auth, data.tombstones);
   data.budgets = mergeKeyedObjectSafely('budgets', data.budgets, serverData.budgets, data.tombstones);
   data.categoryIcons = mergeKeyedObjectSafely('categoryIcons', data.categoryIcons, serverData.categoryIcons, data.tombstones);
   if(serverData.categories){
@@ -2238,9 +2272,30 @@ async function mergeWithServerBeforeSave(){
   }
 }
 let pendingSaveRetryTimer = null;
+/* Safety net: the local copy lives in localStorage (~5MB browser cap). A failed write used to be
+   swallowed silently, so a full quota would just stop saving offline copies without any sign.
+   Warn once per session, either when the data gets close to the cap or when a write actually fails. */
+let storageSizeWarned = false;
+function warnStorageOnce(msg){
+  if(storageSizeWarned) return;
+  storageSizeWarned = true;
+  alert(msg);
+}
+function saveLocalCopy(){
+  let json;
+  try{ json = JSON.stringify(data); }catch(e){ return; }
+  try{
+    localStorage.setItem(STORAGE_KEY, json);
+    if(json.length > 3500000){
+      warnStorageOnce('حجم اطلاعات برنامه به حدود ' + faDigits(Math.round(json.length/1000000*10)/10) + ' مگابایت رسیده و نزدیک سقف ذخیره‌سازی مرورگره. بهتره از منوی تنظیمات یه فایل پشتیبان بگیری و به ادمین خبر بدی.');
+    }
+  }catch(e){
+    warnStorageOnce('ذخیره‌ی نسخه‌ی محلی روی این گوشی ناموفق بود (احتمالاً حافظه‌ی مرورگر پر شده). اطلاعات هنوز روی سرور امنه ولی حالت آفلاین ممکنه کار نکنه. یه فایل پشتیبان بگیر.');
+  }
+}
 async function saveData(){
   const mergedOk = await mergeWithServerBeforeSave();
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
+  saveLocalCopy();
 
   if(sb && !mergedOk){
     // We couldn't confirm we have the latest server data (e.g. a brief network hiccup).
@@ -2844,11 +2899,13 @@ async function pbkdf2Hex(password, saltHex, iterations){
   );
   return Array.from(new Uint8Array(bits)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-/* Builds a fresh {salt, hash, hashAlgo, iterations} set for a new or changed password. */
+/* Builds a fresh {salt, hash, hashAlgo, iterations, passwordUpdatedAt} set for a new or changed
+   password. passwordUpdatedAt lets mergeAuthAccount tell which of two devices' password change
+   is newer when merging, instead of blindly picking one side. */
 async function hashNewPassword(password){
   const salt = randomSaltHex();
   const hash = await pbkdf2Hex(password, salt, PBKDF2_ITERATIONS);
-  return { salt, hash, hashAlgo:'pbkdf2', iterations: PBKDF2_ITERATIONS };
+  return { salt, hash, hashAlgo:'pbkdf2', iterations: PBKDF2_ITERATIONS, passwordUpdatedAt: Date.now() };
 }
 /* Verifies a password against a stored auth record, transparently supporting both the new
    PBKDF2 records and legacy single-round SHA-256 ones. */
@@ -2872,6 +2929,7 @@ async function upgradePasswordHashIfNeeded(username, password){
   data.auth[username].hash = fresh.hash;
   data.auth[username].hashAlgo = fresh.hashAlgo;
   data.auth[username].iterations = fresh.iterations;
+  data.auth[username].passwordUpdatedAt = fresh.passwordUpdatedAt;
   await saveData();
 }
 function validatePassword(pwd){
@@ -2928,6 +2986,7 @@ async function registerFingerprint(username){
     if(!cred) return false;
     if(!data.auth[username]) return false;
     data.auth[username].webauthnId = bufToB64(cred.rawId);
+    data.auth[username].webauthnUpdatedAt = Date.now();
     await saveData();
     return true;
   }catch(err){
@@ -2975,7 +3034,10 @@ async function loginWithFingerprintAny(){
   }
 }
 function removeFingerprint(username){
-  if(data.auth[username]) delete data.auth[username].webauthnId;
+  if(data.auth[username]){
+    delete data.auth[username].webauthnId;
+    data.auth[username].webauthnUpdatedAt = Date.now();
+  }
 }
 
 /* ---------- captcha ---------- */
@@ -3370,7 +3432,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     if(pwd1 !== pwd2){ errBox.textContent = 'تکرار رمز مطابقت نداره.'; return; }
     const adminPerson = data.people.find(p => p.isAdmin) || data.people[0];
     const fresh = await hashNewPassword(pwd1);
-    data.auth['admin'] = { salt: fresh.salt, hash: fresh.hash, hashAlgo: fresh.hashAlgo, iterations: fresh.iterations, personId: adminPerson.id };
+    data.auth['admin'] = { salt: fresh.salt, hash: fresh.hash, hashAlgo: fresh.hashAlgo, iterations: fresh.iterations, passwordUpdatedAt: fresh.passwordUpdatedAt, personId: adminPerson.id };
     await saveData();
     currentUserId = adminPerson.id; currentUsername = 'admin';
     try{ localStorage.setItem('sandoogh-last-user', 'admin'); }catch(e){}
@@ -3700,6 +3762,7 @@ document.getElementById('changePwForm').addEventListener('submit', async (e) => 
   data.auth[currentUsername].hash = fresh.hash;
   data.auth[currentUsername].hashAlgo = fresh.hashAlgo;
   data.auth[currentUsername].iterations = fresh.iterations;
+  data.auth[currentUsername].passwordUpdatedAt = fresh.passwordUpdatedAt;
   await saveData();
   msg.textContent = 'رمز عبور با موفقیت تغییر کرد.'; msg.className = 'pw-msg ok';
 });
@@ -4544,6 +4607,7 @@ function renderAccountsList(){
         const u = e.target.dataset.delAcc;
         if(!(await confirmAsync(`حساب کاربری «${u}» حذف بشه؟ اون شخص دیگه نمی‌تونه با این حساب وارد بشه.`))) return;
         delete data.auth[u];
+        markDeleted('auth', u);
         logActivity('delete_account', `حساب «${u}» حذف شد`);
         await saveData();
         renderAccountsList();
@@ -4562,6 +4626,7 @@ function renderAccountsList(){
         data.auth[u].hash = fresh.hash;
         data.auth[u].hashAlgo = fresh.hashAlgo;
         data.auth[u].iterations = fresh.iterations;
+        data.auth[u].passwordUpdatedAt = fresh.passwordUpdatedAt;
         logActivity('reset_password', `رمز حساب «${u}» توسط مدیر عوض شد`);
         await saveData();
         input.value = '';
@@ -4594,7 +4659,7 @@ document.getElementById('addAccountBtn').addEventListener('click', async () => {
   if(pwd1 !== pwd2){ msg.textContent = 'تکرار رمز مطابقت نداره.'; msg.className = 'pw-msg err'; return; }
 
   const fresh = await hashNewPassword(pwd1);
-  data.auth[username] = { salt: fresh.salt, hash: fresh.hash, hashAlgo: fresh.hashAlgo, iterations: fresh.iterations, personId };
+  data.auth[username] = { salt: fresh.salt, hash: fresh.hash, hashAlgo: fresh.hashAlgo, iterations: fresh.iterations, passwordUpdatedAt: fresh.passwordUpdatedAt, personId };
   logActivity('add_account', `حساب «${username}» برای ${personName(personId)} ساخته شد`);
   await saveData();
 
@@ -4999,10 +5064,8 @@ function renderCharts(){
   renderReportsPeriodControls();
   const range = getReportsRange();
 
-  const income = data.transactions.filter(t=>t.type==='income' && t.date>=range.start && t.date<=range.end)
-    .reduce((s,t)=>s+(Number(t.amount)||0),0);
-  const expense = data.transactions.filter(t=>t.type==='expense' && t.date>=range.start && t.date<=range.end)
-    .reduce((s,t)=>s+(Number(t.amount)||0),0);
+  const agg = computeReportsAggregates(range, buildReportsTrendBuckets());
+  const income = agg.income, expense = agg.expense;
   document.getElementById('rptIncomeVal').textContent = fmt(income) + ' ' + data.currency;
   document.getElementById('rptExpenseVal').textContent = fmt(expense) + ' ' + data.currency;
   const net = income - expense;
@@ -5012,9 +5075,49 @@ function renderCharts(){
   document.getElementById('barChartTitle').textContent = `روند این بازه (${range.label})`;
   document.getElementById('personChartTitle').textContent = `مقایسه واریز و برداشت هر نفر (${range.label})`;
 
-  renderPieChart(range);
-  renderBarChart();
-  renderPersonChart(range);
+  renderPieChart(agg.byCategory);
+  renderBarChart(agg.buckets);
+  renderPersonChart(agg.byPerson);
+}
+
+/* One pass over data.transactions that feeds every report widget at once (summary totals, pie by
+   category, trend bars, per-person bars). Before this, each widget filtered the whole array on its
+   own - and the trend chart did it twice PER BUCKET (up to ~60 buckets on a long custom range), so a
+   single render meant dozens of full scans. Buckets are contiguous and sorted by start date, so each
+   transaction is matched to its bucket with a binary search instead of testing every bucket. */
+function computeReportsAggregates(range, buckets){
+  const agg = { income:0, expense:0, byCategory:{}, byPerson:{},
+    buckets: buckets.map(b => ({ label:b.label, income:0, expense:0 })) };
+  const starts = buckets.map(b => b.range.start), ends = buckets.map(b => b.range.end);
+  const bucketIndex = d => {
+    let lo = 0, hi = starts.length - 1, idx = -1;
+    while(lo <= hi){
+      const mid = (lo + hi) >> 1;
+      if(starts[mid] <= d){ idx = mid; lo = mid + 1; } else hi = mid - 1;
+    }
+    return (idx >= 0 && d <= ends[idx]) ? idx : -1;
+  };
+  const txs = data.transactions;
+  for(let i = 0; i < txs.length; i++){
+    const t = txs[i];
+    const isIncome = t.type === 'income';
+    if(!isIncome && t.type !== 'expense') continue;
+    const amt = Number(t.amount) || 0;
+    const bi = bucketIndex(t.date);
+    if(bi >= 0){
+      if(isIncome) agg.buckets[bi].income += amt; else agg.buckets[bi].expense += amt;
+    }
+    if(t.date < range.start || t.date > range.end) continue;
+    const pp = agg.byPerson[t.personId] || (agg.byPerson[t.personId] = { income:0, expense:0 });
+    if(isIncome){
+      agg.income += amt; pp.income += amt;
+    } else {
+      agg.expense += amt; pp.expense += amt;
+      const cat = t.category || 'سایر';
+      agg.byCategory[cat] = (agg.byCategory[cat] || 0) + amt;
+    }
+  }
+  return agg;
 }
 
 /* grouped bar chart comparing each person's income vs expense within the selected range */
@@ -5045,26 +5148,15 @@ function renderIncomeExpenseGroupedChart(boxId, rows, opts){
     `<svg viewBox="0 0 ${svgW} ${chartH + 40}" style="width:100%; max-width:480px; display:block; margin:0 auto;">${bars}</svg>`;
 }
 
-function renderPersonChart(range){
+function renderPersonChart(byPerson){
   const rows = (data.people || []).map(p => {
-    let income = 0, expense = 0;
-    data.transactions.forEach(t => {
-      if(t.personId !== p.id || t.date < range.start || t.date > range.end) return;
-      if(t.type === 'income') income += Number(t.amount) || 0; else expense += Number(t.amount) || 0;
-    });
-    return { label: (personEmoji(p.id) || '👤') + ' ' + p.name, income, expense };
+    const v = byPerson[p.id] || { income:0, expense:0 };
+    return { label: (personEmoji(p.id) || '👤') + ' ' + p.name, income: v.income, expense: v.expense };
   }).filter(r => r.income > 0 || r.expense > 0);
   renderIncomeExpenseGroupedChart('personChartBox', rows, { barW:18, gap:14, emptyText:'توی این بازه تراکنشی برای مقایسه نیست.' });
 }
 
-function renderPieChart(range){
-  const totalsByCategory = {};
-  data.transactions.forEach(t => {
-    if(t.type !== 'expense') return;
-    if(t.date < range.start || t.date > range.end) return;
-    const cat = t.category || 'سایر';
-    totalsByCategory[cat] = (totalsByCategory[cat] || 0) + (Number(t.amount) || 0);
-  });
+function renderPieChart(totalsByCategory){
   const entries = Object.entries(totalsByCategory).sort((a,b) => b[1]-a[1]);
   const box = document.getElementById('pieChartBox');
   const legend = document.getElementById('pieChartLegend');
@@ -5108,15 +5200,7 @@ function renderPieChart(range){
   }).join('');
 }
 
-function renderBarChart(){
-  const buckets = buildReportsTrendBuckets();
-  const rows = buckets.map(b => {
-    const income = data.transactions.filter(t => t.type==='income' && t.date>=b.range.start && t.date<=b.range.end)
-      .reduce((s,t)=>s+(Number(t.amount)||0),0);
-    const expense = data.transactions.filter(t => t.type==='expense' && t.date>=b.range.start && t.date<=b.range.end)
-      .reduce((s,t)=>s+(Number(t.amount)||0),0);
-    return { label: b.label, income, expense };
-  });
+function renderBarChart(rows){
   renderIncomeExpenseGroupedChart('barChartBox', rows);
 }
 

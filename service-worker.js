@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sandoogh-khanevadeh-v98';
+const CACHE_NAME = 'sandoogh-khanevadeh-v100';
 const FILES_TO_CACHE = [
   './',
   './index.html',
@@ -27,6 +27,10 @@ self.addEventListener('activate', (event) => {
 // Cache-first for static assets (icons, manifest) for speed + offline use.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+  // Only handle same-origin GET requests. Cross-origin calls (Supabase API, CDN fonts/scripts,
+  // QR service) and non-GET requests go straight to the network so data is never served stale
+  // from the cache and cache.put is never called on a POST.
+  if(req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   const isPage = req.mode === 'navigate' || req.destination === 'document';
 
   if(isPage){

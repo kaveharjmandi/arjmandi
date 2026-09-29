@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>آریانا | گردش مالی خانواده</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#6B2D5C">
@@ -668,7 +668,7 @@ body.offline-mode{ padding-top:38px; }
 .pie-detail-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:4px 0; }
 .pie-detail-row .meta{ color:var(--ink-soft); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 </head>
 <body data-theme="light">
 <div id="offlineBanner" class="offline-banner">📡 آفلاین هستید — تغییرات بعد از وصل‌شدن اینترنت سینک می‌شن</div>
@@ -2477,6 +2477,17 @@ function wireAllAmountFields(){
     .forEach(id => wireAmountField(document.getElementById(id)));
   document.querySelectorAll('.budget-input, .split-amt').forEach(wireAmountField);
 }
+/* Opens a blank window for printable reports/receipts. Returns null (and tells the user)
+   when the browser/PWA blocks pop-ups, instead of throwing on win.document.write. */
+function openPrintWindow(){
+  let w = null;
+  try{ w = window.open('', '_blank'); }catch(e){}
+  if(!w || !w.document){
+    alert('مرورگر باز شدن پنجره‌ی گزارش رو مسدود کرد. اجازه‌ی پاپ‌آپ بده و دوباره امتحان کن.');
+    return null;
+  }
+  return w;
+}
 function escapeHtml(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 function animateNumber(el, target, currency){
@@ -3276,6 +3287,14 @@ function pinKey(username){ return 'sandoogh-pin-' + username; }
 function hasPinSetup(username){
   try{ return !!localStorage.getItem(pinKey(username)); }catch(e){ return false; }
 }
+function pinAttemptKey(username){ return 'sandoogh-pin-attempts-' + username; }
+function getPinAttemptState(username){
+  try{ const raw = localStorage.getItem(pinAttemptKey(username)); return raw ? JSON.parse(raw) : { total: 0, lockUntil: 0 }; }
+  catch(e){ return { total: 0, lockUntil: 0 }; }
+}
+function setPinAttemptState(username, st){
+  try{ localStorage.setItem(pinAttemptKey(username), JSON.stringify(st)); }catch(e){}
+}
 async function verifyPin(username, pin){
   try{
     const raw = localStorage.getItem(pinKey(username));
@@ -3303,12 +3322,32 @@ document.getElementById('pinlockSubmitBtn').addEventListener('click', async () =
   try{ lastUser = localStorage.getItem('sandoogh-last-user'); }catch(e){}
   if(!lastUser){ errBox.textContent = 'خطا؛ با رمز کامل وارد شو.'; return; }
   if(pin.length !== 4){ errBox.textContent = 'پین باید ۴ رقم باشه.'; return; }
+  // Anti brute-force for the 4-digit PIN (only 10,000 combinations): 5 wrong tries lock the
+  // PIN for 2 minutes; 10 wrong tries in a row remove the PIN so only the full password works.
+  const pst = getPinAttemptState(lastUser);
+  if(pst.lockUntil && Date.now() < pst.lockUntil){
+    const sec = Math.ceil((pst.lockUntil - Date.now()) / 1000);
+    errBox.textContent = `به‌خاطر پین اشتباه، ورود با پین موقتاً قفله. ${faDigits(Math.floor(sec/60))}:${faDigits(String(sec%60).padStart(2,'0'))} دیگه صبر کن.`;
+    document.getElementById('pinlockInput').value = '';
+    return;
+  }
   const ok = await verifyPin(lastUser, pin);
   if(ok){
+    setPinAttemptState(lastUser, { total: 0, lockUntil: 0 });
     const acc = data.auth[lastUser];
     currentUserId = acc.personId; currentUsername = lastUser;
     enterApp();
   } else {
+    pst.total = (pst.total || 0) + 1;
+    if(pst.total >= 10){
+      try{ localStorage.removeItem(pinKey(lastUser)); }catch(e){}
+      setPinAttemptState(lastUser, { total: 0, lockUntil: 0 });
+      document.getElementById('pinlockInput').value = '';
+      renderLoginScreen();
+      return;
+    }
+    if(pst.total % 5 === 0) pst.lockUntil = Date.now() + 2 * 60 * 1000;
+    setPinAttemptState(lastUser, pst);
     errBox.textContent = 'پین اشتباهه.';
     document.getElementById('pinlockInput').value = '';
   }
@@ -3750,7 +3789,7 @@ function renderActivityLog(){
     const dateStr = `${faDigits(jd)} ${JALALI_MONTHS[jm-1]}`;
     return `<div class="tx-row" style="align-items:flex-start;">
       <div class="tx-main">
-        <div class="tx-desc">${ACTION_LABELS[entry.action] || entry.action}</div>
+        <div class="tx-desc">${ACTION_LABELS[entry.action] || escapeHtml(String(entry.action || ''))}</div>
         <div class="tx-meta">${escapeHtml(entry.details||'')}</div>
         <div class="tx-meta">توسط ${escapeHtml(entry.byName || entry.by)} · ${dateStr} ${timeStr}</div>
       </div>
@@ -4005,7 +4044,8 @@ function generatePdfReport(){
     <tr><td>${escapeHtml(r.name)}</td><td>${fmt(r.inc)}</td><td>${fmt(r.exp)}</td><td>${fmt(r.inc-r.exp)}</td></tr>
   `).join('');
 
-  const win = window.open('', '_blank');
+  const win = openPrintWindow();
+  if(!win) return;
   win.document.write(`
     <!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8">
     <title>گزارش ماهانه - ${escapeHtml(range.label)}</title>
@@ -4072,7 +4112,8 @@ function generateAnnualPdfReport(){
     <tr><td>${escapeHtml(r.label)}</td><td>${fmt(r.inc)}</td><td>${fmt(r.exp)}</td><td>${fmt(r.inc-r.exp)}</td></tr>
   `).join('');
 
-  const win = window.open('', '_blank');
+  const win = openPrintWindow();
+  if(!win) return;
   win.document.write(`
     <!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8">
     <title>گزارش سالانه - ${escapeHtml(range.label)}</title>
@@ -4150,7 +4191,8 @@ function generateRangePdfReport(range){
     <tr><td>${escapeHtml(cat)}</td><td>${fmt(val)}</td></tr>
   `).join('');
 
-  const win = window.open('', '_blank');
+  const win = openPrintWindow();
+  if(!win) return;
   win.document.write(`
     <!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8">
     <title>گزارش مالی - ${escapeHtml(range.label)}</title>
@@ -6622,7 +6664,8 @@ function printSingleReceipt(id){
   const photosHtml = photos.length
     ? `<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:16px;">${photos.map(p => `<img src="${p}" style="width:140px; border-radius:8px; border:1px solid #ddd;">`).join('')}</div>`
     : '';
-  const win = window.open('', '_blank');
+  const win = openPrintWindow();
+  if(!win) return;
   win.document.write(`
     <!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8">
     <title>رسید تراکنش</title>

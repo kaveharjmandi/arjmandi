@@ -5800,7 +5800,12 @@ document.getElementById('createDebtBtn').addEventListener('click', async () => {
   if(editingDebtId){
     const d = data.debts.find(x => x.id === editingDebtId);
     if(d){
-      d.kind = newDebtKind; d.unit = isGold ? 'gold' : 'toman'; d.person = person;
+      const newUnit = isGold ? 'gold' : 'toman';
+      if((d.unit || 'toman') !== newUnit && (d.payments || []).length){
+        if(!(await confirmAsync('واحد این مورد عوض می‌شه و پرداخت‌های قبلی (که با واحد قبلی ثبت شدن) پاک می‌شن. ادامه بدم؟'))) return;
+        d.payments = [];
+      }
+      d.kind = newDebtKind; d.unit = newUnit; d.person = person;
       d.totalAmount = totalAmount; d.dueDate = dueDate; d.note = note; d.editedAt = Date.now();
       logActivity('add_debt', `${newDebtKind==='credit'?'طلب از':'بدهی به'} «${person}» ویرایش شد`);
     }
@@ -5828,13 +5833,13 @@ document.getElementById('createDebtBtn').addEventListener('click', async () => {
   renderDebtsList();
   showSuccessToast('ثبت شد');
 });
-function debtPaidAmount(d){ return (d.payments || []).reduce((s,p) => s + (p.amount || 0), 0); }
-function debtRemaining(d){ return Math.max(0, (d.totalAmount || 0) - debtPaidAmount(d)); }
+function debtPaidAmount(d){ const t = (d.payments || []).reduce((s,p) => s + (p.amount || 0), 0); return d.unit === 'gold' ? Math.round(t*1000)/1000 : t; }
+function debtRemaining(d){ const r = Math.max(0, (d.totalAmount || 0) - debtPaidAmount(d)); return d.unit === 'gold' ? Math.round(r*1000)/1000 : r; }
 async function payDebtInstallment(id){
   const d = data.debts.find(x => x.id === id);
   if(!d) return;
   const isGold = d.unit === 'gold';
-  const input = document.querySelector(`.debt-pay-input[data-debt-id="${CSS.escape(id)}"]`);
+  const input = document.querySelector(`.debt-pay-input[data-debt-id="${CSS.escape(id)}"], .debt-pay-input-gold[data-debt-id="${CSS.escape(id)}"]`);
   const amount = isGold ? (parseFloat(input ? input.value : '') || 0) : parseAmountValue(input ? input.value : '');
   if(!amount || amount <= 0){ alert(isGold ? 'مقدار گرم معتبر وارد کن.' : 'مبلغ معتبر وارد کن.'); return; }
   const remaining = debtRemaining(d);

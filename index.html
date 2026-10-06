@@ -922,51 +922,94 @@ body.offline-mode{ padding-top:38px; }
 
 /* Enhanced Modern Charts CSS */
 .chart-card-header{
-  display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:12px; flex-wrap:wrap;
+  display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px; flex-wrap:wrap;
 }
 .chart-filter-pills{
-  display:inline-flex; gap:4px; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:3px;
+  display:inline-flex; gap:4px; background:var(--bg); border:1.5px solid var(--line); border-radius:12px; padding:3px;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,0.04);
 }
 .chart-filter-pill{
-  border:none; background:transparent; border-radius:7px; padding:4px 9px;
-  font-family:'Vazirmatn',sans-serif; font-size:11px; font-weight:600; color:var(--ink-soft);
-  cursor:pointer; transition:all .18s ease;
+  border:none; background:transparent; border-radius:9px; padding:5px 12px;
+  font-family:'Vazirmatn',sans-serif; font-size:11.5px; font-weight:600; color:var(--ink-soft);
+  cursor:pointer; transition:all .22s cubic-bezier(0.16, 1, 0.3, 1);
+  display:inline-flex; align-items:center; gap:5px;
+}
+.chart-filter-pill:hover{
+  color:var(--ink);
 }
 .chart-filter-pill.active{
-  background:var(--card-bg); color:var(--accent); box-shadow:0 1px 4px rgba(0,0,0,0.1); font-weight:700;
+  background:var(--card-bg); color:var(--accent); box-shadow:0 2px 8px rgba(0,0,0,0.12); font-weight:800;
+  transform:scale(1.02);
 }
 .chart-tip{
-  margin-top:10px; font-size:12px; text-align:center; color:var(--ink); min-height:22px;
-  background:var(--bg); border-radius:10px; padding:8px 12px; border:1px solid var(--line);
-  box-shadow:0 2px 6px rgba(0,0,0,0.03); transition:all .2s ease;
+  margin-top:12px; font-size:12px; text-align:center; color:var(--ink); min-height:24px;
+  background:var(--bg); border-radius:12px; padding:9px 14px; border:1px solid var(--line);
+  box-shadow:0 3px 10px rgba(0,0,0,0.03); transition:all .2s ease;
+  display:flex; align-items:center; justify-content:center;
 }
 .pie-legend-row{
-  cursor:pointer; border-radius:10px; padding:8px 10px; margin-bottom:6px;
-  background:var(--card-bg); border:1px solid var(--line); transition:all .18s ease;
+  cursor:pointer; border-radius:12px; padding:10px 12px; margin-bottom:7px;
+  background:var(--card-bg); border:1.5px solid var(--line); transition:all .2s cubic-bezier(0.16, 1, 0.3, 1);
+  position:relative; overflow:hidden;
 }
 .pie-legend-row:hover{
-  border-color:var(--accent); transform:translateX(-2px);
+  border-color:var(--accent); transform:translateX(-3px); box-shadow:0 4px 14px rgba(0,0,0,0.06);
 }
 .pie-legend-row.selected{
-  background:var(--bg); border-color:var(--accent); box-shadow:0 2px 10px rgba(0,0,0,0.06);
+  background:var(--bg); border-color:var(--accent); box-shadow:0 4px 16px rgba(0,0,0,0.08);
 }
 .pie-progress-track{
-  height:5px; background:var(--line); border-radius:3px; margin-top:6px; overflow:hidden;
+  height:6px; background:var(--line); border-radius:4px; margin-top:7px; overflow:hidden;
 }
 .pie-progress-bar{
-  height:100%; border-radius:3px; transition:width .4s ease;
+  height:100%; border-radius:4px; transition:width .45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .cat-pct-badge{
-  font-size:11px; font-weight:700; padding:2px 7px; border-radius:6px;
+  font-size:11px; font-weight:800; padding:3px 8px; border-radius:8px; font-family:'IBM Plex Mono',monospace;
 }
 .chart-metric-badge{
-  flex:1; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:10px 8px; text-align:center;
-  box-shadow:0 2px 6px rgba(0,0,0,0.02); transition:transform .15s ease;
+  flex:1; background:var(--bg); border:1.5px solid var(--line); border-radius:14px; padding:10px 8px; text-align:center;
+  box-shadow:0 3px 10px rgba(0,0,0,0.03); transition:all .2s ease;
+}
+.chart-metric-badge:hover{
+  border-color:var(--accent); transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,0.06);
 }
 .chart-metric-badge:active{ transform:scale(0.98); }
-.pie-detail{ margin-top:10px; border-top:1px solid var(--line); padding-top:8px; font-size:12px; }
-.pie-detail-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:4px 0; }
+.pie-detail{ margin-top:12px; border-top:1px dashed var(--line); padding-top:10px; font-size:12px; }
+.pie-detail-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:5px 0; }
 .pie-detail-row .meta{ color:var(--ink-soft); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+#rechartsTrendCard {
+  border-radius:16px;
+  background: radial-gradient(120% 120% at 50% 0%, rgba(139, 92, 246, 0.03) 0%, transparent 100%), var(--card-bg);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+  position: relative;
+  overflow: hidden;
+}
+.recharts-default-tooltip {
+  border-radius: 14px !important;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.2) !important;
+}
+.recharts-legend-wrapper {
+  padding-top: 10px !important;
+}
+.chart-legend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all .2s ease;
+  user-select: none;
+}
+.chart-legend-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.chart-legend-badge:active {
+  transform: scale(0.97);
+}
 </style>
 <script src="./supabase.js"></script>
 <script>
@@ -1910,10 +1953,10 @@ if(!window.supabase){
           <div style="font-size:11px; color:var(--ink-soft);">مقایسه جریان نقدی درآمد و هزینه در ۶ ماه اخیر با Recharts</div>
         </div>
         <div class="chart-filter-pills" id="rechartsViewFilter">
-          <button type="button" class="chart-filter-pill active" data-vmode="all">هر دو</button>
-          <button type="button" class="chart-filter-pill" data-vmode="income">واریز</button>
-          <button type="button" class="chart-filter-pill" data-vmode="expense">برداشت</button>
-          <button type="button" class="chart-filter-pill" data-vmode="net">تراز</button>
+          <button type="button" class="chart-filter-pill active" data-vmode="all">📊 هر دو</button>
+          <button type="button" class="chart-filter-pill" data-vmode="income">🟢 واریز</button>
+          <button type="button" class="chart-filter-pill" data-vmode="expense">🔴 برداشت</button>
+          <button type="button" class="chart-filter-pill" data-vmode="net">🟣 تراز</button>
         </div>
       </div>
       <div id="rechartsTrendBox" style="min-height:270px; width:100%; direction:ltr;"></div>
@@ -6263,12 +6306,12 @@ function renderIncomeExpenseGroupedChart(boxId, rows, opts){
   const padL = 38, padR = 15, padT = 20, padB = 40;
   const svgW = Math.max(320, padL + padR + rows.length * (groupW + gap));
 
-  // Background guide lines
+    // Background guide lines
   let gridLines = '';
   for(let step = 0; step <= 3; step++){
     const yPos = padT + (step / 3) * chartH;
     const valAt = Math.round(maxVal * (1 - step / 3));
-    gridLines += `<line x1="${padL}" y1="${yPos}" x2="${svgW - padR}" y2="${yPos}" stroke="var(--line)" stroke-dasharray="3,3" opacity="0.55"/>`;
+    gridLines += `<line x1="${padL}" y1="${yPos}" x2="${svgW - padR}" y2="${yPos}" stroke="var(--line)" stroke-dasharray="3,3" opacity="0.6"/>`;
     gridLines += `<text x="${padL - 6}" y="${yPos + 3.5}" text-anchor="end" font-size="8.5" fill="var(--ink-soft)" font-family="'IBM Plex Mono', monospace">${fmt(valAt)}</text>`;
   }
 
@@ -6280,18 +6323,18 @@ function renderIncomeExpenseGroupedChart(boxId, rows, opts){
     const incY = padT + chartH - incH;
     const expY = padT + chartH - expH;
 
-    bars += `<g data-i="${i}" class="grouped-bar-group" style="cursor:pointer; transition:opacity .15s ease;">`;
+    bars += `<g data-i="${i}" class="grouped-bar-group" style="cursor:pointer; transition:all .2s ease;">`;
     // Clickable hit area
     bars += `<rect x="${gx - 4}" y="${padT}" width="${groupW + 8}" height="${chartH + padB}" fill="transparent"/>`;
     // Faint background track columns
-    bars += `<rect x="${gx}" y="${padT}" width="${barW}" height="${chartH}" fill="var(--line)" opacity="0.25" rx="5"/>`;
-    bars += `<rect x="${gx + barW + 4}" y="${padT}" width="${barW}" height="${chartH}" fill="var(--line)" opacity="0.25" rx="5"/>`;
+    bars += `<rect x="${gx}" y="${padT}" width="${barW}" height="${chartH}" fill="var(--line)" opacity="0.22" rx="6"/>`;
+    bars += `<rect x="${gx + barW + 4}" y="${padT}" width="${barW}" height="${chartH}" fill="var(--line)" opacity="0.22" rx="6"/>`;
     // Income bar
-    bars += `<rect data-role="bar" x="${gx}" y="${incY}" width="${barW}" height="${incH}" fill="url(#incBarGrad)" rx="5" filter="drop-shadow(0 2px 4px rgba(16,185,129,0.25))"/>`;
+    bars += `<rect data-role="bar" x="${gx}" y="${incY}" width="${barW}" height="${incH}" fill="url(#incBarGrad)" rx="6" filter="drop-shadow(0 3px 6px rgba(16,185,129,0.3))"/>`;
     // Expense bar
-    bars += `<rect data-role="bar" x="${gx + barW + 4}" y="${expY}" width="${barW}" height="${expH}" fill="url(#expBarGrad)" rx="5" filter="drop-shadow(0 2px 4px rgba(239,68,68,0.25))"/>`;
+    bars += `<rect data-role="bar" x="${gx + barW + 4}" y="${expY}" width="${barW}" height="${expH}" fill="url(#expBarGrad)" rx="6" filter="drop-shadow(0 3px 6px rgba(244,63,94,0.3))"/>`;
     // Label
-    bars += `<text x="${gx + barW + 2}" y="${padT + chartH + 18}" font-size="9.5" font-weight="600" fill="var(--ink-soft)" font-family="Vazirmatn" text-anchor="middle">${escapeHtml(r.label)}</text>`;
+    bars += `<text x="${gx + barW + 2}" y="${padT + chartH + 19}" font-size="10" font-weight="700" fill="var(--ink-soft)" font-family="Vazirmatn" text-anchor="middle">${escapeHtml(r.label)}</text>`;
     bars += `</g>`;
   });
 
@@ -6300,10 +6343,12 @@ function renderIncomeExpenseGroupedChart(boxId, rows, opts){
       <defs>
         <linearGradient id="incBarGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#34D399"/>
+          <stop offset="35%" stop-color="#10B981"/>
           <stop offset="100%" stop-color="#059669"/>
         </linearGradient>
         <linearGradient id="expBarGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#F87171"/>
+          <stop offset="0%" stop-color="#FB7185"/>
+          <stop offset="35%" stop-color="#F43F5E"/>
           <stop offset="100%" stop-color="#DC2626"/>
         </linearGradient>
       </defs>
@@ -6320,7 +6365,7 @@ function renderIncomeExpenseGroupedChart(boxId, rows, opts){
     const r = rows[Number(g.dataset.i)];
     const net = r.income - r.expense;
     box.querySelectorAll('g[data-i]').forEach(x => { x.style.opacity = (x === g) ? '1' : '0.45'; });
-    tip.innerHTML = `<span style="font-weight:700; color:var(--ink);">${escapeHtml(r.label)}</span>: واریز <b style="color:var(--credit);">+${fmt(r.income)}</b> | برداشت <b style="color:var(--debit);">−${fmt(r.expense)}</b> | تراز <b style="color:${net >= 0 ? 'var(--credit)' : 'var(--debit)'};">${net >= 0 ? '+' : '−'}${fmt(Math.abs(net))}</b> ${escapeHtml(data.currency)}`;
+    tip.innerHTML = `<span style="font-weight:800; color:var(--ink);">${escapeHtml(r.label)}</span>: واریز <b style="color:var(--credit);">+${fmt(r.income)}</b> | برداشت <b style="color:var(--debit);">−${fmt(r.expense)}</b> | تراز <b style="color:${net >= 0 ? 'var(--credit)' : 'var(--debit)'};">${net >= 0 ? '+' : '−'}${fmt(Math.abs(net))}</b> ${escapeHtml(data.currency)}`;
   };
 }
 
@@ -6516,8 +6561,8 @@ function renderSvgFallbackTrend(container, data6m){
     return Math.max(d.income, d.expense);
   }));
 
-  const W = 360, H = 220;
-  const padL = 40, padR = 20, padT = 20, padB = 40;
+  const W = 360, H = 235;
+  const padL = 42, padR = 18, padT = 20, padB = 40;
   const plotW = W - padL - padR;
   const plotH = H - padT - padB;
   const n = data6m.length;
@@ -6569,62 +6614,75 @@ function renderSvgFallbackTrend(container, data6m){
 
   const xLabels = data6m.map((d, i) => {
     const x = getX(i);
-    return `<text x="${x}" y="${H - 12}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink-soft)" font-family="Vazirmatn">${escapeHtml(d.label)}</text>`;
+    return `<text x="${x}" y="${H - 10}" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--ink-soft)" font-family="Vazirmatn">${escapeHtml(d.label)}</text>`;
   }).join('');
 
   let pathsHtml = '';
   if(viewMode === 'all' || viewMode === 'income'){
     pathsHtml += `<path d="${makeAreaPath(incPoints)}" fill="url(#svgIncGrad)"/>`;
-    pathsHtml += `<path d="${makeLinePath(incPoints)}" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round"/>`;
+    pathsHtml += `<path d="${makeLinePath(incPoints)}" fill="none" stroke="#10B981" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#svgLineGlow)"/>`;
     pathsHtml += incPoints.map(p => `
-      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="#10B981" stroke="var(--card-bg)" stroke-width="2">
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="7" fill="#10B981" stroke="#FFFFFF" stroke-width="3" filter="drop-shadow(0 3px 6px rgba(16,185,129,0.5))" style="cursor:pointer; transition:transform .2s ease;">
         <title>${escapeHtml(p.d.fullLabel)} - واریز: ${p.d.incomeFormatted}</title>
       </circle>
     `).join('');
   }
   if(viewMode === 'all' || viewMode === 'expense'){
     pathsHtml += `<path d="${makeAreaPath(expPoints)}" fill="url(#svgExpGrad)"/>`;
-    pathsHtml += `<path d="${makeLinePath(expPoints)}" fill="none" stroke="#EF4444" stroke-width="3" stroke-linecap="round"/>`;
+    pathsHtml += `<path d="${makeLinePath(expPoints)}" fill="none" stroke="#F43F5E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#svgLineGlow)"/>`;
     pathsHtml += expPoints.map(p => `
-      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="#EF4444" stroke="var(--card-bg)" stroke-width="2">
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="7" fill="#F43F5E" stroke="#FFFFFF" stroke-width="3" filter="drop-shadow(0 3px 6px rgba(244,63,94,0.5))" style="cursor:pointer; transition:transform .2s ease;">
         <title>${escapeHtml(p.d.fullLabel)} - برداشت: ${p.d.expenseFormatted}</title>
       </circle>
     `).join('');
   }
   if(viewMode === 'net'){
     pathsHtml += `<path d="${makeAreaPath(netPoints)}" fill="url(#svgNetGrad)"/>`;
-    pathsHtml += `<path d="${makeLinePath(netPoints)}" fill="none" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round"/>`;
+    pathsHtml += `<path d="${makeLinePath(netPoints)}" fill="none" stroke="#8B5CF6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#svgLineGlow)"/>`;
     pathsHtml += netPoints.map(p => `
-      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="#8B5CF6" stroke="var(--card-bg)" stroke-width="2">
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="7" fill="#8B5CF6" stroke="#FFFFFF" stroke-width="3" filter="drop-shadow(0 3px 6px rgba(139,92,246,0.5))" style="cursor:pointer; transition:transform .2s ease;">
         <title>${escapeHtml(p.d.fullLabel)} - تراز: ${p.d.netFormatted}</title>
       </circle>
     `).join('');
   }
 
+  const totalInc = data6m.reduce((s, m) => s + m.income, 0);
+  const totalExp = data6m.reduce((s, m) => s + m.expense, 0);
+  const netTotal = totalInc - totalExp;
+
   container.innerHTML = `
     <svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto; display:block; overflow:visible;">
       <defs>
         <linearGradient id="svgIncGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#10B981" stop-opacity="0.32"/>
+          <stop offset="0%" stop-color="#10B981" stop-opacity="0.48"/>
+          <stop offset="35%" stop-color="#059669" stop-opacity="0.22"/>
+          <stop offset="75%" stop-color="#10B981" stop-opacity="0.05"/>
           <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
         </linearGradient>
         <linearGradient id="svgExpGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#EF4444" stop-opacity="0.32"/>
-          <stop offset="100%" stop-color="#EF4444" stop-opacity="0.0"/>
+          <stop offset="0%" stop-color="#F43F5E" stop-opacity="0.48"/>
+          <stop offset="35%" stop-color="#E11D48" stop-opacity="0.22"/>
+          <stop offset="75%" stop-color="#F43F5E" stop-opacity="0.05"/>
+          <stop offset="100%" stop-color="#F43F5E" stop-opacity="0.0"/>
         </linearGradient>
         <linearGradient id="svgNetGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.32"/>
+          <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.48"/>
+          <stop offset="35%" stop-color="#7C3AED" stop-opacity="0.22"/>
+          <stop offset="75%" stop-color="#8B5CF6" stop-opacity="0.05"/>
           <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0.0"/>
         </linearGradient>
+        <filter id="svgLineGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.25"/>
+        </filter>
       </defs>
       ${gridLines}
       ${pathsHtml}
       ${xLabels}
     </svg>
-    <div style="display:flex; justify-content:center; gap:16px; margin-top:8px; font-size:11px; font-family:'Vazirmatn',sans-serif;">
-      ${(viewMode==='all'||viewMode==='income') ? '<span style="display:flex; align-items:center; gap:6px; color:var(--ink);"><span style="width:10px; height:10px; background:#10B981; border-radius:50%;"></span> واریز (درآمد)</span>' : ''}
-      ${(viewMode==='all'||viewMode==='expense') ? '<span style="display:flex; align-items:center; gap:6px; color:var(--ink);"><span style="width:10px; height:10px; background:#EF4444; border-radius:50%;"></span> برداشت (هزینه)</span>' : ''}
-      ${(viewMode==='net') ? '<span style="display:flex; align-items:center; gap:6px; color:var(--ink);"><span style="width:10px; height:10px; background:#8B5CF6; border-radius:50%;"></span> تراز خالص</span>' : ''}
+    <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-top:14px; font-family:'Vazirmatn',sans-serif; direction:rtl;">
+      ${(viewMode==='all'||viewMode==='income') ? `<span class="chart-legend-badge" data-mode-toggle="income" style="background:rgba(16,185,129,0.12); border:1.5px solid rgba(16,185,129,0.45);"><span style="width:11px; height:11px; background:#10B981; border-radius:50%; box-shadow:0 0 8px rgba(16,185,129,0.7);"></span><span style="font-size:12px; font-weight:700; color:#10B981;">واریز (درآمد):</span><b style="font-size:12px; color:var(--ink); font-family:'IBM Plex Mono',monospace;">+${fmt(totalInc)}</b></span>` : ''}
+      ${(viewMode==='all'||viewMode==='expense') ? `<span class="chart-legend-badge" data-mode-toggle="expense" style="background:rgba(244,63,94,0.12); border:1.5px solid rgba(244,63,94,0.45);"><span style="width:11px; height:11px; background:#F43F5E; border-radius:50%; box-shadow:0 0 8px rgba(244,63,94,0.7);"></span><span style="font-size:12px; font-weight:700; color:#F43F5E;">برداشت (هزینه):</span><b style="font-size:12px; color:var(--ink); font-family:'IBM Plex Mono',monospace;">−${fmt(totalExp)}</b></span>` : ''}
+      ${(viewMode==='net') ? `<span class="chart-legend-badge" data-mode-toggle="net" style="background:rgba(139,92,246,0.12); border:1.5px solid rgba(139,92,246,0.45);"><span style="width:11px; height:11px; background:#8B5CF6; border-radius:50%; box-shadow:0 0 8px rgba(139,92,246,0.7);"></span><span style="font-size:12px; font-weight:700; color:#8B5CF6;">تراز خالص:</span><b style="font-size:12px; color:var(--ink); font-family:'IBM Plex Mono',monospace;">${netTotal >= 0 ? '+' : '−'}${fmt(Math.abs(netTotal))}</b></span>` : ''}
     </div>
   `;
 }
@@ -6637,25 +6695,25 @@ function renderRechartsTrend(){
   const data6m = getSixMonthsTrendData();
   const viewMode = rechartsViewMode || 'all';
 
+  const totalInc = data6m.reduce((s, m) => s + m.income, 0);
+  const totalExp = data6m.reduce((s, m) => s + m.expense, 0);
+  const netTotal = totalInc - totalExp;
+
   // Render modern summary metrics below chart
   const metaBox = document.getElementById('rechartsTrendMeta');
   if(metaBox){
-    const totalInc = data6m.reduce((s, m) => s + m.income, 0);
-    const totalExp = data6m.reduce((s, m) => s + m.expense, 0);
-    const netTotal = totalInc - totalExp;
-    const avgExp = Math.round(totalExp / (data6m.length || 1));
     metaBox.innerHTML = `
       <div class="chart-metric-badge">
-        <div style="font-size:10px; font-weight:600; color:var(--ink-soft);">مجموع درآمد</div>
-        <div style="font-size:12.5px; font-weight:800; color:var(--credit); margin-top:3px; font-family:'IBM Plex Mono',monospace;">${fmt(totalInc)}</div>
+        <div style="font-size:10.5px; font-weight:600; color:var(--ink-soft); display:flex; align-items:center; justify-content:center; gap:4px;">💰 مجموع درآمد ۶ ماه</div>
+        <div style="font-size:13.5px; font-weight:800; color:var(--credit); margin-top:3px; font-family:'IBM Plex Mono',monospace;">+${fmt(totalInc)}</div>
       </div>
       <div class="chart-metric-badge">
-        <div style="font-size:10px; font-weight:600; color:var(--ink-soft);">مجموع هزینه</div>
-        <div style="font-size:12.5px; font-weight:800; color:var(--debit); margin-top:3px; font-family:'IBM Plex Mono',monospace;">${fmt(totalExp)}</div>
+        <div style="font-size:10.5px; font-weight:600; color:var(--ink-soft); display:flex; align-items:center; justify-content:center; gap:4px;">💸 مجموع هزینه ۶ ماه</div>
+        <div style="font-size:13.5px; font-weight:800; color:var(--debit); margin-top:3px; font-family:'IBM Plex Mono',monospace;">−${fmt(totalExp)}</div>
       </div>
       <div class="chart-metric-badge">
-        <div style="font-size:10px; font-weight:600; color:var(--ink-soft);">تراز خالص ۶ ماه</div>
-        <div style="font-size:12.5px; font-weight:800; color:${netTotal >= 0 ? 'var(--credit)' : 'var(--debit)'}; margin-top:3px; font-family:'IBM Plex Mono',monospace;">${netTotal >= 0 ? '+' : '−'}${fmt(Math.abs(netTotal))}</div>
+        <div style="font-size:10.5px; font-weight:600; color:var(--ink-soft); display:flex; align-items:center; justify-content:center; gap:4px;">⚖️ تراز خالص ۶ ماه</div>
+        <div style="font-size:13.5px; font-weight:800; color:${netTotal >= 0 ? 'var(--credit)' : 'var(--debit)'}; margin-top:3px; font-family:'IBM Plex Mono',monospace;">${netTotal >= 0 ? '+' : '−'}${fmt(Math.abs(netTotal))}</div>
       </div>
     `;
   }
@@ -6685,28 +6743,167 @@ function renderRechartsTrend(){
         return e('div', {
           style: {
             background: 'var(--card-bg)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             border: '1.5px solid var(--line)',
-            borderRadius: '12px',
-            padding: '10px 14px',
-            boxShadow: '0 10px 28px rgba(0,0,0,0.22)',
+            borderRadius: '16px',
+            padding: '13px 18px',
+            boxShadow: '0 16px 38px rgba(0,0,0,0.26)',
             fontFamily: "'Vazirmatn', sans-serif",
             direction: 'rtl',
-            fontSize: '12px',
-            minWidth: '155px'
+            fontSize: '12.5px',
+            minWidth: '175px'
           }
         },
-          e('div', { style: { fontWeight: '700', borderBottom: '1px solid var(--line)', paddingBottom: '5px', marginBottom: '6px', color: 'var(--ink)' } }, item ? item.fullLabel : label),
-          (viewMode === 'all' || viewMode === 'income') && e('div', { style: { display: 'flex', justifyContent: 'space-between', color: '#10B981', margin: '3px 0' } },
-            e('span', null, 'واریز:'),
+          e('div', {
+            style: {
+              fontWeight: '800',
+              borderBottom: '1px solid var(--line)',
+              paddingBottom: '8px',
+              marginBottom: '10px',
+              color: 'var(--ink)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }
+          },
+            e('span', null, '📅 ' + (item ? item.fullLabel : label)),
+            e('span', {
+              style: {
+                fontSize: '11px',
+                fontWeight: '700',
+                padding: '2px 8px',
+                borderRadius: '8px',
+                background: net >= 0 ? 'rgba(16,185,129,0.16)' : 'rgba(244,63,94,0.16)',
+                color: net >= 0 ? '#10B981' : '#F43F5E'
+              }
+            }, net >= 0 ? 'مازاد سود' : 'کسری بودجه')
+          ),
+          (viewMode === 'all' || viewMode === 'income') && e('div', {
+            style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#10B981', margin: '5px 0' }
+          },
+            e('span', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+              e('span', { style: { width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', display: 'inline-block', boxShadow: '0 0 6px rgba(16,185,129,0.6)' } }),
+              'واریز:'
+            ),
             e('b', { style: { fontFamily: "'IBM Plex Mono', monospace" } }, '+' + fmt(inc) + ' ' + data.currency)
           ),
-          (viewMode === 'all' || viewMode === 'expense') && e('div', { style: { display: 'flex', justifyContent: 'space-between', color: '#EF4444', margin: '3px 0' } },
-            e('span', null, 'برداشت:'),
+          (viewMode === 'all' || viewMode === 'expense') && e('div', {
+            style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#F43F5E', margin: '5px 0' }
+          },
+            e('span', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+              e('span', { style: { width: '8px', height: '8px', borderRadius: '50%', background: '#F43F5E', display: 'inline-block', boxShadow: '0 0 6px rgba(244,63,94,0.6)' } }),
+              'برداشت:'
+            ),
             e('b', { style: { fontFamily: "'IBM Plex Mono', monospace" } }, '−' + fmt(exp) + ' ' + data.currency)
           ),
-          e('div', { style: { display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--line)', paddingTop: '5px', marginTop: '5px', color: net >= 0 ? '#10B981' : '#EF4444' } },
+          e('div', {
+            style: {
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderTop: '1px dashed var(--line)',
+              paddingTop: '7px',
+              marginTop: '7px',
+              color: net >= 0 ? '#10B981' : '#F43F5E',
+              fontWeight: '800'
+            }
+          },
             e('span', null, 'تراز خالص:'),
             e('b', { style: { fontFamily: "'IBM Plex Mono', monospace" } }, (net >= 0 ? '+' : '−') + fmt(Math.abs(net)) + ' ' + data.currency)
+          )
+        );
+      };
+
+      // Custom high-visibility interactive legend component
+      const CustomLegend = () => {
+        const handleLegendClick = (mode) => {
+          rechartsViewMode = (rechartsViewMode === mode) ? 'all' : mode;
+          const filterWrap = document.getElementById('rechartsViewFilter');
+          if(filterWrap){
+            filterWrap.querySelectorAll('button').forEach(b => {
+              b.classList.toggle('active', b.dataset.vmode === rechartsViewMode);
+            });
+          }
+          renderRechartsTrend();
+        };
+
+        return e('div', {
+          style: {
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: '10px',
+            paddingTop: '14px',
+            direction: 'rtl',
+            fontFamily: "'Vazirmatn', sans-serif"
+          }
+        },
+          (viewMode === 'all' || viewMode === 'income') && e('div', {
+            className: 'chart-legend-badge',
+            onClick: () => handleLegendClick('income'),
+            title: 'برای فیلتر روی واریز کلیک کنید',
+            style: {
+              background: 'rgba(16, 185, 129, 0.12)',
+              border: '1.5px solid rgba(16, 185, 129, 0.45)',
+              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.1)'
+            }
+          },
+            e('span', {
+              style: {
+                width: '11px',
+                height: '11px',
+                borderRadius: '50%',
+                background: '#10B981',
+                boxShadow: '0 0 8px rgba(16, 185, 129, 0.7)'
+              }
+            }),
+            e('span', { style: { fontSize: '12px', fontWeight: '700', color: '#10B981' } }, 'واریز (درآمد):'),
+            e('span', { style: { fontSize: '12.5px', fontWeight: '800', color: 'var(--ink)', fontFamily: "'IBM Plex Mono', monospace" } }, '+' + fmt(totalInc))
+          ),
+          (viewMode === 'all' || viewMode === 'expense') && e('div', {
+            className: 'chart-legend-badge',
+            onClick: () => handleLegendClick('expense'),
+            title: 'برای فیلتر روی برداشت کلیک کنید',
+            style: {
+              background: 'rgba(244, 63, 94, 0.12)',
+              border: '1.5px solid rgba(244, 63, 94, 0.45)',
+              boxShadow: '0 2px 8px rgba(244, 63, 94, 0.1)'
+            }
+          },
+            e('span', {
+              style: {
+                width: '11px',
+                height: '11px',
+                borderRadius: '50%',
+                background: '#F43F5E',
+                boxShadow: '0 0 8px rgba(244, 63, 94, 0.7)'
+              }
+            }),
+            e('span', { style: { fontSize: '12px', fontWeight: '700', color: '#F43F5E' } }, 'برداشت (هزینه):'),
+            e('span', { style: { fontSize: '12.5px', fontWeight: '800', color: 'var(--ink)', fontFamily: "'IBM Plex Mono', monospace" } }, '−' + fmt(totalExp))
+          ),
+          (viewMode === 'net') && e('div', {
+            className: 'chart-legend-badge',
+            onClick: () => handleLegendClick('net'),
+            title: 'برای مشاهده هر دو کلیک کنید',
+            style: {
+              background: 'rgba(139, 92, 246, 0.12)',
+              border: '1.5px solid rgba(139, 92, 246, 0.45)',
+              boxShadow: '0 2px 8px rgba(139, 92, 246, 0.1)'
+            }
+          },
+            e('span', {
+              style: {
+                width: '11px',
+                height: '11px',
+                borderRadius: '50%',
+                background: '#8B5CF6',
+                boxShadow: '0 0 8px rgba(139, 92, 246, 0.7)'
+              }
+            }),
+            e('span', { style: { fontSize: '12px', fontWeight: '700', color: '#8B5CF6' } }, 'تراز خالص ۶ ماه:'),
+            e('span', { style: { fontSize: '12.5px', fontWeight: '800', color: 'var(--ink)', fontFamily: "'IBM Plex Mono', monospace" } }, (netTotal >= 0 ? '+' : '−') + fmt(Math.abs(netTotal)))
           )
         );
       };
@@ -6714,16 +6911,25 @@ function renderRechartsTrend(){
       const chartChildren = [
         e('defs', { key: 'defs' },
           e('linearGradient', { id: 'rechartsIncGrad', x1: '0', y1: '0', x2: '0', y2: '1' },
-            e('stop', { offset: '0%', stopColor: '#10B981', stopOpacity: 0.36 }),
-            e('stop', { offset: '95%', stopColor: '#10B981', stopOpacity: 0.0 })
+            e('stop', { offset: '0%', stopColor: '#10B981', stopOpacity: 0.48 }),
+            e('stop', { offset: '35%', stopColor: '#059669', stopOpacity: 0.22 }),
+            e('stop', { offset: '75%', stopColor: '#10B981', stopOpacity: 0.05 }),
+            e('stop', { offset: '100%', stopColor: '#10B981', stopOpacity: 0.0 })
           ),
           e('linearGradient', { id: 'rechartsExpGrad', x1: '0', y1: '0', x2: '0', y2: '1' },
-            e('stop', { offset: '0%', stopColor: '#EF4444', stopOpacity: 0.36 }),
-            e('stop', { offset: '95%', stopColor: '#EF4444', stopOpacity: 0.0 })
+            e('stop', { offset: '0%', stopColor: '#F43F5E', stopOpacity: 0.48 }),
+            e('stop', { offset: '35%', stopColor: '#E11D48', stopOpacity: 0.22 }),
+            e('stop', { offset: '75%', stopColor: '#F43F5E', stopOpacity: 0.05 }),
+            e('stop', { offset: '100%', stopColor: '#F43F5E', stopOpacity: 0.0 })
           ),
           e('linearGradient', { id: 'rechartsNetGrad', x1: '0', y1: '0', x2: '0', y2: '1' },
-            e('stop', { offset: '0%', stopColor: '#8B5CF6', stopOpacity: 0.36 }),
-            e('stop', { offset: '95%', stopColor: '#8B5CF6', stopOpacity: 0.0 })
+            e('stop', { offset: '0%', stopColor: '#8B5CF6', stopOpacity: 0.48 }),
+            e('stop', { offset: '35%', stopColor: '#7C3AED', stopOpacity: 0.22 }),
+            e('stop', { offset: '75%', stopColor: '#8B5CF6', stopOpacity: 0.05 }),
+            e('stop', { offset: '100%', stopColor: '#8B5CF6', stopOpacity: 0.0 })
+          ),
+          e('filter', { id: 'rechartsLineGlow', x: '-20%', y: '-20%', width: '140%', height: '140%' },
+            e('feDropShadow', { dx: '0', dy: '4', stdDeviation: '4', floodOpacity: '0.25' })
           )
         ),
         e(CartesianGrid, { key: 'grid', strokeDasharray: '3 3', stroke: 'var(--line)', opacity: 0.65, vertical: false }),
@@ -6733,7 +6939,7 @@ function renderRechartsTrend(){
           stroke: 'var(--ink-soft)',
           axisLine: { stroke: 'var(--line)' },
           tickLine: false,
-          tick: { fill: 'var(--ink-soft)', fontSize: 10.5, fontFamily: "'Vazirmatn', sans-serif" }
+          tick: { fill: 'var(--ink-soft)', fontSize: 11, fontWeight: '700', fontFamily: "'Vazirmatn', sans-serif" }
         }),
         e(YAxis, {
           key: 'yaxis',
@@ -6744,11 +6950,7 @@ function renderRechartsTrend(){
           tickFormatter: (v) => fmt(v)
         }),
         e(Tooltip, { key: 'tooltip', content: e(CustomTooltip) }),
-        e(Legend, {
-          key: 'legend',
-          wrapperStyle: { fontFamily: "'Vazirmatn', sans-serif", fontSize: '11px', paddingTop: '8px' },
-          formatter: (value) => e('span', { style: { color: 'var(--ink)', fontWeight: '600' } }, value)
-        })
+        e(Legend, { key: 'legend', content: e(CustomLegend) })
       ];
 
       if(viewMode === 'all' || viewMode === 'income'){
@@ -6758,10 +6960,26 @@ function renderRechartsTrend(){
           dataKey: 'income',
           name: 'واریز (درآمد)',
           stroke: '#10B981',
-          strokeWidth: 3,
+          strokeWidth: 4,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          connectNulls: true,
           fill: 'url(#rechartsIncGrad)',
-          dot: { r: 4.5, fill: '#10B981', strokeWidth: 2, stroke: 'var(--card-bg)' },
-          activeDot: { r: 7, fill: '#10B981', stroke: 'var(--card-bg)', strokeWidth: 2.5 }
+          filter: 'url(#rechartsLineGlow)',
+          dot: {
+            r: 7,
+            fill: '#10B981',
+            strokeWidth: 3,
+            stroke: '#FFFFFF',
+            filter: 'drop-shadow(0 3px 6px rgba(16,185,129,0.5))'
+          },
+          activeDot: {
+            r: 11,
+            fill: '#10B981',
+            strokeWidth: 4,
+            stroke: '#FFFFFF',
+            filter: 'drop-shadow(0 0 14px rgba(16,185,129,0.95))'
+          }
         }));
       }
 
@@ -6771,11 +6989,27 @@ function renderRechartsTrend(){
           type: 'monotone',
           dataKey: 'expense',
           name: 'برداشت (هزینه)',
-          stroke: '#EF4444',
-          strokeWidth: 3,
+          stroke: '#F43F5E',
+          strokeWidth: 4,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          connectNulls: true,
           fill: 'url(#rechartsExpGrad)',
-          dot: { r: 4.5, fill: '#EF4444', strokeWidth: 2, stroke: 'var(--card-bg)' },
-          activeDot: { r: 7, fill: '#EF4444', stroke: 'var(--card-bg)', strokeWidth: 2.5 }
+          filter: 'url(#rechartsLineGlow)',
+          dot: {
+            r: 7,
+            fill: '#F43F5E',
+            strokeWidth: 3,
+            stroke: '#FFFFFF',
+            filter: 'drop-shadow(0 3px 6px rgba(244,63,94,0.5))'
+          },
+          activeDot: {
+            r: 11,
+            fill: '#F43F5E',
+            strokeWidth: 4,
+            stroke: '#FFFFFF',
+            filter: 'drop-shadow(0 0 14px rgba(244,63,94,0.95))'
+          }
         }));
       }
 
@@ -6786,14 +7020,30 @@ function renderRechartsTrend(){
           dataKey: 'net',
           name: 'تراز خالص ماهانه',
           stroke: '#8B5CF6',
-          strokeWidth: 3,
+          strokeWidth: 4,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          connectNulls: true,
           fill: 'url(#rechartsNetGrad)',
-          dot: { r: 4.5, fill: '#8B5CF6', strokeWidth: 2, stroke: 'var(--card-bg)' },
-          activeDot: { r: 7, fill: '#8B5CF6', stroke: 'var(--card-bg)', strokeWidth: 2.5 }
+          filter: 'url(#rechartsLineGlow)',
+          dot: {
+            r: 7,
+            fill: '#8B5CF6',
+            strokeWidth: 3,
+            stroke: '#FFFFFF',
+            filter: 'drop-shadow(0 3px 6px rgba(139,92,246,0.5))'
+          },
+          activeDot: {
+            r: 11,
+            fill: '#8B5CF6',
+            strokeWidth: 4,
+            stroke: '#FFFFFF',
+            filter: 'drop-shadow(0 0 14px rgba(139,92,246,0.95))'
+          }
         }));
       }
 
-      const chartNode = e(ResponsiveContainer, { width: '100%', height: 270 },
+      const chartNode = e(ResponsiveContainer, { width: '100%', height: 285 },
         e(AreaChart, {
           data: data6m,
           margin: { top: 12, right: 14, left: -14, bottom: 6 }

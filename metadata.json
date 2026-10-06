@@ -1,0 +1,6 @@
+{
+  "name": "آریانا",
+  "description": "گردش مالی خانواده - مدیریت درآمدها، هزینه‌ها، چک‌ها، وام‌ها و پس‌انداز",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

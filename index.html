@@ -410,11 +410,119 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
   font-size:12.5px; color:var(--ink-soft);
 }
 .adv-filter-panel{
-  background:var(--bg);
-  border:1px solid var(--line);
-  border-radius:10px;
-  padding:12px;
-  margin-bottom:12px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.06);
+  animation: advFilterSlideDown .24s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+.adv-filter-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent) 0%, #4a80f0 50%, var(--credit) 100%);
+}
+@keyframes advFilterSlideDown{
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.adv-filter-header{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.adv-filter-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.adv-filter-title{
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.adv-filter-subtitle {
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+.adv-filter-card-block {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  transition: border-color .2s ease;
+}
+.adv-filter-card-block:hover {
+  border-color: rgba(107, 45, 92, 0.28);
+}
+.adv-filter-card-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.adv-filter-label{
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.adv-filter-select {
+  width: 100%;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--card-bg);
+  padding: 9px 12px;
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: 12.5px;
+  color: var(--ink);
+  outline: none;
+  transition: all .2s ease;
+  box-sizing: border-box;
+}
+.adv-filter-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(107, 45, 92, 0.12);
+}
+.adv-filter-input {
+  width: 100%;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--card-bg);
+  padding: 9px 12px;
+  font-family: 'IBM Plex Mono', 'Vazirmatn', sans-serif;
+  font-size: 12.5px;
+  color: var(--ink);
+  outline: none;
+  transition: all .2s ease;
+  box-sizing: border-box;
+}
+.adv-filter-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(107, 45, 92, 0.12);
 }
 .filter-chip{
   display:inline-flex;
@@ -424,15 +532,17 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
   border:1px solid var(--line);
   color:var(--ink);
   border-radius:16px;
-  padding:3px 10px;
+  padding:4px 11px;
   font-size:11.5px;
   font-weight:600;
   cursor:pointer;
-  transition:all .15s ease;
+  transition:all .18s ease;
+  box-shadow:0 1px 3px rgba(0,0,0,0.03);
 }
 .filter-chip:hover{
   border-color:var(--accent);
   color:var(--accent-deep);
+  transform: translateY(-1px);
 }
 .filter-chip .chip-remove{
   font-size:12px;
@@ -440,10 +550,189 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
   font-weight:700;
   margin-right:3px;
 }
+.tx-date-preset-row{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .tx-date-preset-btn{
-  font-size:11px;
-  padding:4px 9px;
-  border-radius:6px;
+  font-size: 11.5px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card-bg);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all .18s ease;
+  font-weight: 600;
+  font-family: 'Vazirmatn', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.tx-date-preset-btn:hover{
+  border-color: var(--accent);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+.tx-date-preset-btn.active{
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(107, 45, 92, 0.28);
+}
+.adv-filter-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.adv-filter-live-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-deep);
+  background: rgba(107, 45, 92, 0.08);
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(107, 45, 92, 0.18);
+}
+.filter-btn#txAdvFilterToggleBtn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 3px 10px rgba(107, 45, 92, 0.25);
+}
+.filter-btn#txAdvFilterToggleBtn.active .filter-count-badge {
+  background: #fff;
+  color: var(--accent);
+}
+.filter-count-badge {
+  animation: pulseBadge 1.8s infinite;
+}
+@keyframes pulseBadge {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+/* Pagination Styles */
+.tx-pagination-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+  font-family: 'Vazirmatn', sans-serif;
+  user-select: none;
+}
+.tx-pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.tx-pagination-info {
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tx-pagination-badge {
+  background: rgba(107, 45, 92, 0.09);
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 11.5px;
+  padding: 3px 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(107, 45, 92, 0.18);
+}
+.tx-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.tx-page-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', 'Vazirmatn', monospace;
+  cursor: pointer;
+  transition: all .18s ease;
+}
+.tx-page-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+.tx-page-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 3px 12px rgba(107, 45, 92, 0.32);
+}
+.tx-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.tx-page-nav-btn {
+  font-family: 'Vazirmatn', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 12px;
+  background: var(--card-bg);
+}
+.tx-page-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 36px;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+.tx-pagesize-select {
+  border: 1.5px solid var(--line);
+  background: var(--card-bg);
+  color: var(--ink);
+  border-radius: 9px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-family: 'Vazirmatn', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all .18s ease;
+}
+.tx-pagesize-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(107, 45, 92, 0.12);
 }
 .daily-savings-card{
   background: var(--card-bg);
@@ -1690,77 +1979,101 @@ if(!window.supabase){
 
       <!-- Advanced Filter Collapsible Panel -->
       <div id="txAdvFilterPanel" class="adv-filter-panel" style="display:none;">
-        <!-- Category Filter -->
-        <div class="field" style="margin-bottom:10px;">
-          <label style="font-size:11.5px; font-weight:700; color:var(--ink-soft); margin-bottom:4px; display:block;">🏷️ دسته‌بندی</label>
-          <select id="txCategoryFilterSelect" style="width:100%; border:1px solid var(--line); border-radius:8px; background:var(--card-bg); padding:8px 10px; font-family:'Vazirmatn',sans-serif; font-size:12.5px; color:var(--ink);">
-            <option value="all">همه دسته‌بندی‌ها</option>
-          </select>
+        <div class="adv-filter-header">
+          <div class="adv-filter-title-wrap">
+            <div class="adv-filter-title">
+              <span style="display:inline-flex; width:28px; height:28px; align-items:center; justify-content:center; background:rgba(107,45,92,0.12); border-radius:8px; color:var(--accent); font-size:15px;">⚙️</span>
+              <span>فیلترهای پیشرفته تراکنش‌ها</span>
+            </div>
+            <div class="adv-filter-subtitle">محدودسازی دقیق تراکنش‌ها بر اساس تمام مشخصات و بازه‌ها</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button type="button" id="txResetFiltersTopBtn" class="ghost-btn" style="font-size:11px; padding:4px 10px; color:var(--debit); border-color:rgba(224,86,36,0.3); cursor:pointer;">✕ پاک‌سازی همه</button>
+            <button type="button" id="txAdvFilterCloseBtn" style="background:var(--bg); border:1px solid var(--line); border-radius:8px; color:var(--ink-soft); font-size:14px; cursor:pointer; width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; transition:all .18s ease;" title="بستن">✕</button>
+          </div>
         </div>
 
-        <!-- Date Range Filter -->
-        <div class="field" style="margin-bottom:10px;">
-          <label style="font-size:11.5px; font-weight:700; color:var(--ink-soft); margin-bottom:6px; display:block;">📅 بازه زمانی</label>
-          <div class="tx-date-preset-row" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;">
-            <button type="button" class="filter-btn tx-date-preset-btn active" data-range="all">همه</button>
-            <button type="button" class="filter-btn tx-date-preset-btn" data-range="today">امروز</button>
-            <button type="button" class="filter-btn tx-date-preset-btn" data-range="7d">۷ روز اخیر</button>
-            <button type="button" class="filter-btn tx-date-preset-btn" data-range="30d">۳۰ روز اخیر</button>
-            <button type="button" class="filter-btn tx-date-preset-btn" data-range="thisMonth">این ماه</button>
-            <button type="button" class="filter-btn tx-date-preset-btn" data-range="prevMonth">ماه قبل</button>
-            <button type="button" class="filter-btn tx-date-preset-btn" data-range="custom">سفارشی…</button>
+        <!-- Section 1: Category & Person -->
+        <div class="adv-filter-card-block">
+          <div class="adv-filter-card-title"><span>🏷️</span><span>دسته‌بندی و طرف‌حساب</span></div>
+          <div class="row2" style="margin-bottom:0; gap:12px;">
+            <div class="field" style="flex:1;">
+              <label class="adv-filter-label">🏷️ دسته‌بندی تراکنش</label>
+              <select id="txCategoryFilterSelect" class="adv-filter-select">
+                <option value="all">همه دسته‌بندی‌ها</option>
+              </select>
+            </div>
+            <div class="field" style="flex:1;">
+              <label class="adv-filter-label">👤 شخص طرف‌حساب</label>
+              <select id="txPersonFilterSelect" class="adv-filter-select">
+                <option value="all">همه افراد</option>
+              </select>
+            </div>
           </div>
-          <div id="txCustomDateWrap" class="row2" style="display:none; gap:8px;">
+        </div>
+
+        <!-- Section 2: Date Range -->
+        <div class="adv-filter-card-block">
+          <div class="adv-filter-card-title"><span>📅</span><span>بازه زمانی تراکنش‌ها</span></div>
+          <div class="tx-date-preset-row" style="margin-bottom:8px;">
+            <button type="button" class="tx-date-preset-btn active" data-range="all">🌐 همه تاریخ‌ها</button>
+            <button type="button" class="tx-date-preset-btn" data-range="today">⚡ امروز</button>
+            <button type="button" class="tx-date-preset-btn" data-range="7d">📆 ۷ روز اخیر</button>
+            <button type="button" class="tx-date-preset-btn" data-range="30d">🗓 ۳۰ روز اخیر</button>
+            <button type="button" class="tx-date-preset-btn" data-range="thisMonth">📊 این ماه</button>
+            <button type="button" class="tx-date-preset-btn" data-range="prevMonth">⏪ ماه قبل</button>
+            <button type="button" class="tx-date-preset-btn" data-range="custom">⚙️ تاریخ دلخواه…</button>
+          </div>
+          <div id="txCustomDateWrap" class="row2" style="display:none; gap:12px; margin-top:10px;">
             <div class="field date-field" style="flex:1;">
-              <label style="font-size:11px;">از تاریخ</label>
-              <input type="text" id="txFilterStartDisplay" class="date-display" readonly placeholder="از تاریخ">
+              <label style="font-size:11px; font-weight:700; color:var(--ink-soft); margin-bottom:4px; display:block;">از تاریخ (شمسی)</label>
+              <input type="text" id="txFilterStartDisplay" class="date-display" readonly placeholder="انتخاب از تقویم" style="background:var(--card-bg); border:1.5px solid var(--line); border-radius:10px; padding:9px 12px; font-size:12.5px;">
               <input type="hidden" id="txFilterStartInput">
               <div id="txFilterStartCalendarPopup" class="calendar-popup" style="display:none;"></div>
             </div>
             <div class="field date-field" style="flex:1;">
-              <label style="font-size:11px;">تا تاریخ</label>
-              <input type="text" id="txFilterEndDisplay" class="date-display" readonly placeholder="تا تاریخ">
+              <label style="font-size:11px; font-weight:700; color:var(--ink-soft); margin-bottom:4px; display:block;">تا تاریخ (شمسی)</label>
+              <input type="text" id="txFilterEndDisplay" class="date-display" readonly placeholder="انتخاب از تقویم" style="background:var(--card-bg); border:1.5px solid var(--line); border-radius:10px; padding:9px 12px; font-size:12.5px;">
               <input type="hidden" id="txFilterEndInput">
               <div id="txFilterEndCalendarPopup" class="calendar-popup" style="display:none;"></div>
             </div>
           </div>
         </div>
 
-        <!-- Person and Account Filter -->
-        <div class="row2" style="margin-bottom:10px; gap:8px;">
-          <div class="field" style="flex:1;">
-            <label style="font-size:11px; font-weight:700; color:var(--ink-soft); margin-bottom:4px; display:block;">👤 شخص</label>
-            <select id="txPersonFilterSelect" style="width:100%; border:1px solid var(--line); border-radius:8px; background:var(--card-bg); padding:8px 10px; font-family:'Vazirmatn',sans-serif; font-size:12.5px; color:var(--ink);">
-              <option value="all">همه افراد</option>
-            </select>
-          </div>
-          <div class="field" style="flex:1;">
-            <label style="font-size:11px; font-weight:700; color:var(--ink-soft); margin-bottom:4px; display:block;">💳 حساب</label>
-            <select id="txAccountQuickFilterSelect" style="width:100%; border:1px solid var(--line); border-radius:8px; background:var(--card-bg); padding:8px 10px; font-family:'Vazirmatn',sans-serif; font-size:12.5px; color:var(--ink);">
-              <option value="all">همه حساب‌ها</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Min & Max Amount -->
-        <div class="row2" style="margin-bottom:10px; gap:8px;">
-          <div class="field" style="flex:1;">
-            <label style="font-size:11px; font-weight:700; color:var(--ink-soft); margin-bottom:4px; display:block;">💵 حداقل مبلغ (تومان)</label>
-            <input type="number" id="txMinAmountInput" placeholder="۰" min="0" step="1000" inputmode="decimal" style="width:100%; border:1px solid var(--line); border-radius:8px; background:var(--card-bg); padding:8px 10px; font-family:'Vazirmatn',sans-serif; font-size:12px; color:var(--ink); box-sizing:border-box;">
-          </div>
-          <div class="field" style="flex:1;">
-            <label style="font-size:11px; font-weight:700; color:var(--ink-soft); margin-bottom:4px; display:block;">💵 حداکثر مبلغ (تومان)</label>
-            <input type="number" id="txMaxAmountInput" placeholder="بدون سقف" min="0" step="1000" inputmode="decimal" style="width:100%; border:1px solid var(--line); border-radius:8px; background:var(--card-bg); padding:8px 10px; font-family:'Vazirmatn',sans-serif; font-size:12px; color:var(--ink); box-sizing:border-box;">
+        <!-- Section 3: Account & Min/Max Amount -->
+        <div class="adv-filter-card-block">
+          <div class="adv-filter-card-title"><span>💳</span><span>حساب و محدوده مبلغ</span></div>
+          <div class="row2" style="margin-bottom:0; gap:12px;">
+            <div class="field" style="flex:1.2;">
+              <label class="adv-filter-label">💳 حساب مبدا / مقصد</label>
+              <select id="txAccountQuickFilterSelect" class="adv-filter-select">
+                <option value="all">همه حساب‌ها</option>
+              </select>
+            </div>
+            <div class="field" style="flex:1;">
+              <label class="adv-filter-label">💵 حداقل مبلغ (تومان)</label>
+              <input type="number" id="txMinAmountInput" class="adv-filter-input" placeholder="۰" min="0" step="1000" inputmode="decimal">
+            </div>
+            <div class="field" style="flex:1;">
+              <label class="adv-filter-label">💵 حداکثر مبلغ (تومان)</label>
+              <input type="number" id="txMaxAmountInput" class="adv-filter-input" placeholder="بدون سقف" min="0" step="1000" inputmode="decimal">
+            </div>
           </div>
         </div>
 
-        <!-- Extra Toggles & Reset -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:8px; border-top:1px dashed var(--line); flex-wrap:wrap; gap:8px;">
-          <label style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--ink); cursor:pointer;">
-            <input type="checkbox" id="txHasPhotoFilterCheckbox" style="width:auto; margin:0;">
-            📎 فقط تراکنش‌های دارای فاکتور/رسید
-          </label>
-          <button type="button" id="txResetFiltersBtn" class="ghost-btn" style="font-size:11.5px; padding:4px 10px; color:var(--debit); border-color:var(--line); cursor:pointer;">✕ پاک کردن فیلترها</button>
+        <!-- Section 4: Attachments Toggle + Footer Actions -->
+        <div class="adv-filter-footer">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <label style="display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:600; color:var(--ink); cursor:pointer; background:var(--bg); border:1px solid var(--line); padding:6px 12px; border-radius:10px; user-select:none;">
+              <input type="checkbox" id="txHasPhotoFilterCheckbox" style="width:auto; margin:0; cursor:pointer;">
+              <span>📎 فقط تراکنش‌های دارای فاکتور/عکس</span>
+            </label>
+            <div id="txAdvFilterMatchCount" class="adv-filter-live-count">📊 در حال محاسبه…</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button type="button" id="txResetFiltersBtn" class="ghost-btn" style="font-size:12px; padding:7px 14px; color:var(--debit); border-color:rgba(224,86,36,0.3); cursor:pointer;">✕ پاک کردن فیلترها</button>
+            <button type="button" id="txApplyAndCloseBtn" class="submit-btn" style="font-size:12px; padding:7px 18px; border-radius:9px; cursor:pointer;">✓ بستن فیلترها</button>
+          </div>
         </div>
       </div>
 
@@ -1779,6 +2092,9 @@ if(!window.supabase){
 
       <!-- Virtual Transaction List -->
       <div class="tx-list" id="txList"></div>
+
+      <!-- Pagination Controls -->
+      <div id="txPaginationWrap" class="tx-pagination-wrap" style="display:none;"></div>
     </div>
     </div>
     </div>
@@ -3965,8 +4281,8 @@ function makeDatePicker(ids){
   return { state, setSelected, resetToToday, clear, open, close, render };
 }
 const txDatePicker = makeDatePicker({ display:'dateDisplay', input:'dateInput', popup:'calendarPopup' });
-const txFilterStartDatePicker = makeDatePicker({ display:'txFilterStartDisplay', input:'txFilterStartInput', popup:'txFilterStartCalendarPopup', onChange: () => renderTxList() });
-const txFilterEndDatePicker = makeDatePicker({ display:'txFilterEndDisplay', input:'txFilterEndInput', popup:'txFilterEndCalendarPopup', onChange: () => renderTxList() });
+const txFilterStartDatePicker = makeDatePicker({ display:'txFilterStartDisplay', input:'txFilterStartInput', popup:'txFilterStartCalendarPopup', onChange: () => { txCurrentPage = 1; renderTxList(); } });
+const txFilterEndDatePicker = makeDatePicker({ display:'txFilterEndDisplay', input:'txFilterEndInput', popup:'txFilterEndCalendarPopup', onChange: () => { txCurrentPage = 1; renderTxList(); } });
 const chDatePicker = makeDatePicker({ display:'chDateDisplay', input:'chDateInput', popup:'chCalendarPopup' });
 const reportsStartDatePicker = makeDatePicker({ display:'reportsStartDisplay', input:'reportsStartInput', popup:'reportsStartCalendarPopup' });
 const reportsEndDatePicker = makeDatePicker({ display:'reportsEndDisplay', input:'reportsEndInput', popup:'reportsEndCalendarPopup' });
@@ -7888,7 +8204,7 @@ function populateTxCategoryFilter(){
   if(!sel) return;
   const prev = sel.value;
   const cats = getAllCategoriesList();
-  sel.innerHTML = '<option value="all">همه دسته‌بندی‌ها</option>' +
+  sel.innerHTML = '<option value="all">🏷️ همه دسته‌بندی‌ها</option>' +
     cats.map(c => `<option value="${escapeHtml(c)}">${categoryEmoji(c)} ${escapeHtml(c)}</option>`).join('');
   sel.value = cats.includes(prev) ? prev : 'all';
 }
@@ -7964,6 +8280,7 @@ function resetAllTxFilters(){
   const photoChk = document.getElementById('txHasPhotoFilterCheckbox');
   if(photoChk) photoChk.checked = false;
 
+  txCurrentPage = 1;
   renderTxList();
 }
 
@@ -7985,6 +8302,7 @@ function updateTxActiveFilterChips(activeCount){
       clear: () => {
         document.getElementById('txSearchInput').value = '';
         document.getElementById('txSearchClearBtn').style.display = 'none';
+        txCurrentPage = 1;
         renderTxList();
       }
     });
@@ -7996,6 +8314,7 @@ function updateTxActiveFilterChips(activeCount){
       clear: () => {
         currentFilter = 'all';
         document.querySelectorAll('.tx-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+        txCurrentPage = 1;
         renderTxList();
       }
     });
@@ -8007,6 +8326,7 @@ function updateTxActiveFilterChips(activeCount){
       label: `دسته‌بندی: ${categoryEmoji(catVal)} ${escapeHtml(catVal)}`,
       clear: () => {
         document.getElementById('txCategoryFilterSelect').value = 'all';
+        txCurrentPage = 1;
         renderTxList();
       }
     });
@@ -8022,6 +8342,7 @@ function updateTxActiveFilterChips(activeCount){
         document.getElementById('txCustomDateWrap').style.display = 'none';
         txFilterStartDatePicker.clear();
         txFilterEndDatePicker.clear();
+        txCurrentPage = 1;
         renderTxList();
       }
     });
@@ -8033,6 +8354,7 @@ function updateTxActiveFilterChips(activeCount){
       label: `شخص: ${escapeHtml(personName(personVal))}`,
       clear: () => {
         document.getElementById('txPersonFilterSelect').value = 'all';
+        txCurrentPage = 1;
         renderTxList();
       }
     });
@@ -8044,6 +8366,7 @@ function updateTxActiveFilterChips(activeCount){
       clear: () => {
         currentAccountFilter = 'all';
         document.getElementById('txAccountQuickFilterSelect').value = 'all';
+        txCurrentPage = 1;
         renderTxList();
       }
     });
@@ -8055,6 +8378,7 @@ function updateTxActiveFilterChips(activeCount){
       label: `حداقل: ${fmt(minAmt)}`,
       clear: () => {
         document.getElementById('txMinAmountInput').value = '';
+        txCurrentPage = 1;
         renderTxList();
       }
     });
@@ -8066,6 +8390,7 @@ function updateTxActiveFilterChips(activeCount){
       label: `حداکثر: ${fmt(maxAmt)}`,
       clear: () => {
         document.getElementById('txMaxAmountInput').value = '';
+        txCurrentPage = 1;
         renderTxList();
       }
     });
@@ -8077,6 +8402,7 @@ function updateTxActiveFilterChips(activeCount){
       label: '📎 فقط با فاکتور/رسید',
       clear: () => {
         document.getElementById('txHasPhotoFilterCheckbox').checked = false;
+        txCurrentPage = 1;
         renderTxList();
       }
     });
@@ -8115,6 +8441,7 @@ function wireTxFilters(){
       document.querySelectorAll('.tx-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
       currentAccountFilter = 'all';
       document.getElementById('txAccountQuickFilterSelect').value = 'all';
+      txCurrentPage = 1;
       renderTxList();
     });
   });
@@ -8127,6 +8454,7 @@ function wireTxFilters(){
       clearTimeout(txSearchDebounceTimer);
       txSearchDebounceTimer = null;
     }
+    txCurrentPage = 1;
     if(immediate){
       renderTxList();
     } else {
@@ -8161,6 +8489,13 @@ function wireTxFilters(){
 
   const advToggleBtn = document.getElementById('txAdvFilterToggleBtn');
   const advPanel = document.getElementById('txAdvFilterPanel');
+  const closeAdvPanel = () => {
+    if(advPanel){
+      advPanel.style.display = 'none';
+      advToggleBtn?.classList.remove('active');
+    }
+  };
+
   if(advToggleBtn && advPanel){
     advToggleBtn.addEventListener('click', () => {
       const isHidden = advPanel.style.display === 'none';
@@ -8169,7 +8504,18 @@ function wireTxFilters(){
     });
   }
 
-  document.getElementById('txCategoryFilterSelect')?.addEventListener('change', renderTxList);
+  document.getElementById('txAdvFilterCloseBtn')?.addEventListener('click', closeAdvPanel);
+  document.getElementById('txResetFiltersTopBtn')?.addEventListener('click', resetAllTxFilters);
+  document.getElementById('txApplyAndCloseBtn')?.addEventListener('click', () => {
+    closeAdvPanel();
+    txCurrentPage = 1;
+    renderTxList();
+  });
+
+  document.getElementById('txCategoryFilterSelect')?.addEventListener('change', () => {
+    txCurrentPage = 1;
+    renderTxList();
+  });
 
   document.querySelectorAll('.tx-date-preset-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -8179,6 +8525,7 @@ function wireTxFilters(){
       if(customWrap){
         customWrap.style.display = (currentTxDateRange === 'custom') ? 'flex' : 'none';
       }
+      txCurrentPage = 1;
       renderTxList();
     });
   });
@@ -8195,18 +8542,29 @@ function wireTxFilters(){
       currentAccountFilter = accountId;
       document.querySelectorAll('.tx-filter-btn').forEach(b => b.classList.remove('active'));
     }
+    txCurrentPage = 1;
     renderTxList();
   });
 
   document.getElementById('txPersonFilterSelect')?.addEventListener('change', () => {
     document.getElementById('txAccountQuickFilterSelect').value = 'all';
     currentAccountFilter = 'all';
+    txCurrentPage = 1;
     renderTxList();
   });
 
-  document.getElementById('txMinAmountInput')?.addEventListener('input', renderTxList);
-  document.getElementById('txMaxAmountInput')?.addEventListener('input', renderTxList);
-  document.getElementById('txHasPhotoFilterCheckbox')?.addEventListener('change', renderTxList);
+  document.getElementById('txMinAmountInput')?.addEventListener('input', () => {
+    txCurrentPage = 1;
+    renderTxList();
+  });
+  document.getElementById('txMaxAmountInput')?.addEventListener('input', () => {
+    txCurrentPage = 1;
+    renderTxList();
+  });
+  document.getElementById('txHasPhotoFilterCheckbox')?.addEventListener('change', () => {
+    txCurrentPage = 1;
+    renderTxList();
+  });
   document.getElementById('txResetFiltersBtn')?.addEventListener('click', resetAllTxFilters);
 }
 wireTxFilters();
@@ -8215,15 +8573,15 @@ function populateTxPersonFilter(){
   const sel = document.getElementById('txPersonFilterSelect');
   if(!sel) return;
   const prev = sel.value;
-  sel.innerHTML = '<option value="all">همه افراد</option>' +
-    data.people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  sel.innerHTML = '<option value="all">👤 همه افراد</option>' +
+    data.people.map(p => `<option value="${p.id}">${personEmoji(p.id) || '👤'} ${escapeHtml(p.name)}</option>`).join('');
   sel.value = data.people.some(p => p.id === prev) ? prev : 'all';
 
   const q = document.getElementById('txAccountQuickFilterSelect');
   if(q){
     const qPrev = q.value;
-    q.innerHTML = '<option value="all">همه حساب‌ها</option>' +
-      data.people.map(p => `<option value="${p.id}-income">واریز ${escapeHtml(p.name)}</option><option value="${p.id}-expense">برداشت ${escapeHtml(p.name)}</option>`).join('');
+    q.innerHTML = '<option value="all">💳 همه حساب‌ها</option>' +
+      data.people.map(p => `<option value="${p.id}-income">📥 واریز ${escapeHtml(p.name)}</option><option value="${p.id}-expense">📤 برداشت ${escapeHtml(p.name)}</option>`).join('');
     q.value = Array.from(q.options).some(o => o.value === qPrev) ? qPrev : 'all';
   }
 }
@@ -8687,6 +9045,9 @@ function onTxVirtualScroll(){
 window.addEventListener('scroll', onTxVirtualScroll, { passive: true });
 window.addEventListener('resize', onTxVirtualScroll, { passive: true });
 
+let txCurrentPage = 1;
+let txPageSize = 10;
+
 function renderTxList(){
   const list = document.getElementById('txList');
   if(!list) return;
@@ -8783,14 +9144,29 @@ function renderTxList(){
 
   list.style.height = 'auto';
 
-  if(txs.length === 0){
+  const totalFilteredCount = txs.length;
+  const totalPages = (txPageSize > 0) ? Math.max(1, Math.ceil(totalFilteredCount / txPageSize)) : 1;
+  if(txCurrentPage > totalPages) txCurrentPage = totalPages;
+  if(txCurrentPage < 1) txCurrentPage = 1;
+
+  const matchCountEl = document.getElementById('txAdvFilterMatchCount');
+  if(matchCountEl){
+    matchCountEl.textContent = `📊 ${faDigits(totalFilteredCount)} مورد مطابق فیلتر`;
+  }
+
+  if(totalFilteredCount === 0){
     txVirtualItems = [];
     txVirtualTotalHeight = 0;
     txVirtualLastStart = -1;
     txVirtualLastEnd = -1;
     list.innerHTML = '<div class="empty-state"><span class="empty-state-icon">📭</span>تراکنشی با فیلترهای انتخابی پیدا نشد.</div>';
+    renderTxPagination(0, 0, 0, 0);
     return;
   }
+
+  const startIndex = (txPageSize > 0) ? (txCurrentPage - 1) * txPageSize : 0;
+  const endIndex = (txPageSize > 0) ? Math.min(totalFilteredCount, startIndex + txPageSize) : totalFilteredCount;
+  const pageTxs = (txPageSize > 0) ? txs.slice(startIndex, endIndex) : txs;
 
   txVirtualItems = [];
   let currentTop = 0;
@@ -8798,10 +9174,10 @@ function renderTxList(){
   const HEADER_HEIGHT = 44;
   const ROW_HEIGHT = 66;
 
-  txs.forEach(tx => {
+  pageTxs.forEach(tx => {
     if(tx.date !== lastDate){
       lastDate = tx.date;
-      const dayTxs = txs.filter(t => t.date === lastDate);
+      const dayTxs = pageTxs.filter(t => t.date === lastDate);
       const dayNet = dayTxs.reduce((s,t) => s + (t.type === 'income' ? t.amount : -t.amount), 0);
       txVirtualItems.push({
         type: 'header',
@@ -8827,6 +9203,101 @@ function renderTxList(){
   txVirtualLastEnd = -1;
 
   updateVirtualTxList(true);
+  renderTxPagination(totalFilteredCount, totalPages, startIndex, endIndex);
+}
+
+function renderTxPagination(totalCount, totalPages, startIndex, endIndex){
+  const wrap = document.getElementById('txPaginationWrap');
+  if(!wrap) return;
+
+  if(totalCount <= 0){
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+
+  wrap.style.display = 'flex';
+
+  const startLabel = faDigits(startIndex + 1);
+  const endLabel = faDigits(endIndex);
+  const totalLabel = faDigits(totalCount);
+  const pageLabel = faDigits(txCurrentPage);
+  const totalPagesLabel = faDigits(totalPages);
+
+  let pagesToShow = [];
+  if(totalPages <= 7){
+    for(let p = 1; p <= totalPages; p++) pagesToShow.push(p);
+  } else {
+    pagesToShow.push(1);
+    if(txCurrentPage > 3) pagesToShow.push('...');
+    const startP = Math.max(2, txCurrentPage - 1);
+    const endP = Math.min(totalPages - 1, txCurrentPage + 1);
+    for(let p = startP; p <= endP; p++){
+      if(!pagesToShow.includes(p)) pagesToShow.push(p);
+    }
+    if(txCurrentPage < totalPages - 2) pagesToShow.push('...');
+    if(!pagesToShow.includes(totalPages)) pagesToShow.push(totalPages);
+  }
+
+  const pagesHtml = pagesToShow.map(p => {
+    if(p === '...'){
+      return '<span class="tx-page-ellipsis">…</span>';
+    }
+    const isActive = p === txCurrentPage;
+    return `<button type="button" class="tx-page-btn${isActive ? ' active' : ''}" data-page="${p}">${faDigits(p)}</button>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="tx-pagination-bar">
+      <div class="tx-pagination-info">
+        <span class="tx-pagination-badge">📄 صفحه ${pageLabel} از ${totalPagesLabel}</span>
+        <span style="opacity:0.35;">|</span>
+        <span>نمایش <b>${startLabel}</b> تا <b>${endLabel}</b> از <b>${totalLabel}</b> تراکنش</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <label for="txPageSizeSelect" style="font-size:11.5px; color:var(--ink-soft); font-weight:600;">هر صفحه:</label>
+        <select id="txPageSizeSelect" class="tx-pagesize-select">
+          <option value="10"${txPageSize === 10 ? ' selected' : ''}>۱۰ مورد</option>
+          <option value="20"${txPageSize === 20 ? ' selected' : ''}>۲۰ مورد</option>
+          <option value="50"${txPageSize === 50 ? ' selected' : ''}>۵۰ مورد</option>
+          <option value="0"${txPageSize === 0 ? ' selected' : ''}>همه موارد</option>
+        </select>
+      </div>
+    </div>
+    ${totalPages > 1 ? `
+    <div class="tx-pagination-pages">
+      <button type="button" class="tx-page-btn tx-page-nav-btn" data-page="${txCurrentPage - 1}" ${txCurrentPage <= 1 ? 'disabled' : ''}>
+        ◀ قبلی
+      </button>
+      ${pagesHtml}
+      <button type="button" class="tx-page-btn tx-page-nav-btn" data-page="${txCurrentPage + 1}" ${txCurrentPage >= totalPages ? 'disabled' : ''}>
+        بعدی ▶
+      </button>
+    </div>` : ''}
+  `;
+
+  wrap.querySelectorAll('.tx-page-btn[data-page]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = parseInt(btn.dataset.page, 10);
+      if(!isNaN(p) && p >= 1 && p <= totalPages && p !== txCurrentPage){
+        txCurrentPage = p;
+        renderTxList();
+        const searchWrap = document.querySelector('.tx-search-bar-wrap');
+        if(searchWrap){
+          searchWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    });
+  });
+
+  const sizeSelect = document.getElementById('txPageSizeSelect');
+  if(sizeSelect){
+    sizeSelect.addEventListener('change', (e) => {
+      txPageSize = parseInt(e.target.value, 10);
+      txCurrentPage = 1;
+      renderTxList();
+    });
+  }
 }
 
 /* ---------- edit transaction ---------- */

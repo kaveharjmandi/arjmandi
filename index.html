@@ -12,6 +12,16 @@
 <meta name="apple-mobile-web-app-title" content="آریانا">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="Vazirmatn-font-face.css">
+<script src="react.min.js"></script>
+<script src="react-dom.min.js"></script>
+<script src="recharts.min.js"></script>
+<script>
+if(typeof React === 'undefined' || typeof ReactDOM === 'undefined' || typeof Recharts === 'undefined'){
+  document.write('<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"><\/script>');
+  document.write('<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"><\/script>');
+  document.write('<script src="https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.min.js"><\/script>');
+}
+</script>
 <style>
 @import url('https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/Vazirmatn-font-face.css');
 @import url('https://fonts.bunny.net/css?family=ibm-plex-mono:400,500,600');
@@ -79,14 +89,19 @@ body[data-theme="dark"]{
 
 /* settings side drawer */
 .drawer-backdrop{
-  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:90;
+  position:fixed; inset:0; background:rgba(0,0,0,0.48); z-index:90;
+  opacity:0; pointer-events:none;
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  transition: opacity .28s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.drawer-backdrop.show{ display:block; }
+.drawer-backdrop.show{ opacity:1; pointer-events:auto; }
 .settings-drawer{
-  position:fixed; top:0; right:0; bottom:0; width:78%; max-width:310px;
-  background:var(--bg); z-index:95; box-shadow:-8px 0 28px rgba(0,0,0,0.28);
-  transform:translateX(100%); transition:transform .25s ease;
+  position:fixed; top:0; right:0; bottom:0; width:82%; max-width:320px;
+  background:var(--bg); z-index:95; box-shadow:-8px 0 32px rgba(0,0,0,0.32);
+  transform:translateX(105%);
+  transition: transform .32s cubic-bezier(0.16, 1, 0.3, 1);
   overflow-y:auto; padding:20px 18px 40px;
+  will-change: transform;
 }
 .settings-drawer.open{ transform:translateX(0); }
 .settings-drawer .site-header{ display:flex; align-items:center; gap:10px; text-align:right; margin-bottom:14px; }
@@ -653,8 +668,14 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .tab-nav-btn span{ font-size:10px; font-weight:600; }
 .tab-nav-btn.active{ background:transparent; color:var(--accent); }
 .tab-nav-btn.active .tab-icon{ background:var(--accent); filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15)); }
-.tab-panel{ animation: tabFade .22s ease; }
-@keyframes tabFade{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+.tab-panel{
+  animation: tabPanelTransition .28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+}
+@keyframes tabPanelTransition{
+  0% { opacity: 0; transform: translateY(10px) scale(0.995); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 /* ================= FAB (quick-add) ================= */
 /* pointer-events:none is essential here: this is a position:fixed flex column whose
@@ -719,7 +740,22 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .sub-tab-nav{ display:flex; gap:6px; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:4px; margin-bottom:14px; }
 .sub-tab-btn{ flex:1; border:none; background:transparent; border-radius:9px; padding:9px 6px; font-family:inherit; font-size:12.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; transition:.15s; }
 .sub-tab-btn.active{ background:var(--card); color:var(--accent); box-shadow:0 1px 4px rgba(0,0,0,0.08); }
-.sub-tab-panel{ animation: tabFade .2s ease; }
+.sub-tab-panel{
+  animation: subTabPanelTransition .22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+}
+@keyframes subTabPanelTransition{
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.settings-cat-panel, #settingsMainList{
+  animation: settingsCatTransition .24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+}
+@keyframes settingsCatTransition{
+  0% { opacity: 0; transform: translateX(12px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
 
 /* ================= ADMIN ================= */
 .admin-section{ border-top:1px dashed var(--line); padding-top:14px; margin-top:14px; }
@@ -851,11 +887,10 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .offline-banner{
   position:fixed; top:0; left:0; right:0; z-index:300;
   background:var(--warn-bg); color:var(--warn-text); border-bottom:1px solid var(--warn-border);
-  font-size:12.5px; text-align:center; padding:9px 12px;
+  font-size:12.5px; text-align:center; padding:9px 12px; font-weight:600;
   transform:translateY(-100%);
-}
-@media (prefers-reduced-motion: no-preference){
-  .offline-banner{ transition:transform 0.25s ease; }
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.12);
 }
 .offline-banner.show{ transform:translateY(0); }
 body.offline-mode{ padding-top:38px; }
@@ -1825,6 +1860,12 @@ if(!window.supabase){
     <div class="card" id="topExpensesCard" style="display:none;">
       <div class="section-title">بزرگ‌ترین هزینه‌های این بازه</div>
       <div id="topExpensesBox"></div>
+    </div>
+    <div class="card" id="rechartsTrendCard">
+      <div class="section-title">📈 روند ۶ ماه گذشته (واریز و برداشت)</div>
+      <div style="font-size:11.5px; color:var(--ink-soft); margin-bottom:12px;">تحلیل خطی دقیق روند درآمد و هزینه در ۶ ماه اخیر با Recharts</div>
+      <div id="rechartsTrendBox" style="min-height:260px; width:100%; direction:ltr;"></div>
+      <div id="rechartsTrendMeta" style="margin-top:12px; display:flex; justify-content:space-between; gap:6px;"></div>
     </div>
     <div class="card">
       <div class="section-title" id="barChartTitle">روند این بازه (واریز و برداشت)</div>
@@ -4480,7 +4521,15 @@ function scrollAppToTop(){
 }
 function showTab(tab, opts){
   document.querySelectorAll('.tab-panel').forEach(p => {
-    p.style.display = (p.dataset.tab === tab) ? '' : 'none';
+    const isTarget = (p.dataset.tab === tab);
+    if(isTarget){
+      p.style.display = '';
+      p.style.animation = 'none';
+      void p.offsetWidth;
+      p.style.animation = '';
+    } else {
+      p.style.display = 'none';
+    }
   });
   document.querySelectorAll('.tab-nav-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === tab);
@@ -4495,7 +4544,15 @@ function showTab(tab, opts){
 }
 function showTxSubTab(tab, opts){
   document.querySelectorAll('.sub-tab-panel[data-txsubtab]').forEach(p => {
-    p.style.display = (p.dataset.txsubtab === tab) ? '' : 'none';
+    const isTarget = (p.dataset.txsubtab === tab);
+    if(isTarget){
+      p.style.display = '';
+      p.style.animation = 'none';
+      void p.offsetWidth;
+      p.style.animation = '';
+    } else {
+      p.style.display = 'none';
+    }
   });
   document.querySelectorAll('#txSubTabNav .sub-tab-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.txsubtab === tab);
@@ -4514,7 +4571,15 @@ document.getElementById('txSubTabNav').addEventListener('click', (e) => {
 });
 function showReportsSubTab(tab, opts){
   document.querySelectorAll('.sub-tab-panel[data-reportsubtab]').forEach(p => {
-    p.style.display = (p.dataset.reportsubtab === tab) ? '' : 'none';
+    const isTarget = (p.dataset.reportsubtab === tab);
+    if(isTarget){
+      p.style.display = '';
+      p.style.animation = 'none';
+      void p.offsetWidth;
+      p.style.animation = '';
+    } else {
+      p.style.display = 'none';
+    }
   });
   document.querySelectorAll('#reportsSubTabNav .sub-tab-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.reportsubtab === tab);
@@ -4554,13 +4619,24 @@ function restoreUiState(){
 document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
 function showSettingsMain(){
   document.querySelectorAll('.settings-cat-panel').forEach(p => p.style.display = 'none');
-  document.getElementById('settingsMainList').style.display = 'block';
+  const main = document.getElementById('settingsMainList');
+  if(main){
+    main.style.display = 'block';
+    main.style.animation = 'none';
+    void main.offsetWidth;
+    main.style.animation = '';
+  }
 }
 function showSettingsCat(cat){
   document.getElementById('settingsMainList').style.display = 'none';
   document.querySelectorAll('.settings-cat-panel').forEach(p => p.style.display = 'none');
   const panel = document.getElementById('catPanel-' + cat);
-  if(panel) panel.style.display = 'block';
+  if(panel){
+    panel.style.display = 'block';
+    panel.style.animation = 'none';
+    void panel.offsetWidth;
+    panel.style.animation = '';
+  }
 }
 document.querySelectorAll('#settingsMainList [data-cat]').forEach(row => {
   row.addEventListener('click', () => pushPanelState({ cat: row.getAttribute('data-cat') }));
@@ -5992,6 +6068,7 @@ function renderCharts(){
   renderPieChart(agg.byCategory, range);
   renderBarChart(agg.buckets);
   renderPersonChart(agg.byPerson);
+  renderRechartsTrend();
 }
 
 /* ---- comparison with the previous period ---- */
@@ -6244,6 +6321,251 @@ document.getElementById('pieChartLegend').addEventListener('click', onPieCategor
 
 function renderBarChart(rows){
   renderIncomeExpenseGroupedChart('barChartBox', rows);
+}
+
+/* ---------- 6-month trend line graph with Recharts ---------- */
+let rechartsRoot = null;
+
+function getSixMonthsTrendData(){
+  const anchor = todayIso();
+  const months = [];
+  for(let i = 5; i >= 0; i--){
+    const iso = (i === 0) ? anchor : addJalaliMonths(anchor, -i);
+    const r = getPeriodRange('monthly', iso);
+    const [jy, jm] = isoToJalali(iso);
+    const monthName = JALALI_MONTHS[jm - 1] || '';
+    const label = `${monthName} ${faDigits(jy)}`;
+
+    let income = 0;
+    let expense = 0;
+    const txs = data.transactions || [];
+    for(let j = 0; j < txs.length; j++){
+      const t = txs[j];
+      if(t.date >= r.start && t.date <= r.end){
+        if(t.type === 'income') income += Number(t.amount) || 0;
+        else if(t.type === 'expense') expense += Number(t.amount) || 0;
+      }
+    }
+    const net = income - expense;
+    months.push({
+      key: `${jy}-${jm}`,
+      label: monthName,
+      fullLabel: label,
+      income,
+      expense,
+      net,
+      incomeFormatted: fmt(income),
+      expenseFormatted: fmt(expense),
+      netFormatted: (net < 0 ? '−' : '+') + fmt(Math.abs(net))
+    });
+  }
+  return months;
+}
+
+function renderSvgFallbackTrend(container, data6m){
+  if(!container) return;
+  const maxVal = Math.max(1, ...data6m.map(d => Math.max(d.income, d.expense)));
+  const W = 360, H = 220;
+  const padL = 40, padR = 25, padT = 20, padB = 40;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const n = data6m.length;
+
+  const getX = (idx) => padL + (idx / Math.max(1, n - 1)) * plotW;
+  const getY = (val) => padT + plotH - (val / maxVal) * plotH;
+
+  const incPoints = data6m.map((d, i) => ({ x: getX(i), y: getY(d.income), d }));
+  const expPoints = data6m.map((d, i) => ({ x: getX(i), y: getY(d.expense), d }));
+
+  const makePath = (pts) => {
+    if(pts.length === 0) return '';
+    return pts.reduce((acc, p, i) => {
+      if(i === 0) return `M ${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+      const prev = pts[i - 1];
+      const cx1 = prev.x + (p.x - prev.x) / 2;
+      const cy1 = prev.y;
+      const cx2 = prev.x + (p.x - prev.x) / 2;
+      const cy2 = p.y;
+      return `${acc} C ${cx1.toFixed(1)} ${cy1.toFixed(1)}, ${cx2.toFixed(1)} ${cy2.toFixed(1)}, ${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+    }, '');
+  };
+
+  const incPath = makePath(incPoints);
+  const expPath = makePath(expPoints);
+
+  let gridLines = '';
+  for(let step = 0; step <= 4; step++){
+    const yVal = padT + (step / 4) * plotH;
+    const valAt = Math.round(maxVal * (1 - step / 4));
+    gridLines += `<line x1="${padL}" y1="${yVal}" x2="${W - padR}" y2="${yVal}" stroke="var(--line)" stroke-dasharray="3,3" opacity="0.6"/>`;
+    gridLines += `<text x="${padL - 6}" y="${yVal + 3}" text-anchor="end" font-size="9" fill="var(--ink-soft)" font-family="Vazirmatn">${fmt(valAt)}</text>`;
+  }
+
+  const xLabels = data6m.map((d, i) => {
+    const x = getX(i);
+    return `<text x="${x}" y="${H - 12}" text-anchor="middle" font-size="10.5" fill="var(--ink-soft)" font-family="Vazirmatn">${escapeHtml(d.label)}</text>`;
+  }).join('');
+
+  const incDots = incPoints.map(p => `
+    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="var(--credit)" stroke="var(--card-bg)" stroke-width="1.5">
+      <title>${escapeHtml(p.d.fullLabel)} - واریز: ${p.d.incomeFormatted}</title>
+    </circle>
+  `).join('');
+
+  const expDots = expPoints.map(p => `
+    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="var(--debit)" stroke="var(--card-bg)" stroke-width="1.5">
+      <title>${escapeHtml(p.d.fullLabel)} - برداشت: ${p.d.expenseFormatted}</title>
+    </circle>
+  `).join('');
+
+  container.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto; display:block; overflow:visible;">
+      ${gridLines}
+      <path d="${incPath}" fill="none" stroke="var(--credit)" stroke-width="3" stroke-linecap="round"/>
+      <path d="${expPath}" fill="none" stroke="var(--debit)" stroke-width="3" stroke-linecap="round"/>
+      ${incDots}
+      ${expDots}
+      ${xLabels}
+    </svg>
+    <div style="display:flex; justify-content:center; gap:16px; margin-top:8px; font-size:11.5px; font-family:'Vazirmatn',sans-serif;">
+      <span style="display:flex; align-items:center; gap:6px; color:var(--ink);"><span style="width:12px; height:3px; background:var(--credit); border-radius:2px;"></span> واریز (درآمد)</span>
+      <span style="display:flex; align-items:center; gap:6px; color:var(--ink);"><span style="width:12px; height:3px; background:var(--debit); border-radius:2px;"></span> برداشت (هزینه)</span>
+    </div>
+  `;
+}
+
+function renderRechartsTrend(){
+  const container = document.getElementById('rechartsTrendBox');
+  if(!container) return;
+
+  const data6m = getSixMonthsTrendData();
+
+  // Render summary metrics below chart
+  const metaBox = document.getElementById('rechartsTrendMeta');
+  if(metaBox){
+    const totalInc = data6m.reduce((s, m) => s + m.income, 0);
+    const totalExp = data6m.reduce((s, m) => s + m.expense, 0);
+    const avgExp = Math.round(totalExp / (data6m.length || 1));
+    metaBox.innerHTML = `
+      <div style="flex:1; background:var(--card-bg); border:1px solid var(--line); border-radius:10px; padding:8px 6px; text-align:center;">
+        <div style="font-size:10.5px; color:var(--ink-soft);">مجموع درآمد ۶ ماه</div>
+        <div style="font-size:12px; font-weight:700; color:var(--credit); margin-top:3px;">${fmt(totalInc)}</div>
+      </div>
+      <div style="flex:1; background:var(--card-bg); border:1px solid var(--line); border-radius:10px; padding:8px 6px; text-align:center;">
+        <div style="font-size:10.5px; color:var(--ink-soft);">مجموع هزینه ۶ ماه</div>
+        <div style="font-size:12px; font-weight:700; color:var(--debit); margin-top:3px;">${fmt(totalExp)}</div>
+      </div>
+      <div style="flex:1; background:var(--card-bg); border:1px solid var(--line); border-radius:10px; padding:8px 6px; text-align:center;">
+        <div style="font-size:10.5px; color:var(--ink-soft);">میانگین ماهانه هزینه</div>
+        <div style="font-size:12px; font-weight:700; color:var(--ink); margin-top:3px;">${fmt(avgExp)}</div>
+      </div>
+    `;
+  }
+
+  // If React + ReactDOM + Recharts are loaded, render interactive Recharts LineChart
+  if(window.React && window.ReactDOM && window.Recharts){
+    try {
+      const e = React.createElement;
+      const {
+        ResponsiveContainer,
+        LineChart,
+        Line,
+        XAxis,
+        YAxis,
+        CartesianGrid,
+        Tooltip,
+        Legend
+      } = window.Recharts;
+
+      const CustomTooltip = (props) => {
+        const { active, payload, label } = props;
+        if(!active || !payload || !payload.length) return null;
+        const item = payload[0] && payload[0].payload;
+        const inc = item ? item.income : 0;
+        const exp = item ? item.expense : 0;
+        const net = inc - exp;
+        return e('div', {
+          style: {
+            background: 'var(--card-bg)',
+            border: '1.5px solid var(--line)',
+            borderRadius: '10px',
+            padding: '10px 14px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+            fontFamily: "'Vazirmatn', sans-serif",
+            direction: 'rtl',
+            fontSize: '12px',
+            minWidth: '150px'
+          }
+        },
+          e('div', { style: { fontWeight: '700', borderBottom: '1px solid var(--line)', paddingBottom: '4px', marginBottom: '6px', color: 'var(--ink)' } }, item ? item.fullLabel : label),
+          e('div', { style: { display: 'flex', justifyContent: 'space-between', color: 'var(--credit)', margin: '3px 0' } },
+            e('span', null, 'واریز:'),
+            e('b', null, '+' + fmt(inc) + ' ' + data.currency)
+          ),
+          e('div', { style: { display: 'flex', justifyContent: 'space-between', color: 'var(--debit)', margin: '3px 0' } },
+            e('span', null, 'برداشت:'),
+            e('b', null, '−' + fmt(exp) + ' ' + data.currency)
+          ),
+          e('div', { style: { display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--line)', paddingTop: '4px', marginTop: '4px', color: net >= 0 ? 'var(--credit)' : 'var(--debit)' } },
+            e('span', null, 'تراز:'),
+            e('b', null, (net >= 0 ? '+' : '−') + fmt(Math.abs(net)) + ' ' + data.currency)
+          )
+        );
+      };
+
+      const chartNode = e(ResponsiveContainer, { width: '100%', height: 260 },
+        e(LineChart, {
+          data: data6m,
+          margin: { top: 12, right: 18, left: -10, bottom: 6 }
+        },
+          e(CartesianGrid, { strokeDasharray: '3 3', stroke: 'var(--line)', opacity: 0.7 }),
+          e(XAxis, {
+            dataKey: 'label',
+            stroke: 'var(--ink-soft)',
+            tick: { fill: 'var(--ink-soft)', fontSize: 11, fontFamily: "'Vazirmatn', sans-serif" }
+          }),
+          e(YAxis, {
+            stroke: 'var(--ink-soft)',
+            tick: { fill: 'var(--ink-soft)', fontSize: 10, fontFamily: "'IBM Plex Mono', monospace" },
+            tickFormatter: (v) => fmt(v)
+          }),
+          e(Tooltip, { content: e(CustomTooltip) }),
+          e(Legend, {
+            wrapperStyle: { fontFamily: "'Vazirmatn', sans-serif", fontSize: '11.5px', paddingTop: '8px' },
+            formatter: (value) => e('span', { style: { color: 'var(--ink)' } }, value)
+          }),
+          e(Line, {
+            type: 'monotone',
+            dataKey: 'income',
+            name: 'واریز (درآمد)',
+            stroke: 'var(--credit)',
+            strokeWidth: 3,
+            dot: { r: 4.5, fill: 'var(--credit)', strokeWidth: 1.5, stroke: 'var(--card-bg)' },
+            activeDot: { r: 7, stroke: 'var(--card-bg)', strokeWidth: 2 }
+          }),
+          e(Line, {
+            type: 'monotone',
+            dataKey: 'expense',
+            name: 'برداشت (هزینه)',
+            stroke: 'var(--debit)',
+            strokeWidth: 3,
+            dot: { r: 4.5, fill: 'var(--debit)', strokeWidth: 1.5, stroke: 'var(--card-bg)' },
+            activeDot: { r: 7, stroke: 'var(--card-bg)', strokeWidth: 2 }
+          })
+        )
+      );
+
+      if(!rechartsRoot){
+        rechartsRoot = ReactDOM.createRoot(container);
+      }
+      rechartsRoot.render(chartNode);
+      return;
+    } catch(err) {
+      console.warn('Recharts render error, falling back to SVG:', err);
+    }
+  }
+
+  renderSvgFallbackTrend(container, data6m);
 }
 
 /* ---------- goals (savings pots) ---------- */
@@ -8907,19 +9229,36 @@ setInterval(updateLiveClock, 1000);
 function updateOfflineBanner(){
   const banner = document.getElementById('offlineBanner');
   if(!banner) return;
-  const offline = !navigator.onLine;
-  banner.classList.toggle('show', offline);
-  document.body.classList.toggle('offline-mode', offline);
+  const isOffline = !navigator.onLine;
+  banner.classList.toggle('show', isOffline);
+  document.body.classList.toggle('offline-mode', isOffline);
 }
-window.addEventListener('online', updateOfflineBanner);
+window.addEventListener('online', () => {
+  updateOfflineBanner();
+  if(typeof syncWithServer === 'function') syncWithServer();
+});
 window.addEventListener('offline', updateOfflineBanner);
 updateOfflineBanner();
 
-if('serviceWorker' in navigator){
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js').catch(e => console.warn('SW register failed', e));
-  });
+function registerServiceWorker(){
+  if(!('serviceWorker' in navigator)) return;
+  const doRegister = () => {
+    navigator.serviceWorker.register('./service-worker.js', { scope: './' })
+      .then((reg) => {
+        console.log('ServiceWorker registered with scope:', reg.scope);
+      })
+      .catch((err) => {
+        console.warn('ServiceWorker registration failed:', err);
+      });
+  };
+
+  if(document.readyState === 'complete' || document.readyState === 'interactive'){
+    doRegister();
+  } else {
+    window.addEventListener('load', doRegister);
+  }
 }
+registerServiceWorker();
 
 setupPullToRefresh();
 init();

@@ -1,17 +1,27 @@
-const CACHE_NAME = 'sandoogh-khanevadeh-v113';
+const CACHE_NAME = 'sandoogh-khanevadeh-v115';
 const FILES_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
   './supabase.js',
+  './react.min.js',
+  './react-dom.min.js',
+  './recharts.min.js',
   './Vazirmatn-font-face.css',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './fonts/webfonts/Vazirmatn-Regular.woff2',
+  './fonts/webfonts/Vazirmatn-Medium.woff2',
+  './fonts/webfonts/Vazirmatn-Bold.woff2'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES_TO_CACHE))
+    caches.open(CACHE_NAME).then((cache) => {
+      return Promise.allSettled(
+        FILES_TO_CACHE.map(url => cache.add(url).catch(err => console.warn('Cache item failed:', url, err)))
+      );
+    })
   );
   self.skipWaiting();
 });

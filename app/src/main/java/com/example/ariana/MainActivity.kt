@@ -123,7 +123,9 @@ class MainActivity : FragmentActivity() {
 
         ViewCompat.setOnApplyWindowInsetsListener(webView) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val bottomPadding = maxOf(systemBars.bottom, ime.bottom)
+            view.setPadding(systemBars.left, systemBars.top, systemBars.right, bottomPadding)
             insets
         }
 

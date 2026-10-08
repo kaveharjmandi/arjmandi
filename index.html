@@ -309,8 +309,35 @@ form.add-form{display:flex; flex-direction:column; gap:12px;}
 .field input, .field select{
   width:100%; border:1px solid var(--line); border-radius:6px; background:var(--bg);
   font-family:'Vazirmatn',sans-serif; font-size:14px; color:var(--ink); padding:10px 10px;
+  transition: border-color .15s, box-shadow .15s;
 }
-.field input:focus, .field select:focus{outline:none; border-color:var(--accent);}
+.field input:focus, .field select:focus{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow: 0 0 0 3px rgba(122,46,104,0.18);
+}
+/* Enhanced soft-keyboard handling: hide bottom navigation bar and float active form fields */
+body.keyboard-open .tab-nav,
+body.keyboard-open .fab-container{
+  opacity:0 !important;
+  pointer-events:none !important;
+  transform: translateY(120%) !important;
+  transition: opacity .15s, transform .2s !important;
+}
+body.keyboard-open .wrap{
+  padding-bottom: 260px !important;
+}
+form.add-form{
+  transition: padding-bottom .2s ease;
+}
+body.keyboard-open form.add-form{
+  padding-bottom: 120px;
+}
+.desc-pill-btn:hover, .desc-pill-btn:active{
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  background: var(--bg-deep) !important;
+}
 .row2{display:flex; gap:10px;}
 .row2 .field{flex:1;}
 
@@ -1920,14 +1947,26 @@ if(!window.supabase){
           <button type="button" id="addSplitRowBtn" class="ghost-btn" style="width:100%;">+ افزودن ردیف تقسیم</button>
           <div id="splitTotalHint" style="font-size:11px; color:var(--ink-soft); margin-top:6px;"></div>
         </div>
-        <div class="field">
-          <label>توضیح</label>
+        <div class="field" id="descFieldWrap">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <label style="margin-bottom:0;">توضیح</label>
+            <button type="button" id="descSuggestionsToggleBtn" style="background:none; border:none; color:var(--accent); font-family:inherit; font-size:11.5px; cursor:pointer; padding:2px 6px; border-radius:6px; display:inline-flex; align-items:center; gap:3px;">
+              <span>💡 عناوین پرتکرار</span>
+            </button>
+          </div>
           <div style="display:flex; gap:6px;">
-            <input type="text" id="descInput" placeholder="مثلاً: حقوق مرداد" required style="flex:1;" list="descSuggestions" autocomplete="off">
-            <datalist id="descSuggestions"></datalist>
+            <input type="text" id="descInput" placeholder="مثلاً: حقوق مرداد، خرید میوه، قسط…" required style="flex:1;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <button type="button" id="voiceInputBtn" title="ورود صوتی" aria-label="ثبت تراکنش با صدا" style="width:42px; border:1px solid var(--line); border-radius:6px; background:var(--bg); cursor:pointer; font-size:16px;">🎤</button>
           </div>
           <div id="voiceStatusHint" style="font-size:11px; color:var(--accent-deep); margin-top:4px; display:none;"></div>
+          <!-- Optional frequent titles drawer, completely in-flow so it never pops over or obscures input -->
+          <div id="descSuggestionsBox" style="display:none; margin-top:8px; padding:10px; background:var(--bg-deep); border-radius:8px; border:1px solid var(--line);">
+            <div style="font-size:11px; color:var(--ink-soft); margin-bottom:7px; display:flex; justify-content:space-between; align-items:center;">
+              <span>💡 عناوین پرتکرار گذشته (کلیک برای درج سریع):</span>
+              <button type="button" id="closeDescSuggestionsBtn" style="background:none; border:none; color:var(--ink-soft); font-size:11px; cursor:pointer; padding:0 4px;">✕ بستن</button>
+            </div>
+            <div id="descSuggestionsPills" style="display:flex; flex-wrap:wrap; gap:6px; max-height:120px; overflow-y:auto;"></div>
+          </div>
         </div>
         <div class="row2">
           <div class="field" id="amountFieldWrap">
@@ -8040,8 +8079,9 @@ function setType(t){
   populateDescSuggestions();
 }
 function populateDescSuggestions(){
-  const dl = document.getElementById('descSuggestions');
-  if(!dl) return;
+  const pillsBox = document.getElementById('descSuggestionsPills');
+  const toggleBtn = document.getElementById('descSuggestionsToggleBtn');
+  if(!pillsBox) return;
   const counts = {};
   data.transactions.forEach(t => {
     if(t.type !== currentType || !t.desc) return;
@@ -8049,9 +8089,121 @@ function populateDescSuggestions(){
     if(!key) return;
     counts[key] = (counts[key] || 0) + 1;
   });
-  const top = Object.keys(counts).sort((a,b) => counts[b] - counts[a]).slice(0, 20);
-  dl.innerHTML = top.map(d => `<option value="${escapeHtml(d)}"></option>`).join('');
+  const top = Object.keys(counts).sort((a,b) => counts[b] - counts[a]).slice(0, 15);
+  if(!top.length){
+    pillsBox.innerHTML = '<span style="font-size:11px; color:var(--ink-soft); display:block; padding:4px;">هنوز عنوان پرتکراری برای این نوع تراکنش وجود ندارد.</span>';
+    if(toggleBtn) toggleBtn.style.opacity = '0.5';
+    return;
+  }
+  if(toggleBtn) toggleBtn.style.opacity = '1';
+  pillsBox.innerHTML = top.map(d => `
+    <button type="button" class="desc-pill-btn" data-desc="${escapeHtml(d)}" style="border:1px solid var(--line); border-radius:14px; background:var(--card-bg); color:var(--ink); padding:4px 10px; font-size:11.5px; cursor:pointer; font-family:inherit; transition:.12s; text-align:right;">
+      ${escapeHtml(d)} <span style="font-size:10px; color:var(--ink-soft); opacity:0.8;">(${counts[d]})</span>
+    </button>
+  `).join('');
 }
+
+/* ---------- keyboard awareness & scroll input into view above soft keyboard ---------- */
+function scrollFieldAboveKeyboard(el){
+  if(!el) return;
+  const wrap = el.closest('.field') || el;
+  document.body.classList.add('keyboard-open');
+
+  const alignElement = () => {
+    try {
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch(err) {
+      wrap.scrollIntoView(true);
+    }
+  };
+
+  alignElement();
+  setTimeout(alignElement, 70);
+  setTimeout(alignElement, 180);
+  setTimeout(alignElement, 350);
+  setTimeout(alignElement, 550);
+}
+
+// Ensure descInput and transaction form fields scroll cleanly above keyboard without any blocking popups
+const descInputEl = document.getElementById('descInput');
+if(descInputEl){
+  descInputEl.addEventListener('focus', () => scrollFieldAboveKeyboard(descInputEl));
+  descInputEl.addEventListener('click', () => scrollFieldAboveKeyboard(descInputEl));
+}
+document.querySelectorAll('#addForm input, #addForm select').forEach(inp => {
+  inp.addEventListener('focus', () => scrollFieldAboveKeyboard(inp));
+  inp.addEventListener('click', () => scrollFieldAboveKeyboard(inp));
+});
+
+// Frequent suggestions toggle and pill selection (never pops over input, completely opt-in)
+document.addEventListener('click', (e) => {
+  const toggleBtn = e.target.closest('#descSuggestionsToggleBtn');
+  if(toggleBtn){
+    const box = document.getElementById('descSuggestionsBox');
+    if(box){
+      const isHidden = box.style.display === 'none';
+      box.style.display = isHidden ? 'block' : 'none';
+      if(isHidden){
+        populateDescSuggestions();
+        scrollFieldAboveKeyboard(box);
+      }
+    }
+    return;
+  }
+  const closeBtn = e.target.closest('#closeDescSuggestionsBtn');
+  if(closeBtn){
+    const box = document.getElementById('descSuggestionsBox');
+    if(box) box.style.display = 'none';
+    return;
+  }
+  const pillBtn = e.target.closest('.desc-pill-btn');
+  if(pillBtn){
+    const val = pillBtn.dataset.desc;
+    const inp = document.getElementById('descInput');
+    if(inp && val){
+      inp.value = val;
+      categoryManuallyPicked = false;
+      const suggestion = suggestCategoryForDesc(val);
+      const sel = document.getElementById('categorySelect');
+      if(suggestion && sel && [...sel.options].some(o => o.value === suggestion)){
+        sel.value = suggestion;
+      }
+      const box = document.getElementById('descSuggestionsBox');
+      if(box) box.style.display = 'none';
+      inp.focus();
+      scrollFieldAboveKeyboard(inp);
+    }
+  }
+});
+
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', () => {
+    const isKb = window.visualViewport.height < (window.innerHeight * 0.82);
+    document.body.classList.toggle('keyboard-open', isKb);
+    if(isKb && document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT')){
+      scrollFieldAboveKeyboard(document.activeElement);
+    }
+  });
+} else {
+  let prevInnerH = window.innerHeight;
+  window.addEventListener('resize', () => {
+    const isKb = window.innerHeight < (prevInnerH - 140);
+    document.body.classList.toggle('keyboard-open', isKb);
+    if(isKb && document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT')){
+      scrollFieldAboveKeyboard(document.activeElement);
+    }
+    prevInnerH = window.innerHeight;
+  });
+}
+
+document.addEventListener('focusout', () => {
+  setTimeout(() => {
+    const active = document.activeElement;
+    if(!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA' && active.tagName !== 'SELECT')){
+      document.body.classList.remove('keyboard-open');
+    }
+  }, 250);
+});
 function populatePersonSelect(){
   const sel = document.getElementById('personSelect');
   const prevVal = sel.value;
@@ -9339,6 +9491,8 @@ function cancelEditTransaction(){
   document.getElementById('cancelEditBtn').style.display = 'none';
   document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
   document.getElementById('descInput').value = ''; categoryManuallyPicked = false;
+  const sugBox = document.getElementById('descSuggestionsBox');
+  if(sugBox) sugBox.style.display = 'none';
   clearAmountField('amountInput');
   updatePhotoPreview();
   txDatePicker.resetToToday();
@@ -10114,6 +10268,8 @@ async function init(){
       checkLowBalanceWarning(accountId, prevAccountBalance);
       await saveData();
       document.getElementById('descInput').value = ''; categoryManuallyPicked = false;
+      const sugBoxSplit = document.getElementById('descSuggestionsBox');
+      if(sugBoxSplit) sugBoxSplit.style.display = 'none';
       clearSplitRows();
       pendingPhotoDataUrls = [];
       updatePhotoPreview();
@@ -10160,6 +10316,8 @@ async function init(){
     if(!wasEditSave) checkLowBalanceWarning(accountId, prevAccountBalance);
 
     document.getElementById('descInput').value = ''; categoryManuallyPicked = false;
+    const sugBoxNorm = document.getElementById('descSuggestionsBox');
+    if(sugBoxNorm) sugBoxNorm.style.display = 'none';
     clearAmountField('amountInput');
     pendingPhotoDataUrls = [];
     updatePhotoPreview();

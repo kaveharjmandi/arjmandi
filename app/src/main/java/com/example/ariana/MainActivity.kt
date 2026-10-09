@@ -14,6 +14,7 @@ import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -42,9 +43,7 @@ class MainActivity : FragmentActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
 
-            // Hardware layer for silky smooth 60/120 fps scrolling
-            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
-
+            // WebView uses native hardware acceleration via window compositor
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
@@ -121,12 +120,13 @@ class MainActivity : FragmentActivity() {
 
         setContentView(webView)
 
+        val handledTypes = WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
         ViewCompat.setOnApplyWindowInsetsListener(webView) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            val bottomPadding = maxOf(systemBars.bottom, ime.bottom)
-            view.setPadding(systemBars.left, systemBars.top, systemBars.right, bottomPadding)
-            insets
+            val handledInsets = insets.getInsets(handledTypes)
+            view.setPadding(handledInsets.left, handledInsets.top, handledInsets.right, handledInsets.bottom)
+            WindowInsetsCompat.Builder(insets)
+                .setInsets(handledTypes, Insets.NONE)
+                .build()
         }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {

@@ -79,13 +79,37 @@ body[data-theme="dark"]{
 .wrap{ max-width:520px; margin:0 auto; padding:26px 20px 118px 20px; position:relative; }
 .site-header{ margin-bottom:18px; text-align:center; }
 .brand-tag{ font-size:11.5px; font-weight:700; letter-spacing:.5px; color:var(--accent); text-transform:uppercase; margin-bottom:2px; }
-.app-header-bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.app-header-bar{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
+.brand-hero-wrap{ display:flex; align-items:center; gap:10px; text-align:right; }
+.brand-hero-badge{
+  width:42px; height:42px; border-radius:13px;
+  background:linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 60%, var(--accent2) 100%);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 14px rgba(122,46,104,0.3); position:relative; overflow:hidden; flex-shrink:0;
+}
+.brand-hero-badge::after{
+  content:''; position:absolute; top:-40%; left:-40%; width:180%; height:180%;
+  background:radial-gradient(circle, rgba(255,255,255,0.4) 10%, transparent 60%); pointer-events:none;
+}
+.brand-hero-icon{ font-size:20px; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25)); animation:logoPulse 4s ease-in-out infinite alternate; }
+@keyframes logoPulse{ 0%{ transform:scale(1); } 100%{ transform:scale(1.08) rotate(3deg); } }
+.brand-hero-titles{ display:flex; flex-direction:column; }
+.brand-hero-title{ font-size:15px; font-weight:800; color:var(--ink); letter-spacing:-0.2px; }
+.brand-hero-sub{ font-size:11px; color:var(--ink-soft); margin-top:1px; }
+.app-header-actions{ display:flex; align-items:center; gap:8px; }
+.header-action-btn{
+  width:38px; height:38px; border-radius:12px; background:var(--card-bg);
+  border:1px solid var(--line); color:var(--ink); font-size:16px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.04);
+  transition:transform .14s, background .14s, border-color .14s;
+}
+.header-action-btn:active{ transform:scale(0.92); background:var(--bg-deep); }
 .hamburger-btn{
-  width:40px; height:40px; flex-shrink:0; border-radius:12px; background:var(--card-bg);
-  border:1px solid var(--line); font-size:19px; color:var(--ink); cursor:pointer;
+  width:38px; height:38px; flex-shrink:0; border-radius:12px; background:var(--card-bg);
+  border:1px solid var(--line); font-size:17px; color:var(--ink); cursor:pointer;
   display:flex; align-items:center; justify-content:center;
 }
-.hamburger-btn:active{ background:var(--bg); }
+.hamburger-btn:active{ background:var(--bg); transform:scale(0.92); }
 
 /* settings side drawer */
 .drawer-backdrop{
@@ -168,36 +192,50 @@ h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
 /* ================= APP ================= */
 .user-bar{
   display:flex; align-items:center; justify-content:space-between; background:var(--card-bg);
-  border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:16px; font-size:13px;
-  flex-wrap:wrap; gap:8px;
+  border:1px solid var(--line); border-radius:16px; padding:12px 14px; margin-bottom:16px; font-size:13px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04); flex-wrap:wrap; gap:10px;
 }
-.user-bar .who{font-weight:700; color:var(--ink); display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
-.user-bar .actions{display:flex; gap:7px; flex-wrap:wrap;}
-.user-bar button{
-  border:none; border-radius:999px; padding:7px 13px; font-size:11.5px; font-weight:700;
-  cursor:pointer; font-family:'Vazirmatn',sans-serif; color:#fff; background:var(--accent2);
-  transition: transform .08s;
+.user-bar-profile{
+  display:flex; align-items:center; gap:10px; cursor:pointer; padding:2px 4px; border-radius:12px; transition:background .15s;
 }
-.user-bar button:active{ transform:scale(0.96); }
-.user-bar button#adminPanelBtn{ background:var(--accent); }
-.user-bar button#backupBtn, .user-bar button#restoreBtn{ background:var(--accent2); }
-.user-bar button#changePwBtn{ background:var(--bg-deep); color:var(--ink); }
-.user-bar button#logoutBtn{
-  background:transparent; border:1.5px solid var(--debit); color:var(--debit);
-  width:38px; height:38px; padding:0; border-radius:50%; font-size:15px;
-  display:flex; align-items:center; justify-content:center;
+.user-bar-profile:active{ background:var(--bg-deep); }
+.user-avatar-badge{
+  width:44px; height:44px; border-radius:14px;
+  background:linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  font-size:24px; box-shadow:0 4px 12px rgba(0,0,0,0.12); flex-shrink:0;
+  border:2px solid var(--card-bg); outline:2px solid var(--accent);
+  transition:transform .2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.user-bar button#settingsBtn{
-  background:var(--card-bg); color:var(--ink); border:1.5px solid var(--line);
-  width:38px; height:38px; padding:0; border-radius:50%; font-size:16px;
-  display:flex; align-items:center; justify-content:center;
+.user-bar-profile:hover .user-avatar-badge{ transform:scale(1.08) rotate(4deg); }
+.user-profile-info{ display:flex; flex-direction:column; gap:2px; }
+.user-name-row{ display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+.who-greeting{ font-size:11.5px; color:var(--ink-soft); }
+.user-full-name{ font-size:13.5px; font-weight:800; color:var(--ink); }
+.user-role-tag{
+  font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px;
+  background:rgba(122,46,104,0.12); color:var(--accent);
 }
-.user-bar button#themeToggleBtn{
-  background:var(--card-bg); color:var(--accent); width:38px; height:38px; padding:0;
-  border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px;
-  border:2px solid var(--accent); transition: transform .3s ease, background .2s ease;
+.user-status-row{ display:flex; align-items:center; gap:6px; }
+.online-indicator-dot{
+  width:7px; height:7px; border-radius:50%; background:var(--credit);
+  box-shadow:0 0 8px var(--credit);
 }
-.user-bar button#themeToggleBtn:active{ transform:scale(0.88) rotate(15deg); }
+.avatar-quick-change-btn{
+  background:linear-gradient(135deg, var(--bg-deep) 0%, var(--card-bg) 100%);
+  border:1px solid var(--line); color:var(--accent); border-radius:999px;
+  padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer;
+  font-family:inherit; display:inline-flex; align-items:center; gap:4px;
+  transition:all .15s ease;
+}
+.avatar-quick-change-btn:active{ transform:scale(0.94); background:var(--bg); }
+.logout-icon-btn{
+  background:transparent !important; border:1px solid var(--line) !important;
+  color:var(--debit) !important; border-radius:999px !important;
+  padding:6px 12px !important; font-size:11px !important; font-weight:700 !important;
+}
+.logout-icon-btn:active{ transform:scale(0.94); background:rgba(220,38,38,0.08) !important; }
+.user-bar .actions{display:flex; gap:7px; flex-wrap:wrap; align-items:center;}
 .storage-indicator-pill{
   font-size:10px; color:var(--ink-soft); background:var(--bg); border-radius:999px; padding:3px 9px;
 }
@@ -275,7 +313,19 @@ h1#pageTitle{ font-size:22px; font-weight:800; margin:0; color:var(--ink); }
   transition:height .2s; display:flex; align-items:center; justify-content:center;
 }
 .stat-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
-.stat-tile{ background:var(--bg); border-radius:10px; padding:12px; text-align:center; }
+.stat-tile{
+  background:var(--bg); border:1px solid var(--line); border-radius:14px; padding:13px 12px;
+  text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.03); transition:transform .14s, box-shadow .14s;
+}
+.stat-tile:hover{ transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,0,0,0.06); }
+.stat-tile.income{
+  background:linear-gradient(135deg, rgba(22,163,74,0.09) 0%, var(--bg) 100%);
+  border-color:rgba(22,163,74,0.22);
+}
+.stat-tile.expense{
+  background:linear-gradient(135deg, rgba(220,38,38,0.09) 0%, var(--bg) 100%);
+  border-color:rgba(220,38,38,0.22);
+}
 .stat-tile .val{ font-family:'IBM Plex Mono',monospace; font-size:16px; font-weight:700; }
 .stat-tile.income .val{ color:var(--credit); }
 .stat-tile.expense .val{ color:var(--debit); }
@@ -400,19 +450,105 @@ body.keyboard-open form.add-form{
   border-bottom: none;
 }
 .tx-icon{
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: 18px;
   flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+  transition: transform .14s ease;
 }
-.tx-icon.income{ background: rgba(76,122,61,0.15); color: var(--credit); }
-.tx-icon.expense{ background: rgba(139,58,86,0.15); color: var(--debit); }
+.tx-icon:hover{ transform: scale(1.08) rotate(2deg); }
+.tx-icon.income{
+  background: linear-gradient(135deg, rgba(22,163,74,0.18) 0%, rgba(22,163,74,0.08) 100%);
+  color: var(--credit);
+  border: 1px solid rgba(22,163,74,0.3);
+}
+.tx-icon.expense{
+  background: linear-gradient(135deg, rgba(220,38,38,0.18) 0%, rgba(220,38,38,0.08) 100%);
+  color: var(--debit);
+  border: 1px solid rgba(220,38,38,0.3);
+}
 .tx-main{ flex: 1; min-width: 0; }
-.tx-desc{ font-size: 14px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tx-desc{ font-size: 14px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+.tx-sticker-badge{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  vertical-align: middle;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  flex-shrink: 0;
+  transition: transform .14s ease;
+}
+.tx-sticker-badge:hover{ transform: scale(1.18) rotate(4deg); }
+.tx-quick-stickers-bar{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 3px 2px 7px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.tx-quick-stickers-bar::-webkit-scrollbar{ display: none; }
+.tx-sticker-pill-btn{
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all .16s ease;
+  user-select: none;
+}
+.tx-sticker-pill-btn:hover, .tx-sticker-pill-btn:active{
+  transform: scale(0.95);
+  background: var(--bg-deep);
+  border-color: var(--accent);
+}
+.tx-sticker-pill-btn.active{
+  background: var(--bg-deep);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(122,46,104,0.22);
+  transform: scale(1.04);
+}
+.tx-sticker-more-btn{
+  border: 1px dashed var(--accent);
+  background: rgba(122,46,104,0.06);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all .15s ease;
+}
+.tx-sticker-more-btn:hover, .tx-sticker-more-btn:active{
+  transform: scale(0.95);
+  background: rgba(122,46,104,0.14);
+}
 .tx-meta{ font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
 .tx-date-header{
   display: flex;
@@ -915,9 +1051,28 @@ body.keyboard-open form.add-form{
 .edit-btn{background:none; border:none; color:var(--ink-soft); font-size:15px; cursor:pointer; padding:4px 6px; line-height:1; flex-shrink:0;}
 .edit-btn:hover{color:var(--accent-deep);}
 .tx-thumb{ width:34px; height:34px; border-radius:6px; object-fit:cover; flex-shrink:0; cursor:pointer; }
-.empty-state{text-align:center; color:var(--ink-soft); font-size:13px; padding:26px 10px; line-height:1.9;}
-.empty-state-icon{ font-size:36px; display:block; margin-bottom:8px; opacity:.55; }
-.cat-chip{ display:inline-flex; align-items:center; gap:5px; }
+.empty-state{
+  text-align:center; color:var(--ink-soft); font-size:13px; padding:32px 14px; line-height:1.8;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+.empty-state-icon{
+  width:64px; height:64px; border-radius:22px;
+  background:linear-gradient(135deg, var(--bg-deep) 0%, rgba(122,46,104,0.14) 100%);
+  border:1.5px solid var(--line); display:inline-flex; align-items:center; justify-content:center;
+  font-size:32px; margin-bottom:12px; box-shadow:0 8px 22px rgba(0,0,0,0.06);
+  animation:stickerFloat 3s ease-in-out infinite alternate;
+}
+@keyframes stickerFloat{
+  0%{ transform:translateY(0px) scale(1); }
+  100%{ transform:translateY(-6px) scale(1.05); }
+}
+.cat-chip{
+  display:inline-flex; align-items:center; gap:5px;
+  background:var(--bg-deep); border:1px solid var(--line);
+  padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; color:var(--ink);
+  transition:all .15s ease;
+}
+.cat-chip:hover{ border-color:var(--accent); transform:translateY(-1px); }
 .cat-dot{ width:7px; height:7px; border-radius:50%; display:inline-block; flex-shrink:0; }
 .goal-card{ display:flex; gap:12px; align-items:flex-start; background:var(--bg); border-radius:10px; padding:12px; margin-bottom:10px; }
 .goal-ring-wrap{ position:relative; width:64px; height:64px; flex-shrink:0; }
@@ -967,23 +1122,36 @@ body.keyboard-open form.add-form{
 .tab-nav{
   position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); z-index:50;
   display:flex; gap:2px; background:var(--card-bg); border-top:none;
-  padding:8px 6px; margin:0 auto;
-  box-shadow:0 10px 28px rgba(0,0,0,0.20), 0 2px 8px rgba(0,0,0,0.10);
+  padding:6px 6px; margin:0 auto;
+  box-shadow:0 12px 32px rgba(0,0,0,0.22), 0 2px 10px rgba(0,0,0,0.08);
   max-width:496px;
   border-radius:999px;
+  border: 1px solid var(--line);
 }
 .tab-nav-btn{
-  flex:1; border:none; background:transparent; border-radius:14px; padding:6px 2px 4px;
-  font-family:inherit; font-size:11px; color:var(--ink-soft);
-  display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; transition:.15s;
+  flex:1; border:none; background:transparent; border-radius:16px; padding:6px 2px 4px;
+  font-family:inherit; font-size:10.5px; color:var(--ink-soft);
+  display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer; transition:color .15s;
 }
 .tab-nav-btn .tab-icon{
-  font-size:25px; line-height:1; width:48px; height:37px; border-radius:14px;
-  display:flex; align-items:center; justify-content:center; transition:.15s;
+  width:46px; height:32px; border-radius:13px;
+  display:flex; align-items:center; justify-content:center; transition:all .22s cubic-bezier(0.16, 1, 0.3, 1);
+  color:var(--ink-soft);
 }
-.tab-nav-btn span{ font-size:10px; font-weight:600; }
-.tab-nav-btn.active{ background:transparent; color:var(--accent); }
-.tab-nav-btn.active .tab-icon{ background:var(--accent); filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15)); }
+.nav-svg-icon{
+  width:20px; height:20px; transition:transform .2s ease;
+}
+.tab-nav-btn span{ font-size:10px; font-weight:600; transition:color .15s; }
+.tab-nav-btn.active{ color:var(--accent); }
+.tab-nav-btn.active .tab-icon{
+  background:linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color:#fff; box-shadow:0 4px 14px rgba(122,46,104,0.36);
+}
+.tab-nav-btn.active .nav-svg-icon{
+  transform:scale(1.12);
+  stroke:#fff;
+}
+.tab-nav-btn.active span{ font-weight:800; color:var(--accent); }
 .tab-panel{
   animation: tabPanelTransition .28s cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: opacity, transform;
@@ -993,40 +1161,131 @@ body.keyboard-open form.add-form{
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* Home Quick Action Shortcut Pills */
+.home-quick-actions-bar{
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:16px;
+}
+.quick-action-pill{
+  background:var(--card-bg); border:1px solid var(--line); border-radius:14px;
+  padding:10px 4px; display:flex; flex-direction:column; align-items:center; gap:6px;
+  cursor:pointer; font-family:inherit; box-shadow:0 2px 8px rgba(0,0,0,0.03);
+  transition:transform .14s, box-shadow .14s, border-color .14s;
+}
+.quick-action-pill:active{ transform:scale(0.94); background:var(--bg-deep); }
+.quick-action-icon{
+  width:36px; height:36px; border-radius:11px; display:flex; align-items:center;
+  justify-content:center; font-size:16px; box-shadow:0 2px 8px rgba(0,0,0,0.06);
+}
+.quick-action-label{ font-size:11px; font-weight:700; color:var(--ink); }
+
 /* ================= FAB (quick-add) ================= */
-/* pointer-events:none is essential here: this is a position:fixed flex column whose
-   layout box always reserves space for the menu items (opacity/pointer-events toggle,
-   not display:none), so without this the invisible box sits on top of anything else in
-   that screen region — e.g. the left-aligned edit/delete buttons in RTL rows — and
-   swallows their clicks even while the menu is closed. Children opt back in below. */
 .fab-wrap{
-  position:fixed; left:12px; bottom:calc(102px + env(safe-area-inset-bottom)); z-index:120;
+  position:fixed; left:14px; bottom:calc(96px + env(safe-area-inset-bottom)); z-index:120;
   display:flex; flex-direction:column; align-items:flex-start; gap:12px;
   pointer-events:none;
 }
 .fab-main-btn{
-  width:56px; height:56px; border-radius:50%; border:none; background:var(--accent); color:#fff;
-  font-size:26px; line-height:1; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,0.28);
-  display:flex; align-items:center; justify-content:center; transition:transform .18s ease;
+  width:54px; height:54px; border-radius:50%; border:none;
+  background:linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color:#fff; font-size:26px; line-height:1; cursor:pointer;
+  box-shadow:0 8px 24px rgba(122,46,104,0.4);
+  display:flex; align-items:center; justify-content:center;
+  transition:transform .22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow .2s;
   font-family:inherit; pointer-events:auto;
 }
-.fab-main-btn.open{ transform:rotate(45deg); }
+.fab-main-btn:active{ transform:scale(0.92); }
+.fab-main-btn.open{ transform:rotate(45deg); box-shadow:0 4px 14px rgba(0,0,0,0.3); }
 .fab-menu{
   display:flex; flex-direction:column; gap:10px; opacity:0; pointer-events:none;
-  transform:translateY(10px); transition:opacity .16s ease, transform .16s ease;
+  transform:translateY(12px) scale(0.94); transition:opacity .18s ease, transform .18s ease;
 }
-.fab-menu.open{ opacity:1; pointer-events:auto; transform:translateY(0); }
+.fab-menu.open{ opacity:1; pointer-events:auto; transform:translateY(0) scale(1); }
 .fab-menu-item{
-  display:flex; align-items:center; gap:10px; border:none; background:var(--card-bg);
-  border-radius:999px; padding:6px 16px; box-shadow:0 4px 14px rgba(0,0,0,0.16); cursor:pointer;
+  display:flex; align-items:center; gap:10px; border:1px solid var(--line);
+  background:var(--card-bg); border-radius:999px; padding:6px 16px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.16); cursor:pointer;
   font-family:inherit; font-size:12.5px; font-weight:700; color:var(--ink);
+  transition:transform .12s;
 }
+.fab-menu-item:active{ transform:scale(0.95); }
 .fab-menu-icon{
   width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-  font-size:14px; color:#fff; flex-shrink:0;
+  font-size:15px; color:#fff; flex-shrink:0; box-shadow:0 2px 6px rgba(0,0,0,0.15);
 }
-.fab-backdrop{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.32); z-index:110; }
+.fab-backdrop{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.38); z-index:110; backdrop-filter:blur(2px); }
 .fab-backdrop.show{ display:block; }
+
+/* ================= STICKER & AVATAR PICKER MODAL ================= */
+.sticker-picker-overlay{
+  display:none; position:fixed; inset:0; z-index:250; background:rgba(0,0,0,0.58);
+  backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  align-items:center; justify-content:center; padding:16px;
+}
+.sticker-picker-overlay.show{ display:flex; }
+.sticker-picker-box{
+  background:var(--card-bg); border-radius:22px; border:1px solid var(--line);
+  box-shadow:0 18px 46px rgba(0,0,0,0.3); max-width:420px; width:100%; max-height:88vh;
+  display:flex; flex-direction:column; overflow:hidden;
+  animation:modalScaleUp .24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes modalScaleUp{ 0%{ transform:scale(0.92); opacity:0; } 100%{ transform:scale(1); opacity:1; } }
+.sticker-picker-header{
+  padding:16px 18px 12px; display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid var(--line);
+}
+.sticker-picker-title{ font-size:15px; font-weight:800; color:var(--ink); display:flex; align-items:center; gap:7px; }
+.sticker-picker-close{
+  background:var(--bg); border:1px solid var(--line); border-radius:50%; width:32px; height:32px;
+  font-size:14px; color:var(--ink-soft); cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.sticker-preview-card{
+  padding:16px 18px; background:var(--bg); display:flex; align-items:center;
+  justify-content:center; gap:16px; border-bottom:1px solid var(--line); flex-direction:column;
+}
+.sticker-preview-bubble{
+  width:74px; height:74px; border-radius:24px; display:flex; align-items:center;
+  justify-content:center; font-size:42px; box-shadow:0 8px 24px rgba(0,0,0,0.2);
+  border:3px solid #fff; transition:transform .18s ease;
+  animation:stickerBounce 2.5s ease-in-out infinite alternate;
+}
+@keyframes stickerBounce{ 0%{ transform:translateY(0px) rotate(0deg); } 100%{ transform:translateY(-4px) rotate(4deg); } }
+.sticker-color-palette{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+.sticker-color-dot{
+  width:26px; height:26px; border-radius:50%; cursor:pointer; border:2px solid transparent;
+  transition:transform .14s, border-color .14s; box-shadow:0 2px 6px rgba(0,0,0,0.12);
+}
+.sticker-color-dot.active{ transform:scale(1.22); border-color:#fff; box-shadow:0 0 0 2px var(--accent); }
+.sticker-category-tabs{
+  display:flex; gap:6px; padding:10px 14px 6px; overflow-x:auto; border-bottom:1px solid var(--line);
+  background:var(--card-bg); scrollbar-width:none;
+}
+.sticker-cat-btn{
+  background:var(--bg); border:1px solid var(--line); border-radius:999px;
+  padding:5px 12px; font-size:11.5px; font-weight:700; color:var(--ink-soft);
+  cursor:pointer; white-space:nowrap; font-family:inherit; transition:all .15s ease;
+}
+.sticker-cat-btn.active{
+  background:var(--accent); color:#fff; border-color:var(--accent);
+  box-shadow:0 2px 8px rgba(122,46,104,0.24);
+}
+.sticker-grid{
+  display:grid; grid-template-columns:repeat(6, 1fr); gap:8px; padding:14px;
+  overflow-y:auto; max-height:220px;
+}
+.sticker-item-btn{
+  aspect-ratio:1; border-radius:14px; border:1.5px solid var(--line); background:var(--card-bg);
+  font-size:26px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:transform .12s, border-color .12s, background .12s;
+}
+.sticker-item-btn:hover, .sticker-item-btn:active{
+  transform:scale(1.14); background:var(--bg-deep); border-color:var(--accent);
+}
+.sticker-item-btn.selected{
+  background:var(--bg-deep); border-color:var(--accent); box-shadow:0 0 0 2px var(--accent);
+}
+.sticker-picker-footer{
+  padding:12px 16px; border-top:1px solid var(--line); display:flex; gap:10px;
+}
 
 /* ================= CHEQUES ================= */
 .cheque-alert-banner{ background:var(--warn-bg); border:1px solid var(--warn-border); color:var(--warn-text); border-radius:12px; padding:10px 12px; font-size:12.5px; line-height:1.9; margin-bottom:12px; }
@@ -1823,33 +2082,121 @@ if(!window.supabase){
   <!-- MAIN APP -->
   <div id="app" style="display:none;">
     <header class="site-header app-header-bar">
-      <button id="settingsBtn" class="hamburger-btn" title="تنظیمات" aria-label="باز کردن منوی تنظیمات">☰</button>
+      <div class="brand-hero-wrap">
+        <div class="brand-hero-badge">
+          <span class="brand-hero-icon">💎</span>
+        </div>
+        <div class="brand-hero-titles">
+          <div class="brand-hero-title">صندوق خانوادگی آریانا</div>
+          <div class="brand-hero-sub" id="headerGreetingText">مدیریت هوشمند دارایی و هزینه‌ها</div>
+        </div>
+      </div>
+      <div class="app-header-actions">
+        <button type="button" id="headerThemeBtn" class="header-action-btn" title="تغییر تم (روز / شب)" aria-label="تغییر تم">🌙</button>
+        <button id="settingsBtn" class="header-action-btn hamburger-btn" title="تنظیمات" aria-label="باز کردن منوی تنظیمات">⚙️</button>
+      </div>
     </header>
 
     <div class="user-bar">
-      <div class="who">👤 <span id="whoName"></span> <span id="storageIndicator" class="storage-indicator-pill"></span></div>
+      <div class="user-bar-profile" id="userProfileChip" title="کلیک برای تغییر استیکر و رنگ آواتار">
+        <div class="user-avatar-badge" id="myAvatarStickerBadge">👤</div>
+        <div class="user-profile-info">
+          <div class="user-name-row">
+            <span class="who-greeting">سلام،</span>
+            <span id="whoName" class="user-full-name"></span>
+            <span class="user-role-tag" id="userRoleTag">عضو صندوق</span>
+          </div>
+          <div class="user-status-row">
+            <span class="online-indicator-dot"></span>
+            <span id="storageIndicator" class="storage-indicator-pill"></span>
+          </div>
+        </div>
+      </div>
       <div class="actions">
-        <button id="logoutBtn" title="خروج" aria-label="خروج از حساب">🚪</button>
+        <button type="button" id="changeAvatarQuickBtn" class="avatar-quick-change-btn" title="انتخاب استیکر اختصاصی">🎨 استیکر من</button>
+        <button type="button" id="logoutBtn" title="خروج از حساب" aria-label="خروج از حساب" class="logout-icon-btn">🚪 خروج</button>
       </div>
     </div>
 
     <div class="fab-backdrop" id="fabBackdrop"></div>
     <div class="fab-wrap" id="fabWrap">
       <div class="fab-menu" id="fabMenu">
-        <button type="button" class="fab-menu-item" data-fabaction="credit"><span class="fab-menu-icon" style="background:var(--credit);">🟢</span><span>طلب</span></button>
-        <button type="button" class="fab-menu-item" data-fabaction="debt"><span class="fab-menu-icon" style="background:var(--debit);">🔴</span><span>بدهی</span></button>
-        <button type="button" class="fab-menu-item" data-fabaction="cheque"><span class="fab-menu-icon" style="background:var(--accent2);">🧾</span><span>چک</span></button>
-        <button type="button" class="fab-menu-item" data-fabaction="income"><span class="fab-menu-icon" style="background:var(--credit);">➕</span><span>درآمد</span></button>
-        <button type="button" class="fab-menu-item" data-fabaction="expense"><span class="fab-menu-icon" style="background:var(--debit);">➖</span><span>هزینه</span></button>
+        <button type="button" class="fab-menu-item" data-fabaction="income">
+          <span class="fab-menu-icon" style="background:linear-gradient(135deg, #16A34A, #15803D);">➕</span>
+          <span>درآمد جدید</span>
+        </button>
+        <button type="button" class="fab-menu-item" data-fabaction="expense">
+          <span class="fab-menu-icon" style="background:linear-gradient(135deg, #DC2626, #B91C1C);">➖</span>
+          <span>هزینه جدید</span>
+        </button>
+        <button type="button" class="fab-menu-item" data-fabaction="cheque">
+          <span class="fab-menu-icon" style="background:linear-gradient(135deg, #2E7D5B, #1F5940);">🧾</span>
+          <span>ثبت چک</span>
+        </button>
+        <button type="button" class="fab-menu-item" data-fabaction="credit">
+          <span class="fab-menu-icon" style="background:linear-gradient(135deg, #D97706, #B45309);">🤝</span>
+          <span>ثبت طلب</span>
+        </button>
+        <button type="button" class="fab-menu-item" data-fabaction="debt">
+          <span class="fab-menu-icon" style="background:linear-gradient(135deg, #7C3AED, #6D28D9);">⏳</span>
+          <span>ثبت بدهی</span>
+        </button>
       </div>
       <button type="button" class="fab-main-btn" id="fabMainBtn" aria-label="ثبت سریع">+</button>
     </div>
+
     <div class="tab-nav" id="tabNav">
-      <button type="button" class="tab-nav-btn" data-tab="transactions"><span class="tab-icon">💳</span><span>تراکنش‌ها</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="breakdown"><span class="tab-icon">👤</span><span>ریز هر شخص</span></button>
-      <button type="button" class="tab-nav-btn active" data-tab="home"><span class="tab-icon">🏠</span><span>خانه</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="cheques"><span class="tab-icon">🧾</span><span>چک‌ها</span></button>
-      <button type="button" class="tab-nav-btn" data-tab="reports"><span class="tab-icon">📊</span><span>گزارش و اهداف</span></button>
+      <button type="button" class="tab-nav-btn" data-tab="transactions">
+        <span class="tab-icon">
+          <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="3.5"/>
+            <line x1="2" y1="10" x2="22" y2="10"/>
+            <path d="M6 15h3M14 15h4"/>
+          </svg>
+        </span>
+        <span>تراکنش‌ها</span>
+      </button>
+      <button type="button" class="tab-nav-btn" data-tab="breakdown">
+        <span class="tab-icon">
+          <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </span>
+        <span>ریز هر شخص</span>
+      </button>
+      <button type="button" class="tab-nav-btn active" data-tab="home">
+        <span class="tab-icon">
+          <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5L12 3l9 7.5V20a2 2 0 0 1-2 2h-4a1 1 0 0 1-1-1v-4a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v4a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2z"/>
+          </svg>
+        </span>
+        <span>خانه</span>
+      </button>
+      <button type="button" class="tab-nav-btn" data-tab="cheques">
+        <span class="tab-icon">
+          <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2.5"/>
+            <line x1="7" y1="9" x2="17" y2="9"/>
+            <line x1="7" y1="13" x2="12" y2="13"/>
+            <polyline points="15 14 17 16 21 11"/>
+          </svg>
+        </span>
+        <span>چک‌ها</span>
+      </button>
+      <button type="button" class="tab-nav-btn" data-tab="reports">
+        <span class="tab-icon">
+          <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 20V10"/>
+            <path d="M12 20V4"/>
+            <path d="M6 20v-6"/>
+            <circle cx="12" cy="4" r="1.5" fill="currentColor"/>
+          </svg>
+        </span>
+        <span>گزارش و اهداف</span>
+      </button>
     </div>
 
     <div class="tab-panel" data-tab="home">
@@ -1871,6 +2218,26 @@ if(!window.supabase){
         <span id="bankCardHolder">👤 —</span>
         <span id="bankCardDate"></span>
       </div>
+    </div>
+
+    <!-- Quick Action Shortcut Pills -->
+    <div class="home-quick-actions-bar">
+      <button type="button" class="quick-action-pill" data-quick="income">
+        <span class="quick-action-icon" style="background:rgba(22,163,74,0.15); color:var(--credit);">➕</span>
+        <span class="quick-action-label">واریز جدید</span>
+      </button>
+      <button type="button" class="quick-action-pill" data-quick="expense">
+        <span class="quick-action-icon" style="background:rgba(220,38,38,0.15); color:var(--debit);">➖</span>
+        <span class="quick-action-label">ثبت هزینه</span>
+      </button>
+      <button type="button" class="quick-action-pill" data-quick="transfer">
+        <span class="quick-action-icon" style="background:rgba(37,99,235,0.15); color:var(--asset);">🔁</span>
+        <span class="quick-action-label">جابجایی</span>
+      </button>
+      <button type="button" class="quick-action-pill" data-quick="cheque">
+        <span class="quick-action-icon" style="background:rgba(46,125,91,0.15); color:var(--accent2);">🧾</span>
+        <span class="quick-action-label">ثبت چک</span>
+      </button>
     </div>
     <div class="card">
       <div class="section-title">موجودی حساب هرکدوم</div>
@@ -1968,6 +2335,24 @@ if(!window.supabase){
             <div id="descSuggestionsPills" style="display:flex; flex-wrap:wrap; gap:6px; max-height:120px; overflow-y:auto;"></div>
           </div>
         </div>
+
+        <!-- Transaction Sticker / Mood Tag -->
+        <div class="field" id="txStickerWrap">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label style="margin-bottom:0; display:flex; align-items:center; gap:5px;">
+              <span>🏷️ استیکر تراکنش</span>
+              <span style="font-size:10.5px; color:var(--ink-soft); font-weight:normal;">(برای تمایز بصری، اختیاری)</span>
+            </label>
+            <div id="txSelectedStickerBadge" style="display:none; align-items:center; gap:5px; background:var(--bg-deep); padding:2px 8px; border-radius:999px; border:1px solid var(--accent); font-size:12px;">
+              <span id="txSelectedStickerPreview" style="font-size:15px;"></span>
+              <span style="font-size:10.5px; color:var(--ink-soft);">استیکر انتخابی</span>
+              <button type="button" id="clearTxStickerBtn" title="حذف استیکر" style="border:none; background:none; color:var(--debit); cursor:pointer; font-size:12px; padding:0 3px; font-weight:bold;">✕</button>
+            </div>
+          </div>
+          <div class="tx-quick-stickers-bar" id="txQuickStickersBar"></div>
+          <input type="hidden" id="txStickerInput" value="">
+        </div>
+
         <div class="row2">
           <div class="field" id="amountFieldWrap">
             <label id="amountLbl">مبلغ (تومان)</label>
@@ -2469,6 +2854,71 @@ if(!window.supabase){
     <div style="display:flex; gap:8px;">
       <button type="button" id="saveDailyGoalBtn" class="submit-btn" style="flex:1;">ذخیره هدف</button>
       <button type="button" id="removeDailyGoalBtn" class="ghost-btn" style="width:auto; color:var(--debit); border-color:var(--line);">حذف هدف</button>
+    </div>
+  </div>
+</div>
+
+<!-- Interactive Avatar & Sticker Picker Modal -->
+<div id="stickerPickerOverlay" class="sticker-picker-overlay">
+  <div class="sticker-picker-box">
+    <div class="sticker-picker-header">
+      <div class="sticker-picker-title">
+        <span id="stickerPickerTitleIcon">🎨</span>
+        <span id="stickerPickerTitleText">انتخاب استیکر و آواتار اختصاصی</span>
+      </div>
+      <button type="button" class="sticker-picker-close" id="closeStickerPickerBtn" aria-label="بستن">✕</button>
+    </div>
+    
+    <div class="sticker-preview-card" id="stickerPreviewCard">
+      <div class="sticker-preview-bubble" id="stickerPreviewBubble">
+        <span id="stickerPreviewIcon">👤</span>
+      </div>
+      <div style="text-align:center;" id="stickerColorSection">
+        <div style="font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px;">رنگ زمینه آواتار:</div>
+        <div class="sticker-color-palette" id="stickerColorPalette"></div>
+      </div>
+    </div>
+
+    <div class="sticker-category-tabs" id="stickerCategoryTabs">
+      <button type="button" class="sticker-cat-btn active" data-pack="family">👨‍👩‍👧‍👦 خانواده</button>
+      <button type="button" class="sticker-cat-btn" data-pack="faces">✨ چهره و حس</button>
+      <button type="button" class="sticker-cat-btn" data-pack="food_lifestyle">🍕 خوراکی و کافه</button>
+      <button type="button" class="sticker-cat-btn" data-pack="wealth">💎 طلا و ثروت</button>
+      <button type="button" class="sticker-cat-btn" data-pack="work_heroes">👑 شخصیت‌ها</button>
+      <button type="button" class="sticker-cat-btn" data-pack="shopping_tech">🛍️ خرید و دیجیتال</button>
+      <button type="button" class="sticker-cat-btn" data-pack="sports_travel">✈️ سفر و ورزش</button>
+      <button type="button" class="sticker-cat-btn" data-pack="animals">🦁 حیوانات</button>
+      <button type="button" class="sticker-cat-btn" data-pack="nature_vibes">🌸 طبیعت و گل</button>
+    </div>
+
+    <div class="sticker-grid" id="stickerItemsGrid"></div>
+
+    <div class="sticker-picker-footer">
+      <button type="button" id="saveStickerChoiceBtn" class="submit-btn" style="flex:1;">✓ تایید و اعمال استیکر</button>
+      <button type="button" id="cancelStickerChoiceBtn" class="ghost-btn" style="width:auto; margin-top:0;">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- APK Download Guidance Modal -->
+<div id="apkDownloadModal" class="confirm-modal-overlay" style="display:none;">
+  <div class="confirm-modal-box" style="max-width:390px; text-align:right;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+      <div style="font-size:15px; font-weight:800; color:var(--ink); display:flex; align-items:center; gap:6px;">
+        <span>📥</span>
+        <span>دانلود فایل نصبی (APK اندروید)</span>
+      </div>
+      <button type="button" id="closeApkModalBtn" style="border:none; background:var(--bg); border-radius:50%; width:28px; height:28px; cursor:pointer; color:var(--ink-soft);">✕</button>
+    </div>
+    <div style="font-size:12.5px; line-height:1.9; color:var(--ink); margin-bottom:14px; background:var(--bg); padding:12px; border-radius:12px; border:1px solid var(--line);">
+      <div style="font-weight:700; color:var(--accent-deep); margin-bottom:6px;">💡 راهنمای دریافت فایل APK:</div>
+      <div>۱. اگر از داخل محیط <b>Google AI Studio</b> استفاده می‌کنید: از منوی بالای صفحه روی گزینه <b>⚙️ تنظیمات یا Download</b> کلیک کنید و گزینه <b>Generate APK</b> را بزنید.</div>
+      <div style="margin-top:6px;">۲. در مرورگر می‌توانید روی دکمه زیر کلیک کنید تا فایل مستقیم ذخیره شود:</div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <a href="ariana-sandoogh.apk" download="ariana-sandoogh.apk" id="directApkDownloadLink" class="submit-btn" style="text-decoration:none; text-align:center; padding:10px 12px; font-size:13px; margin-top:0;">📥 دانلود مستقیم فایل APK</a>
+      <button type="button" id="copyApkLinkBtn" class="ghost-btn" style="width:100%; margin-top:0;">📋 کپی لینک مستقیم فایل</button>
+      <button type="button" id="dismissApkModalBtn" class="ghost-btn" style="width:100%; margin-top:0; border-color:transparent; color:var(--ink-soft);">بستن پنجره</button>
     </div>
   </div>
 </div>
@@ -3771,8 +4221,86 @@ document.getElementById('shareMonthSummaryBtn').addEventListener('click', async 
   }
 });
 
-const PERSON_EMOJIS = ['👨','👩','🧒','👦','👧','🧑','👴','👵','🧔','👶'];
-const PERSON_COLORS = ['#6B2D5C','#5C7A3D','#A9822C','#2FA6A0','#8B3A56','#5B84DA','#C9822C','#9A5FB0'];
+const PERSON_STICKER_PACKS = {
+  family: [
+    '👨‍👩‍👧‍👦', '👨‍👩‍👦', '👨‍👩‍👧', '👨‍👧', '👩‍👧', '👨‍👦', '👩‍👦', '👨', '👩', '🧒',
+    '👦', '👧', '🧑', '👴', '👵', '👶', '🧔', '👱‍♂️', '👱‍♀️', '🧕',
+    '👳‍♂️', '👨‍🦳', '👩‍🦳', '👨‍🦰', '👩‍🦰', '🤱', '🤰', '🧑‍🍼', '🧓', '👧‍🦱'
+  ],
+  faces: [
+    '😎', '🤩', '🥳', '😇', '🥰', '🤗', '😊', '😋', '😜', '🤪',
+    '😌', '😃', '😍', '🤠', '🤓', '🧐', '🤑', '🤭', '🤫', '😴',
+    '🤤', '🥶', '🤯', '💃', '🕺', '💪', '👋', '✌️', '🙌', '💖',
+    '✨', '🔥', '🎉', '💯', '🌸', '💫'
+  ],
+  food_lifestyle: [
+    '🍕', '☕', '🍔', '🍟', '🍦', '🍰', '🧁', '🍉', '🍓', '🥑',
+    '🍜', '🍣', '🍫', '🍿', '🥐', '🧃', '🥪', '🍩', '🍳', '🥗',
+    '🥩', '🍗', '🍎', '🍇', '🍌', '🍒', '🍪', '🥨', '🍯', '🫖'
+  ],
+  wealth: [
+    '💎', '💰', '💵', '💳', '🏦', '🪙', '📈', '🏆', '🥇', '🥈',
+    '👑', '⭐', '🚀', '🔥', '🎯', '🍀', '🧿', '💸', '💼', '📊',
+    '🛡️', '⚡', '🎁', '🗝️', '🪄', '🎖️', '🏷️', '🔮', '🌟', '🧲'
+  ],
+  work_heroes: [
+    '👑', '🤴', '👸', '🦸‍♂️', '🦸‍♀️', '🧙‍♂️', '🕵️‍♂️', '👨‍💻', '👩‍💻', '👩‍🔬',
+    '👨‍🎨', '🥷', '👨‍🚀', '👮‍♂️', '🧑‍🏫', '🧑‍⚕️', '👩‍🍳', '🧑‍🌾', '👷‍♂️', '🧑‍🚒',
+    '🧝‍♂️', '🧞‍♂️', '🧚‍♀️', '🧑‍🎨', '🧑‍🔧', '🧑‍💼', '🧑‍✈️', '🧛‍♂️', '🧜‍♀️'
+  ],
+  shopping_tech: [
+    '🛒', '🛍️', '📱', '💻', '🚗', '🚕', '⛽', '🛵', '🚲', '✈️',
+    '⌚', '🎧', '📷', '💡', '🏠', '🔑', '👔', '👗', '👟', '👜',
+    '💄', '📦', '🏷️', '🔌', '🕹️', '⌨️', '🖥️', '📺', '🛏️', '🛋️'
+  ],
+  sports_travel: [
+    '⚽', '🏀', '🎾', '🏐', '🏊‍♂️', '🚴‍♂️', '🏃‍♂️', '🏋️‍♂️', '🧘‍♀️', '🥊',
+    '🧗‍♂️', '⛷️', '🛹', '🏕️', '🏖️', '🏝️', '🏔️', '🚂', '🛳️', '🎡',
+    '🎪', '🎫', '🎬', '🎨', '📚', '🎸', '🎹', '🎮', '🎳', '🎯'
+  ],
+  animals: [
+    '🦁', '🐯', '🦊', '🐱', '🐶', '🐼', '🐨', '🦄', '🦅', '🦉',
+    '🐬', '🦋', '🐺', '🐻', '🐴', '🐝', '🐢', '🦚', '🐧', '🦩',
+    '🐙', '🐰', '🐿️', '🦔', '🐾', '🦓', '🦒', '🦘', '🦜', '🦭'
+  ],
+  nature_vibes: [
+    '🌸', '🌺', '🌻', '🌹', '🌷', '🌿', '🍁', '🌈', '☀️', '🌙',
+    '🪐', '🌊', '🏔️', '🌲', '🌴', '🍀', '⚡', '❄️', '🔥', '💧',
+    '💫', '✨', '💐', '🎋', '🍄', '🌵', '🌾', '🌱', '⭐', '🌤️'
+  ]
+};
+const PERSON_EMOJIS = Object.values(PERSON_STICKER_PACKS).flat();
+const PERSON_COLORS = [
+  '#7A2E68', '#591F4B', '#2E7D5B', '#1F5940',
+  '#2563EB', '#7C3AED', '#EA580C', '#DC2626',
+  '#0891B2', '#D97706', '#475569', '#E11D48',
+  '#10B981', '#F59E0B', '#8B5CF6', '#EC4899',
+  '#06B6D4', '#6366F1', '#14B8A6', '#F43F5E'
+];
+
+/* Quick transaction sticker suggestions */
+const QUICK_TX_STICKERS = [
+  { emoji: '🍕', label: 'غذا' },
+  { emoji: '☕', label: 'کافه' },
+  { emoji: '🛒', label: 'خرید' },
+  { emoji: '⛽', label: 'بنزین' },
+  { emoji: '🎁', label: 'هدیه' },
+  { emoji: '🚗', label: 'خودرو' },
+  { emoji: '💊', label: 'دارو' },
+  { emoji: '🏠', label: 'خانه' },
+  { emoji: '✈️', label: 'سفر' },
+  { emoji: '💡', label: 'قبض' },
+  { emoji: '🎬', label: 'تفریح' },
+  { emoji: '📚', label: 'آموزش' },
+  { emoji: '🎂', label: 'تولد' },
+  { emoji: '💎', label: 'طلا' },
+  { emoji: '🚕', label: 'اسنپ' },
+  { emoji: '👔', label: 'پوشاک' },
+  { emoji: '🥩', label: 'پروتئین' },
+  { emoji: '👶', label: 'کودک' },
+  { emoji: '📱', label: 'موبایل' },
+  { emoji: '⭐', label: 'ویژه' }
+];
 
 /* ---------- category icons & colors (visual identity per category) ---------- */
 const CATEGORY_META = {
@@ -3823,16 +4351,21 @@ function hexToRgba(hex, alpha){
   const b = parseInt(full.substring(4,6), 16) || 0;
   return `rgba(${r},${g},${b},${alpha})`;
 }
-/* Category-aware icon for transaction rows: colored circle tinted with the category's own
-   color, showing the category's emoji — falls back to a plain income/expense arrow when a
-   transaction has no category (e.g. legacy data). */
+/* Category-aware icon for transaction rows: colored squircle with dual tone gradient */
 function txIconHtml(tx){
+  if(tx.sticker){
+    const color = tx.category ? categoryColor(tx.category) : (tx.type === 'income' ? '#16A34A' : '#DC2626');
+    return `<div class="tx-icon has-sticker" style="background:linear-gradient(135deg, ${hexToRgba(color,0.24)} 0%, ${hexToRgba(color,0.1)} 100%); border:1px solid ${hexToRgba(color,0.36)}; box-shadow:0 3px 10px ${hexToRgba(color,0.18)}; font-size:20px;">${tx.sticker}</div>`;
+  }
   if(tx.category){
     const color = categoryColor(tx.category);
-    return `<div class="tx-icon" style="background:${hexToRgba(color,0.16)}; color:${color};">${categoryEmoji(tx.category)}</div>`;
+    const emoji = categoryEmoji(tx.category);
+    return `<div class="tx-icon" style="background:linear-gradient(135deg, ${hexToRgba(color,0.22)} 0%, ${hexToRgba(color,0.08)} 100%); border:1px solid ${hexToRgba(color,0.32)}; color:${color}; box-shadow:0 3px 10px ${hexToRgba(color,0.15)};">${emoji}</div>`;
   }
-  const arrow = tx.type === 'income' ? '↓' : '↑';
-  return `<div class="tx-icon ${tx.type}">${arrow}</div>`;
+  const isInc = tx.type === 'income';
+  const color = isInc ? 'var(--credit)' : 'var(--debit)';
+  const icon = isInc ? '🟢' : '🔴';
+  return `<div class="tx-icon ${tx.type}" style="border:1px solid ${hexToRgba(isInc?'#16A34A':'#DC2626',0.3)};">${icon}</div>`;
 }
 function personEmoji(id){
   const p = getPerson(id);
@@ -5980,10 +6513,18 @@ function applyTheme(){
 }
 function updateThemeToggleIcon(){
   const btn = document.getElementById('themeToggleBtn');
-  if(!btn) return;
+  const headerBtn = document.getElementById('headerThemeBtn');
   const theme = resolvedTheme();
-  btn.textContent = theme === 'dark' ? '☀️' : '🌙';
-  btn.title = theme === 'dark' ? 'رفتن به تم روشن' : 'رفتن به تم تیره';
+  const icon = theme === 'dark' ? '☀️' : '🌙';
+  const title = theme === 'dark' ? 'رفتن به تم روشن' : 'رفتن به تم تیره';
+  if(btn){
+    btn.textContent = icon;
+    btn.title = title;
+  }
+  if(headerBtn){
+    headerBtn.textContent = icon;
+    headerBtn.title = title;
+  }
 }
 async function toggleTheme(){
   data.theme = (resolvedTheme() === 'dark') ? 'light' : 'dark';
@@ -5992,6 +6533,250 @@ async function toggleTheme(){
   updateThemeToggleIcon();
   if(typeof renderAdminPanel === 'function') renderAdminPanel();
 }
+
+function updateHeaderGreeting(){
+  const el = document.getElementById('headerGreetingText');
+  if(!el) return;
+  const h = new Date().getHours();
+  let greeting = 'مدیریت هوشمند دارایی و هزینه‌ها';
+  if(h >= 5 && h < 12) greeting = 'صبح زیباتون بخیر ☀️';
+  else if(h >= 12 && h < 17) greeting = 'ظهر و بعدازظهر بخیر 🌤️';
+  else if(h >= 17 && h < 22) greeting = 'عصر دل‌انگیزتون بخیر 🌇';
+  else greeting = 'شب آرام و خوشی داشته باشید 🌙';
+  el.textContent = greeting;
+}
+
+/* ---------- interactive sticker & avatar picker ---------- */
+let currentStickerPickerPid = null;
+let selectedStickerEmoji = '👤';
+let selectedStickerColor = '#7A2E68';
+let currentStickerPack = 'family';
+let stickerPickerMode = 'avatar';
+
+function openStickerPicker(targetPid){
+  stickerPickerMode = 'avatar';
+  const pid = targetPid || currentUserId;
+  const person = getPerson(pid);
+  if(!person) return;
+  currentStickerPickerPid = pid;
+  selectedStickerEmoji = person.emoji || '👤';
+  selectedStickerColor = person.color || personColor(pid) || '#7A2E68';
+  currentStickerPack = 'family';
+  const overlay = document.getElementById('stickerPickerOverlay');
+  if(!overlay) return;
+  const titleIcon = document.getElementById('stickerPickerTitleIcon');
+  const titleText = document.getElementById('stickerPickerTitleText');
+  const colorSec = document.getElementById('stickerColorSection');
+  if(titleIcon) titleIcon.textContent = '🎨';
+  if(titleText) titleText.textContent = 'انتخاب استیکر و آواتار اختصاصی';
+  if(colorSec) colorSec.style.display = 'block';
+  renderStickerPreview();
+  renderStickerColorPalette();
+  renderStickerCategoryTabs();
+  renderStickerGrid();
+  overlay.classList.add('show');
+}
+
+function openTxStickerPicker(){
+  stickerPickerMode = 'transaction';
+  currentStickerPickerPid = null;
+  const currentVal = document.getElementById('txStickerInput')?.value || '';
+  selectedStickerEmoji = currentVal || '🍕';
+  selectedStickerColor = '#7A2E68';
+  currentStickerPack = 'food_lifestyle';
+  const overlay = document.getElementById('stickerPickerOverlay');
+  if(!overlay) return;
+  const titleIcon = document.getElementById('stickerPickerTitleIcon');
+  const titleText = document.getElementById('stickerPickerTitleText');
+  const colorSec = document.getElementById('stickerColorSection');
+  if(titleIcon) titleIcon.textContent = '🏷️';
+  if(titleText) titleText.textContent = 'انتخاب استیکر و نشان تراکنش';
+  if(colorSec) colorSec.style.display = 'none';
+  renderStickerPreview();
+  renderStickerCategoryTabs();
+  renderStickerGrid();
+  overlay.classList.add('show');
+}
+
+function closeStickerPicker(){
+  const overlay = document.getElementById('stickerPickerOverlay');
+  if(overlay) overlay.classList.remove('show');
+}
+
+function renderStickerPreview(){
+  const bubble = document.getElementById('stickerPreviewBubble');
+  const icon = document.getElementById('stickerPreviewIcon');
+  if(bubble && icon){
+    icon.textContent = selectedStickerEmoji;
+    bubble.style.background = `linear-gradient(135deg, ${selectedStickerColor} 0%, rgba(0,0,0,0.3) 100%)`;
+  }
+}
+
+function renderStickerColorPalette(){
+  const box = document.getElementById('stickerColorPalette');
+  if(!box) return;
+  box.innerHTML = PERSON_COLORS.map(c => `
+    <div class="sticker-color-dot ${c === selectedStickerColor ? 'active' : ''}" data-color="${c}" style="background:${c};"></div>
+  `).join('');
+  box.querySelectorAll('.sticker-color-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      selectedStickerColor = dot.dataset.color;
+      renderStickerColorPalette();
+      renderStickerPreview();
+    });
+  });
+}
+
+function renderStickerCategoryTabs(){
+  const tabsBox = document.getElementById('stickerCategoryTabs');
+  if(!tabsBox) return;
+  tabsBox.querySelectorAll('.sticker-cat-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.pack === currentStickerPack);
+    btn.onclick = () => {
+      currentStickerPack = btn.dataset.pack;
+      renderStickerCategoryTabs();
+      renderStickerGrid();
+    };
+  });
+}
+
+function renderStickerGrid(){
+  const grid = document.getElementById('stickerItemsGrid');
+  if(!grid) return;
+  const items = PERSON_STICKER_PACKS[currentStickerPack] || PERSON_STICKER_PACKS.family;
+  grid.innerHTML = items.map(stk => `
+    <button type="button" class="sticker-item-btn ${stk === selectedStickerEmoji ? 'selected' : ''}" data-sticker="${stk}">
+      ${stk}
+    </button>
+  `).join('');
+  grid.querySelectorAll('.sticker-item-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedStickerEmoji = btn.dataset.sticker;
+      renderStickerGrid();
+      renderStickerPreview();
+    });
+  });
+}
+
+async function saveStickerChoice(){
+  if(stickerPickerMode === 'transaction'){
+    setTxSticker(selectedStickerEmoji);
+    closeStickerPicker();
+    showSuccessToast(`استیکر «${selectedStickerEmoji}» به تراکنش اختصاص یافت ✨`);
+    return;
+  }
+  if(!currentStickerPickerPid) return;
+  const person = getPerson(currentStickerPickerPid);
+  if(person){
+    person.emoji = selectedStickerEmoji;
+    person.color = selectedStickerColor;
+    await saveData();
+    render();
+    closeStickerPicker();
+    showSuccessToast(`استیکر آواتار ${person.name} با موفقیت ذخیره شد ✨`);
+  }
+}
+
+function setTxSticker(emoji){
+  const input = document.getElementById('txStickerInput');
+  if(input) input.value = emoji || '';
+  const badge = document.getElementById('txSelectedStickerBadge');
+  const preview = document.getElementById('txSelectedStickerPreview');
+  if(badge && preview){
+    if(emoji){
+      preview.textContent = emoji;
+      badge.style.display = 'inline-flex';
+    } else {
+      preview.textContent = '';
+      badge.style.display = 'none';
+    }
+  }
+  const bar = document.getElementById('txQuickStickersBar');
+  if(bar){
+    bar.querySelectorAll('.tx-sticker-pill-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.sticker === emoji);
+    });
+  }
+}
+
+function renderTxQuickStickers(){
+  const bar = document.getElementById('txQuickStickersBar');
+  if(!bar) return;
+  const currentVal = document.getElementById('txStickerInput')?.value || '';
+  const pillsHtml = QUICK_TX_STICKERS.map(s => `
+    <button type="button" class="tx-sticker-pill-btn ${s.emoji === currentVal ? 'active' : ''}" data-sticker="${s.emoji}">
+      <span>${s.emoji}</span>
+      <span style="font-size:11px; opacity:0.9;">${s.label}</span>
+    </button>
+  `).join('');
+  bar.innerHTML = `
+    ${pillsHtml}
+    <button type="button" class="tx-sticker-more-btn" id="openTxStickerPickerBtn">
+      <span>➕</span>
+      <span>سایر استیکرها…</span>
+    </button>
+  `;
+  bar.querySelectorAll('.tx-sticker-pill-btn').forEach(btn => {
+    btn.onclick = () => {
+      const s = btn.dataset.sticker;
+      const current = document.getElementById('txStickerInput')?.value || '';
+      if(current === s) setTxSticker(''); else setTxSticker(s);
+    };
+  });
+  const moreBtn = document.getElementById('openTxStickerPickerBtn');
+  if(moreBtn) moreBtn.onclick = () => openTxStickerPicker();
+  const clearBtn = document.getElementById('clearTxStickerBtn');
+  if(clearBtn) clearBtn.onclick = () => setTxSticker('');
+}
+
+document.addEventListener('click', (e) => {
+  if(e.target.closest('#headerThemeBtn')){
+    toggleTheme();
+    return;
+  }
+  if(e.target.closest('#changeAvatarQuickBtn') || e.target.closest('#userProfileChip')){
+    openStickerPicker();
+    return;
+  }
+  if(e.target.closest('#closeStickerPickerBtn') || e.target.closest('#cancelStickerChoiceBtn')){
+    closeStickerPicker();
+    return;
+  }
+  if(e.target.closest('#saveStickerChoiceBtn')){
+    saveStickerChoice();
+    return;
+  }
+  // Home quick action pills
+  const quickPill = e.target.closest('.quick-action-pill');
+  if(quickPill){
+    const act = quickPill.dataset.quick;
+    if(act === 'income'){
+      showTab('transactions');
+      showTxSubTab('add');
+      setType('income');
+    } else if(act === 'expense'){
+      showTab('transactions');
+      showTxSubTab('add');
+      setType('expense');
+    } else if(act === 'transfer'){
+      showTab('home');
+      const form = document.getElementById('newTransferForm');
+      if(form){
+        form.style.display = 'block';
+        form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } else if(act === 'cheque'){
+      showTab('cheques');
+      showChSubTab('new');
+    }
+    return;
+  }
+  // Close sticker picker if clicked outside box
+  const overlay = document.getElementById('stickerPickerOverlay');
+  if(overlay && e.target === overlay){
+    closeStickerPicker();
+  }
+});
 
 let colorSchemeListenerBound = false;
 function initPreferredColorSchemeListener(){
@@ -8843,7 +9628,7 @@ function renderBreakdown(){
       return `<div class="tx-row">
         ${txIconHtml(tx)}
         <div class="tx-main">
-          <div class="tx-desc">${escapeHtml(tx.desc)}</div>
+          <div class="tx-desc">${tx.sticker ? `<span class="tx-sticker-badge" title="استیکر">${tx.sticker}</span>` : ''}${escapeHtml(tx.desc)}</div>
           <div class="tx-meta">${tx.category ? categoryChipHtml(tx.category) : ''} · ${formatDate(tx.date)}</div>
         </div>
         <div class="tx-amount ${tx.type}">${sign}${fmt(tx.amount)}</div>
@@ -9016,7 +9801,7 @@ function renderHomeDashboard(){
         return `<div class="tx-row">
           ${txIconHtml(tx)}
           <div class="tx-main">
-            <div class="tx-desc">${escapeHtml(tx.desc)}</div>
+            <div class="tx-desc">${tx.sticker ? `<span class="tx-sticker-badge" title="استیکر">${tx.sticker}</span>` : ''}${escapeHtml(tx.desc)}</div>
             <div class="tx-meta">${tx.category ? categoryChipHtml(tx.category) : ''} · ${relativeDayLabel(tx.date)}</div>
           </div>
           <div class="tx-amount ${tx.type}">${hidden?dots:(sign+fmt(tx.amount))}</div>
@@ -9096,7 +9881,7 @@ function renderVirtualItemHtml(item){
           <span class="tx-type-badge ${tx.type}">${arrow}</span>
         </div>
         <div class="tx-main">
-          <div class="tx-desc">${escapeHtml(tx.desc)}${editedTag}</div>
+          <div class="tx-desc">${tx.sticker ? `<span class="tx-sticker-badge" title="استیکر">${tx.sticker}</span>` : ''}${escapeHtml(tx.desc)}${editedTag}</div>
           <div class="tx-meta">${tx.category ? categoryChipHtml(tx.category) : ''} · ${escapeHtml(personName(tx.personId))}${accountMetaSuffix(tx)} · ${txTimeLabel(tx)}</div>
         </div>
         ${photoThumb}
@@ -9476,6 +10261,7 @@ function startEditTransaction(id){
   populateCategorySelect();
   document.getElementById('categorySelect').value = tx.category || '';
   document.getElementById('descInput').value = tx.desc;
+  setTxSticker(tx.sticker || '');
   setAmountFieldValue('amountInput', tx.amount);
   txDatePicker.setSelected(tx.date);
   pendingPhotoDataUrls = txPhotos(tx).slice();
@@ -9484,6 +10270,7 @@ function startEditTransaction(id){
   document.getElementById('cancelEditBtn').style.display = 'block';
   document.getElementById('submitBtnLbl').textContent = 'ذخیره تغییرات';
 }
+
 function cancelEditTransaction(){
   editingTxId = null;
   pendingPhotoDataUrls = [];
@@ -9491,6 +10278,7 @@ function cancelEditTransaction(){
   document.getElementById('cancelEditBtn').style.display = 'none';
   document.getElementById('submitBtnLbl').textContent = 'ثبت تراکنش';
   document.getElementById('descInput').value = ''; categoryManuallyPicked = false;
+  setTxSticker('');
   const sugBox = document.getElementById('descSuggestionsBox');
   if(sugBox) sugBox.style.display = 'none';
   clearAmountField('amountInput');
@@ -10141,6 +10929,33 @@ async function init(){
   chDatePicker.resetToToday();
   setType('income');
   wireAllAmountFields();
+  renderTxQuickStickers();
+
+  const apkBtn = document.getElementById('downloadApkSettingsBtn');
+  if(apkBtn){
+    apkBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const modal = document.getElementById('apkDownloadModal');
+      if(modal) modal.style.display = 'flex';
+    });
+  }
+  document.getElementById('closeApkModalBtn')?.addEventListener('click', () => {
+    const modal = document.getElementById('apkDownloadModal');
+    if(modal) modal.style.display = 'none';
+  });
+  document.getElementById('dismissApkModalBtn')?.addEventListener('click', () => {
+    const modal = document.getElementById('apkDownloadModal');
+    if(modal) modal.style.display = 'none';
+  });
+  document.getElementById('copyApkLinkBtn')?.addEventListener('click', () => {
+    const directUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'ariana-sandoogh.apk';
+    navigator.clipboard?.writeText(directUrl).then(() => {
+      showSuccessToast('لینک فایل APK کپی شد 📋');
+    }).catch(() => {
+      showSuccessToast('لینک: ' + directUrl);
+    });
+  });
+
   setInterval(() => { if(document.getElementById('app').style.display !== 'none') renderChequeAlerts(); }, 60*60*1000);
 
   document.getElementById('dateDisplay').addEventListener('click', () => {
@@ -10242,13 +11057,14 @@ async function init(){
   document.getElementById('addForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const desc = document.getElementById('descInput').value.trim();
+    const sticker = (document.getElementById('txStickerInput')?.value || '').trim();
     const date = document.getElementById('dateInput').value;
     const personId = document.getElementById('personSelect').value;
     const accountId = document.getElementById('accountSelect').value;
     const walletId = defaultActiveWalletId();
     const prevAccountBalance = (computeAccountBalances()[accountId] || {}).balance;
-    const splitOn = currentType === 'expense' && !editingTxId && document.getElementById('splitModeCheckbox').checked;
 
+    const splitOn = currentType === 'expense' && !editingTxId && document.getElementById('splitModeCheckbox').checked;
     if(splitOn){
       const rows = getSplitRowsData();
       if(!desc || !date || rows.length === 0){ alert('توضیح، تاریخ و حداقل یه ردیف تقسیم با مبلغ معتبر لازمه.'); return; }
@@ -10256,7 +11072,7 @@ async function init(){
       const total = rows.reduce((s,r) => s + r.amount, 0);
       rows.forEach(r => {
         data.transactions.push({
-          id: newId('t'), type: 'expense', desc, amount: r.amount, date, personId, accountId, walletId, category: r.category,
+          id: newId('t'), type: 'expense', desc, sticker, amount: r.amount, date, personId, accountId, walletId, category: r.category,
           splitGroupId, photos: pendingPhotoDataUrls.slice(),
           enteredById: currentUserId, createdAt: Date.now()
         });
@@ -10268,6 +11084,7 @@ async function init(){
       checkLowBalanceWarning(accountId, prevAccountBalance);
       await saveData();
       document.getElementById('descInput').value = ''; categoryManuallyPicked = false;
+      setTxSticker('');
       const sugBoxSplit = document.getElementById('descSuggestionsBox');
       if(sugBoxSplit) sugBoxSplit.style.display = 'none';
       clearSplitRows();
@@ -10287,7 +11104,7 @@ async function init(){
       if(!(await confirmAsync('تغییرات این تراکنش ذخیره بشه؟'))) return;
       const tx = data.transactions.find(t => String(t.id) === String(editingTxId));
       if(tx){
-        tx.desc = desc; tx.amount = amount; tx.date = date; tx.personId = personId; tx.accountId = accountId;
+        tx.desc = desc; tx.sticker = sticker; tx.amount = amount; tx.date = date; tx.personId = personId; tx.accountId = accountId;
         tx.walletId = walletId; tx.category = category; tx.type = currentType; tx.photos = pendingPhotoDataUrls.slice(); delete tx.photo;
         tx.editedAt = Date.now(); tx.editedBy = currentUserId;
         logActivity('edit_tx', `${currentType==='income'?'واریز':'برداشت'} ${fmt(amount)} - ${desc} (${personName(personId)})`);
@@ -10302,20 +11119,20 @@ async function init(){
         if(!(await confirmAsync('یه تراکنش مشابه (همین توضیح، مبلغ و شخص) چند دقیقه پیش ثبت شده. مطمئنید تکراری نیست؟'))) return;
       }
       data.transactions.push({
-        id: newId('t'), type: currentType, desc, amount, date, personId, accountId, walletId, category,
+        id: newId('t'), type: currentType, desc, sticker, amount, date, personId, accountId, walletId, category,
         photos: pendingPhotoDataUrls.slice(),
         enteredById: currentUserId, createdAt: Date.now()
       });
       logActivity('add_tx', `${currentType==='income'?'واریز':'برداشت'} ${fmt(amount)} - ${desc} (${personName(personId)})`);
     }
     await saveData();
-
     if(currentType === 'expense' && data.budgets && data.budgets[category] > 0){
       checkBudgetWarning(category);
     }
     if(!wasEditSave) checkLowBalanceWarning(accountId, prevAccountBalance);
 
     document.getElementById('descInput').value = ''; categoryManuallyPicked = false;
+    setTxSticker('');
     const sugBoxNorm = document.getElementById('descSuggestionsBox');
     if(sugBoxNorm) sugBoxNorm.style.display = 'none';
     clearAmountField('amountInput');

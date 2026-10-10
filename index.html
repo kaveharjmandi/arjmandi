@@ -257,19 +257,13 @@ input[type="checkbox"]:not(.switch input):active {
   font-size:9.5px; font-weight:700; padding:1px 6px; border-radius:999px;
   background:rgba(122,46,104,0.12); color:var(--accent);
 }
-.user-status-row{ display:flex; align-items:center; gap:5px; }
+.user-status-row{ display:flex; align-items:center; gap:6px; }
 .online-indicator-dot{
-  width:6px; height:6px; border-radius:50%; background:var(--credit);
+  width:7px; height:7px; border-radius:50%; background:var(--credit);
   box-shadow:0 0 6px var(--credit);
+  transition:background .25s ease, box-shadow .25s ease;
+  flex-shrink:0;
 }
-.avatar-quick-change-btn{
-  background:linear-gradient(135deg, var(--bg-deep) 0%, var(--card-bg) 100%);
-  border:1px solid var(--line); color:var(--accent); border-radius:999px;
-  padding:4px 10px; font-size:10.5px; font-weight:700; cursor:pointer;
-  font-family:inherit; display:inline-flex; align-items:center; gap:4px;
-  transition:all .15s ease;
-}
-.avatar-quick-change-btn:active{ transform:scale(0.94); background:var(--bg); }
 .logout-icon-btn{
   background:transparent !important; border:1px solid var(--line) !important;
   color:var(--debit) !important; border-radius:999px !important;
@@ -278,7 +272,8 @@ input[type="checkbox"]:not(.switch input):active {
 .logout-icon-btn:active{ transform:scale(0.94); background:rgba(220,38,38,0.08) !important; }
 .user-bar .actions{display:flex; gap:6px; flex-wrap:wrap; align-items:center;}
 .storage-indicator-pill{
-  font-size:9.5px; color:var(--ink-soft); background:var(--bg); border-radius:999px; padding:2px 8px;
+  font-size:10px; color:var(--ink-soft); background:var(--bg); border:1px solid var(--line);
+  border-radius:999px; padding:2px 8px; font-weight:500;
 }
 
 .bank-card{
@@ -2341,13 +2336,12 @@ if(!window.supabase){
             <span class="user-role-tag" id="userRoleTag">عضو صندوق</span>
           </div>
           <div class="user-status-row">
-            <span class="online-indicator-dot"></span>
-            <span id="storageIndicator" class="storage-indicator-pill"></span>
+            <span class="online-indicator-dot" id="onlineIndicatorDot"></span>
+            <span id="storageIndicator" class="storage-indicator-pill">آنلاین</span>
           </div>
         </div>
       </div>
       <div class="actions">
-        <button type="button" id="changeAvatarQuickBtn" class="avatar-quick-change-btn" title="انتخاب استیکر اختصاصی">🎨 استیکر من</button>
         <button type="button" id="logoutBtn" title="خروج از حساب" aria-label="خروج از حساب" class="logout-icon-btn">🚪 خروج</button>
       </div>
     </div>
@@ -4048,7 +4042,9 @@ async function saveData(){
     updateStorageIndicator();
     showStorageBanner();
     if(pendingSaveRetryTimer) clearTimeout(pendingSaveRetryTimer);
-    pendingSaveRetryTimer = setTimeout(() => { saveData(); }, 4000);
+    if(typeof navigator !== 'undefined' && navigator.onLine !== false){
+      pendingSaveRetryTimer = setTimeout(() => { saveData(); }, 10000);
+    }
     return;
   }
 
@@ -4059,9 +4055,9 @@ async function saveData(){
   } else {
     const ok = await storageSet(STORAGE_KEY, JSON.stringify(data));
     if(!ok){ showStorageBanner(); }
-    if(sb){
+    if(sb && typeof navigator !== 'undefined' && navigator.onLine !== false){
       if(pendingSaveRetryTimer) clearTimeout(pendingSaveRetryTimer);
-      pendingSaveRetryTimer = setTimeout(() => { saveData(); }, 4000);
+      pendingSaveRetryTimer = setTimeout(() => { saveData(); }, 10000);
     }
   }
   updateStorageIndicator();
@@ -4069,17 +4065,43 @@ async function saveData(){
 function showStorageBanner(){
   const b = document.getElementById('storageBanner');
   if(!b) return;
-  if(storageMode === 'sync' || storageMode === 'cloud'){ b.style.display = 'none'; return; }
-  b.style.display = 'block';
-  b.innerHTML = '<b>📴 حالت محلی (آفلاین)</b>اطلاعات روی همین گوشی با امنیت ذخیره است و با اتصال اینترنت به طور خودکار با سرور همگام می‌شود.';
+  // Discreet banner - offlineBanner and the live status dot already notify user
+  b.style.display = 'none';
 }
 function updateStorageIndicator(){
   const el = document.getElementById('storageIndicator');
+  const dot = document.getElementById('onlineIndicatorDot') || document.querySelector('.online-indicator-dot');
   if(!el) return;
-  if(storageMode === 'sync'){ el.textContent = '🟢'; el.title = 'آنلاین - همگام با بقیه گوشی‌ها'; }
-  else if(storageMode === 'cloud'){ el.textContent = '🟢'; el.title = 'آنلاین'; }
-  else if(storageMode === 'local'){ el.textContent = '📴'; el.title = 'آفلاین - فقط همین گوشی'; }
-  else { el.textContent = '⚠️'; el.title = 'ذخیره نشد'; }
+  const isOffline = (typeof navigator !== 'undefined' && navigator.onLine === false);
+  if(isOffline || storageMode === 'local'){
+    if(dot){
+      dot.style.background = '#F59E0B';
+      dot.style.boxShadow = '0 0 6px rgba(245, 158, 11, 0.6)';
+    }
+    el.textContent = 'آفلاین (حافظه دستگاه)';
+    el.title = 'آفلاین - اطلاعات روی همین دستگاه با امنیت ذخیره است';
+  } else if(storageMode === 'sync'){
+    if(dot){
+      dot.style.background = 'var(--credit)';
+      dot.style.boxShadow = '0 0 6px var(--credit)';
+    }
+    el.textContent = 'آنلاین (همگام)';
+    el.title = 'آنلاین - همگام با سایر اعضا';
+  } else if(storageMode === 'cloud'){
+    if(dot){
+      dot.style.background = 'var(--credit)';
+      dot.style.boxShadow = '0 0 6px var(--credit)';
+    }
+    el.textContent = 'آنلاین';
+    el.title = 'متصل به سرور';
+  } else {
+    if(dot){
+      dot.style.background = 'var(--debit)';
+      dot.style.boxShadow = '0 0 6px var(--debit)';
+    }
+    el.textContent = 'خطا در ذخیره';
+    el.title = 'ذخیره نشد';
+  }
   el.setAttribute('aria-label', el.title);
 }
 
@@ -7019,7 +7041,7 @@ document.addEventListener('click', (e) => {
     toggleTheme();
     return;
   }
-  if(e.target.closest('#changeAvatarQuickBtn') || e.target.closest('#userProfileChip')){
+  if(e.target.closest('#userProfileChip')){
     openStickerPicker();
     return;
   }
@@ -11726,9 +11748,14 @@ function updateOfflineBanner(){
 }
 window.addEventListener('online', () => {
   updateOfflineBanner();
+  updateStorageIndicator();
+  if(typeof saveData === 'function') saveData();
   if(typeof syncWithServer === 'function') syncWithServer();
 });
-window.addEventListener('offline', updateOfflineBanner);
+window.addEventListener('offline', () => {
+  updateOfflineBanner();
+  updateStorageIndicator();
+});
 updateOfflineBanner();
 
 function registerServiceWorker(){

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sandoogh-khanevadeh-v120';
+const CACHE_NAME = 'sandoogh-khanevadeh-v121';
 const FILES_TO_CACHE = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const FILES_TO_CACHE = [
   './react.min.js',
   './react-dom.min.js',
   './recharts.min.js',
+  './d3.min.js',
   './Vazirmatn-font-face.css',
   './icons/icon-192.png',
   './icons/icon-512.png',

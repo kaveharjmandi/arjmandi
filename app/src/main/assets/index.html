@@ -2038,12 +2038,36 @@ if(!window.supabase){
   <!-- SETTINGS -->
   <div id="settingsDrawerBackdrop" class="drawer-backdrop"></div>
   <div id="settingsScreen" class="settings-drawer">
-    <header class="site-header">
-      <h1>تنظیمات</h1>
-      <button id="themeToggleBtn" class="drawer-close-btn" title="تغییر تم" aria-label="تغییر تم روشن و تاریک">🌙</button>
+    <header class="site-header" style="justify-content:space-between;">
+      <h1 style="margin:0;">تنظیمات</h1>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button id="themeToggleBtn" class="drawer-close-btn" title="تغییر تم" aria-label="تغییر تم روشن و تاریک">🌙</button>
+        <button id="closeSettingsDrawerBtn" class="drawer-close-btn" title="بستن تنظیمات" aria-label="بستن تنظیمات">✕</button>
+      </div>
     </header>
 
     <div id="settingsMainList">
+      <!-- کارت مشخصات کاربر، آواتار و خروج در تنظیمات -->
+      <div class="card settings-card" style="padding:12px; margin-bottom:12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div class="user-bar-profile" id="userProfileChip" style="padding:0; flex:1;" title="کلیک برای تغییر استیکر و رنگ آواتار">
+            <div class="user-avatar-badge" id="myAvatarStickerBadge">👤</div>
+            <div class="user-profile-info">
+              <div class="user-name-row">
+                <span class="who-greeting">سلام،</span>
+                <span id="whoName" class="user-full-name"></span>
+                <span class="user-role-tag" id="userRoleTag">عضو صندوق</span>
+              </div>
+              <div class="user-status-row">
+                <span class="online-indicator-dot" id="onlineIndicatorDot"></span>
+                <span id="storageIndicator" class="storage-indicator-pill">آنلاین</span>
+              </div>
+            </div>
+          </div>
+          <button type="button" id="logoutBtn" title="خروج از حساب" aria-label="خروج از حساب" class="logout-icon-btn">🚪 خروج</button>
+        </div>
+      </div>
+
       <div class="card settings-card">
         <div class="settings-item" data-cat="security">
           <div class="settings-icon">🔒</div>
@@ -2310,41 +2334,11 @@ if(!window.supabase){
 
   <!-- MAIN APP -->
   <div id="app" style="display:none;">
-    <header class="site-header app-header-bar">
-      <div class="brand-hero-wrap">
-        <div class="brand-hero-badge">
-          <span class="brand-hero-icon">💎</span>
-        </div>
-        <div class="brand-hero-titles">
-          <div class="brand-hero-title">صندوق خانوادگی آریانا</div>
-          <div class="brand-hero-sub" id="headerGreetingText">مدیریت هوشمند دارایی و هزینه‌ها</div>
-        </div>
-      </div>
+    <header class="site-header app-header-bar" style="justify-content:flex-start; margin-bottom:12px;">
       <div class="app-header-actions">
-        <button type="button" id="headerThemeBtn" class="header-action-btn" title="تغییر تم (روز / شب)" aria-label="تغییر تم">🌙</button>
         <button id="settingsBtn" class="header-action-btn hamburger-btn" title="تنظیمات" aria-label="باز کردن منوی تنظیمات">⚙️</button>
       </div>
     </header>
-
-    <div class="user-bar">
-      <div class="user-bar-profile" id="userProfileChip" title="کلیک برای تغییر استیکر و رنگ آواتار">
-        <div class="user-avatar-badge" id="myAvatarStickerBadge">👤</div>
-        <div class="user-profile-info">
-          <div class="user-name-row">
-            <span class="who-greeting">سلام،</span>
-            <span id="whoName" class="user-full-name"></span>
-            <span class="user-role-tag" id="userRoleTag">عضو صندوق</span>
-          </div>
-          <div class="user-status-row">
-            <span class="online-indicator-dot" id="onlineIndicatorDot"></span>
-            <span id="storageIndicator" class="storage-indicator-pill">آنلاین</span>
-          </div>
-        </div>
-      </div>
-      <div class="actions">
-        <button type="button" id="logoutBtn" title="خروج از حساب" aria-label="خروج از حساب" class="logout-icon-btn">🚪 خروج</button>
-      </div>
-    </div>
 
     <div class="fab-backdrop" id="fabBackdrop"></div>
     <div class="fab-wrap" id="fabWrap">
@@ -5224,6 +5218,7 @@ function openSettingsDrawer(){ pushPanelState('main'); }
 /* kept as the "fully close, however deep we are" helper used by the backdrop and logout */
 function closeSettingsDrawer(){ closeAllPanels(); }
 document.getElementById('settingsDrawerBackdrop').addEventListener('click', closeSettingsDrawer);
+document.getElementById('closeSettingsDrawerBtn')?.addEventListener('click', closeSettingsDrawer);
 
 /* ---------- quick PIN lock (per device) ---------- */
 function pinKey(username){ return 'sandoogh-pin-' + username; }
@@ -5928,6 +5923,23 @@ function showSettingsCat(cat){
     panel.style.animation = '';
   }
 }
+function renderUserSettingsCard(){
+  const whoNameEl = document.getElementById('whoName');
+  if(whoNameEl) whoNameEl.textContent = personName(currentUserId);
+  const userRoleTagEl = document.getElementById('userRoleTag');
+  if(userRoleTagEl) userRoleTagEl.textContent = isCurrentAdmin() ? 'مدیر صندوق 👑' : 'عضو صندوق';
+  const myAvatarBadge = document.getElementById('myAvatarStickerBadge');
+  if(myAvatarBadge){
+    const p = currentPerson();
+    myAvatarBadge.textContent = (p && (p.emoji || p.avatar)) || '👤';
+    if(p && p.color){
+      myAvatarBadge.style.background = `linear-gradient(135deg, ${p.color} 0%, rgba(0,0,0,0.3) 100%)`;
+      myAvatarBadge.style.outlineColor = p.color;
+    }
+  }
+  updateStorageIndicator();
+}
+
 document.querySelectorAll('#settingsMainList [data-cat]').forEach(row => {
   row.addEventListener('click', () => pushPanelState({ cat: row.getAttribute('data-cat') }));
 });
@@ -5936,6 +5948,7 @@ document.querySelectorAll('.cat-back-btn').forEach(btn => {
 });
 document.getElementById('settingsBtn').addEventListener('click', () => {
   const isAdm = isCurrentAdmin();
+  renderUserSettingsCard();
   document.getElementById('adminCatRow').style.display = isAdm ? 'flex' : 'none';
   document.getElementById('changePwCard').style.display = 'none';
   renderFingerprintSection();
@@ -10232,7 +10245,7 @@ document.getElementById('periodTodayLink').addEventListener('click', () => {
 /* ---------- render ---------- */
 function render(){
   document.title = data.title;
-  document.getElementById('whoName').textContent = personName(currentUserId);
+  renderUserSettingsCard();
   document.getElementById('amountLbl').textContent = `مبلغ (${data.currency})`;
   const chAmountLblEl = document.getElementById('chAmountLbl');
   if(chAmountLblEl) chAmountLblEl.textContent = `مبلغ (${data.currency})`;

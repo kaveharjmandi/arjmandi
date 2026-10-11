@@ -64,7 +64,7 @@ const server = http.createServer((req, res) => {
       'Content-Type': contentType,
       'Accept-Ranges': 'bytes',
       'Last-Modified': stats.mtime.toUTCString(),
-      'Cache-Control': ext === '.apk' || ext === '.zip' ? 'public, max-age=3600' : 'no-cache'
+      'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0'
     };
 
     if (ext === '.apk') {

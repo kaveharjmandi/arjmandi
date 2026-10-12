@@ -12,8 +12,8 @@ android {
         applicationId = "com.aistudio.ariana.kfxmjz"
         minSdk = 24
         targetSdk = 36
-        versionCode = 2
-        versionName = "2.4.0"
+        versionCode = 3
+        versionName = "2.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

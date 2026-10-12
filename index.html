@@ -2261,7 +2261,7 @@ if(!window.supabase){
           <span>صندوق خانوادگی آریانا</span>
         </div>
         <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; direction:ltr; letter-spacing:0.5px;">
-          نسخه <b id="appVersionBadge">2.4.0</b> (بروزرسانی خودکار)
+          نسخه <b id="appVersionBadge">2.5.0</b> (بروزرسانی خودکار)
         </div>
       </div>
     </div>
@@ -3382,7 +3382,7 @@ if(!window.supabase){
 </div>
 
 <script>
-const APP_VERSION = '2.4.0';
+const APP_VERSION = '2.5.0';
 const STORAGE_KEY = 'family-fund-data';
 let data = null;
 let currentUserId = null;
@@ -6122,6 +6122,10 @@ function renderUserSettingsCard(){
       myAvatarBadge.style.background = `linear-gradient(135deg, ${p.color} 0%, rgba(0,0,0,0.3) 100%)`;
       myAvatarBadge.style.outlineColor = p.color;
     }
+  }
+  const versionBadge = document.getElementById('appVersionBadge');
+  if(versionBadge && typeof APP_VERSION !== 'undefined') {
+    versionBadge.textContent = APP_VERSION;
   }
   updateStorageIndicator();
 }
